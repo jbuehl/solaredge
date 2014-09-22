@@ -1,0 +1,3 @@
+0 0 * * * /usr/bin/systemctl restart secapture
+0 0 * * * /usr/bin/systemctl restart seconvert
+

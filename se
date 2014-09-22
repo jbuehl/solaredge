@@ -1,0 +1,5 @@
+#!/bin/bash -
+
+cd /root
+/usr/bin/python /root/se.py logs/
+

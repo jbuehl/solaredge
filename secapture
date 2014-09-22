@@ -1,0 +1,17 @@
+#!/bin/bash -
+
+SESERVER=prod.solaredge.com # 217.68.152.66
+INTERFACE=eth0
+ROOTDIR=/root/pcap/
+PREFIX=solaredge-
+
+# wait for the time to get set
+while [ `date +%Y` == "1969" ]
+do
+	echo "Waiting for correct time"
+	sleep 1
+done
+
+#IP=`dig $SESERVER +short`  # this doesn't work in arch
+IP=`dig $SESERVER|grep $SESERVER|tail -n1|cut -f5`
+/usr/bin/tcpdump -i $INTERFACE -U -w $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.pcap host $IP

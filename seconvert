@@ -1,0 +1,15 @@
+#!/bin/bash -
+
+DBHOST=192.168.1.13
+
+# wait for the time to get set
+while [ `date +%Y` == "1969" ]
+do
+	echo "Waiting for correct time"
+	sleep 1
+done
+
+cd /root
+#/usr/bin/python /root/solaredge/seconvert.py -v -f -d solar -h $DBHOST pcap/
+python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -d solar -h $DBHOST
+

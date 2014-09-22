@@ -1,0 +1,9 @@
+[Unit]
+Description=SolarEdge capture
+After=syslog.target
+[Service]
+ExecStart=/root/solaredge/secapture
+Restart=on-abort
+[Install]
+WantedBy=multi-user.target
+

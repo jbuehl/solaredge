@@ -1,0 +1,9 @@
+[Unit]
+Description=SolarEdge conversion
+After=syslog.target
+[Service]
+ExecStart=/root/solaredge/seconvert
+Restart=on-abort
+[Install]
+WantedBy=multi-user.target
+
