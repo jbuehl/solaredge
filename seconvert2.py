@@ -61,6 +61,7 @@ import time
 import getopt
 import MySQLdb
 import syslog
+import json
 
 # configuration
 debug = False
@@ -72,6 +73,7 @@ inFileName = ""
 inputSeq = 0
 invFileName = ""
 optFileName = ""
+jsonFileName = ""
 headers = False
 delim = ","
 writeMode = "w"
@@ -86,11 +88,16 @@ dbRetryInterval = 60
 inFile = None
 invFile = None
 optFile = None
+jsonFile = None
 db = None
 
 # file constants
 seHdrLen = 20
 seDevHdrLen = 8
+
+# device data dictionaries
+invDict = {}
+optDict = {}
 
 # input file format strings
 invInFmt = "<LLLffffffLLfLffLfffffLLffL"
@@ -153,6 +160,35 @@ class optData:
         self.Eday = seOptData[7] # energy produced today (Wh)
         self.Temp = seOptData[8] # temperature (C)
 
+def optDictData(seOptData):
+    return {"Date": printDate(seOptData[0]),
+            "Time": printTime(seOptData[0]),
+            "Inverter": convertId(seOptData[1]),
+            "Uptime": "%d" % seOptData[3], # uptime (secs) ?
+            "Vmod": "%f" % seOptData[4], # module voltage
+            "Vopt": "%f" % seOptData[5], # optimizer voltage
+            "Imod": "%f" % seOptData[6], # module current
+            "Eday": "%f" % seOptData[7], # energy produced today (Wh)
+            "Temp": "%f" % seOptData[8] # temperature (C)
+            }
+
+def invDictData(seInvData):
+    return {"Date": printDate(seInvData[0]),
+            "Time": printTime(seInvData[0]),
+            "Uptime": "%d" % seInvData[1], # uptime (secs) ?
+            "Interval": "%d" % seInvData[2], # time in last interval (secs) ?
+            "Temp": "%f" % seInvData[3], # temperature (C)
+            "Eday": "%f" % seInvData[4], # energy produced today (Wh)
+            "Eac": "%f" % seInvData[5], # energy produced in last interval (Wh)
+            "Vac": "%f" % seInvData[6], # AC volts
+            "Iac": "%f" % seInvData[7], # AC current
+            "Freq": "%f" % seInvData[8], # frequency (Hz)
+            "Vdc": "%f" % seInvData[11], # DC volts
+            "Etot": "%f" % seInvData[13], # total energy produced (Wh)
+            "Pmax": "%f" % seInvData[18], # max power (W) = 5000
+            "Pac": "%f" % seInvData[23] # AC power (W)
+            }
+
 # SolarEdge data
 def seConvert():
     global inputSeq
@@ -169,6 +205,7 @@ def seConvert():
         time.sleep(sleepInterval)
 
 def seHeader(inRec):
+    global invDict, optDict
     # read the header record
     (seMagic, seDataLen) = struct.unpack("<LH", inRec)
     if debugData: log("solaredge", "inputSeq", inputSeq, "seDataLen", seDataLen)
@@ -194,10 +231,14 @@ def seHeader(inRec):
             if seType == 0x0000:    # optimizer log data
                 seOptData = readData(inFile, optInFmt, seDeviceLen)
                 seOptData[2] = convertId(seOptData[2])
+                optDict[seId] = optDictData(seOptData)
+                writeJson()
                 writeData(seId, seOptData, optIdx, optOutFmt, optFile)
                 writeDb(seId, seOptData, optIdx, optSqlFmt, "optimizers")
             elif seType == 0x0010:  # inverter log data
                 seInvData = readData(inFile, invInFmt, seDeviceLen)
+                invDict[seId] = invDictData(seInvData)
+                writeJson()
                 writeData(seId, seInvData, invIdx, invOutFmt, invFile)
                 writeDb(seId, seInvData, invIdx, invSqlFmt, "inverters")
             elif seType == 0x0200:
@@ -221,6 +262,12 @@ def convertId(seId):
 def readData(inFile, inFmt, seDeviceLen):
     return list(struct.unpack(inFmt, inFile.read(seDeviceLen)))
 
+# write device data to json file
+def writeJson():
+    if jsonFileName != "":
+#        if debugFiles: log("writing", jsonFileName)
+        json.dump({"inverters": invDict, "optimizers": optDict}, open(jsonFileName, "w"))
+    
 # write device data
 def writeData(seId, seData, seIdx, outFmt, outFile):
     if outFile:
@@ -272,10 +319,10 @@ def printTime(timeStamp):
 def getOpts():
     global debug, debugFiles, debugRecs, debugData
     global writeMode, delim, follow, headers
-    global invFileName, optFileName
+    global invFileName, optFileName, jsonFileName
     global dataBase, dbHostName, password
     global userName, pcapDir, inFileName, inFiles
-    (opts, args) = getopt.getopt(sys.argv[1:], "aD:d:fp:Hh:i:o:p:u:v")
+    (opts, args) = getopt.getopt(sys.argv[1:], "aD:d:fp:Hh:i:j:o:p:u:v")
     try:
         inFileName = args[0]
     except:
@@ -295,6 +342,8 @@ def getOpts():
             dbHostName = opt[1]
         elif opt[0] == "-i":
             invFileName = opt[1]
+        elif opt[0] == "-j":
+            jsonFileName = opt[1]
         elif opt[0] == "-o":
             optFileName = opt[1]
         elif opt[0] == "-p":
@@ -323,6 +372,7 @@ def getOpts():
         log("inFileName:", inFileName)
         log("invFileName:", invFileName)
         log("optFileName:", optFileName)
+        log("jsonFileName:", jsonFileName)
 
 # open the output files if they are specified
 def openOutFiles():
