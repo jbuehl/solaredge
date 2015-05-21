@@ -1,3 +1,4 @@
 *.pyc
-*.spf
+obsolete
+sql
 .DS_Store
