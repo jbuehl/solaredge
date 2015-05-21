@@ -1,6 +1,2 @@
 *.pyc
-obsolete
-obsolete/*
-sql
-sql/*
 .DS_Store

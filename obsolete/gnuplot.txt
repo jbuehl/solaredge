@@ -1,9 +1,0 @@
-set timefmt "%Y-%m-%d"
-set xdata time
-set xtics rotate
-set yrange [0:40]
-set style fill solid .5
-set term png
-set output "Emonth.png"
-plot "emonth.tsv" using 1:2 title "Energy (KWh)" with boxes
-

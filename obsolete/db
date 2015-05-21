@@ -1,1 +1,0 @@
-create table optimizers (Date date,Time time,ID char,Inv char,Uptime int,Vmod float,Vopt float,Imod float,Energy float,Temp float)

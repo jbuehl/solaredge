@@ -1,9 +1,0 @@
-[Unit]
-Description=SolarEdge web interface
-After=syslog.target mysqld.service
-[Service]
-ExecStart=/usr/bin/python /root/solar/seweb.py
-Restart=on-abort
-[Install]
-WantedBy=multi-user.target
-

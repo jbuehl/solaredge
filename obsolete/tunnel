@@ -1,9 +1,0 @@
-#!/usr/bin/bash
-
-killall ssh
-ssh -R *:4319:localhost:80 ec2-user@buehltech.com -N -f
-while [ 1 ]
-do
-    sleep 300
-    ssh ec2-user@buehltech.com wget localhost:4319/stats -o /dev/null -O /dev/null
-done

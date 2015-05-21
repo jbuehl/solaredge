@@ -1,9 +1,0 @@
-[Unit]
-Description=SolarEdge app
-After=syslog.target
-[Service]
-ExecStart=/root/se
-Restart=on-abort
-[Install]
-WantedBy=multi-user.target
-
