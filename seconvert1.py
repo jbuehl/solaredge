@@ -1,13 +1,9 @@
 #!/usr/bin/python
 
 # Read a PCAP file that is a capture of the traffic between a SolarEdge inverter and the SE server.
-# Filter out and parse the log data for inverters and optimizers.
+# Filter out the TCP stream from the inverter to the server..
 
-# The output can be specified in various modes:
-# 1. batch - output is written to csv files
-# 2. realtime - output is loaded into a database
-
-# Usage: seconvert [-a] [-f] [-H] [-h hostname] [-o outFile] 
+# Usage: seconvert1 [-a] [-f] [-o outFile] 
 #                  [-s server] [-v] pcapFile
 # Arguments:
 #   pcapFile        pcap file or directory to read
@@ -27,25 +23,19 @@
 #   -v              verbose output
 
 # Examples:
-#   seconvert -H pcap-20140122000001.pcap
+#   seconvert1 -o test.pcap pcap-20140122000001.pcap
 #
-#   Convert the data in file pcap-20140122000001.pcap and write the output to files
-#   inv-yyyymmdd.csv and opt-yyyymmdd.csv with headers.
+#   Convert the data in file pcap-20140122000001.pcap and write the output to file
+#   test.pcap
 #    
-#   seconvert -H -i inv/ -o opt/ pcap/
+#   seconvert1 -f pcap/
+#
+#   Monitor PCAP files in directory pcap/ and write the current values to stdin.
+#    
+#   seconvert1 -o allfiles.pcap pcap/
 #
 #   Convert all the pcap files found in directory pcap/ and write the output to files
-#   inv/inv-yyyymmdd.csv and opt/opt-yyyymmdd.csv with headers.
-#    
-#   seconvert -a -D"\t" -i inv.tsv -o opt.tsv pcap/
-#
-#   Convert all the pcap files found in directory pcap/ and append the output to files
-#   inv.tsv and opt.tsv with tab delimiters.
-#    
-#   seconvert -f -d solar -h dbhost pcap/
-#
-#   Monitor PCAP files in directory pcap/ and write the converted output into
-#   database "solar" on hostname "dbhost".  No output files are written.
+#   allfiles.pcap.
 
 import os
 import socket

@@ -1,24 +1,20 @@
 #!/usr/bin/python
 
-# Read a PCAP file that is a capture of the traffic between a SolarEdge inverter and the SE server.
+# Read a file that is a capture of the TCP stream from a SolarEdge inverter to the SE server.
 # Filter out and parse the log data for inverters and optimizers.
 
 # The output can be specified in various modes:
 # 1. batch - output is written to csv files
 # 2. realtime - output is loaded into a database
 
-# Usage: seconvert [-a] [-d database] [-f] [-H] [-h hostname] [-i invfile] [-o optfile] 
+# Usage: seconvert2 [-a] [-d database] [-f] [-H] [-h hostname] [-i invfile] [-o optfile] 
 #                  [-p passwd] [-u username] [-v] inFile
 # Arguments:
-#   inFile        pcap file or directory to read
+#   inFile          file to read
+#                   If no file is specified, the program reads from stdin.
 #                   If a file is specified, the program processes the data in that file and
 #                   terminates, unless the -f option is specified, in which case it waits for 
 #                   further data to be written to the pcap file.
-#                   If a directory is specified, all files in the directory are processed.
-#                   If a directory is specified and the -f option is specified, only the file
-#                   in the directory with the newest modified date is processed and the program
-#                   waits for further data in that file.  If a new file is subsequently created in
-#                   the directory, the current file is closed and the new file is opened. 
 # Options:
 #   -a              append to output files
 #   -D delim        output file delimiter (default: ",")
@@ -27,30 +23,31 @@
 #   -H              write column headers to output files
 #   -h hostname     database hostname or IP address
 #   -i invfile      inverter file to write
+#   -j jsonfile     json file to write current values to
 #   -o optfile      optimizer file to write
 #   -p passwd       database password
 #   -u username     database username
 #   -v              verbose output
 
 # Examples:
-#   seconvert -H pcap-20140122000001.pcap
+#   seconvert2 -H pcap-20140122000001.pcap
 #
 #   Convert the data in file pcap-20140122000001.pcap and write the output to files
 #   inv-yyyymmdd.csv and opt-yyyymmdd.csv with headers.
 #    
-#   seconvert -H -i inv/ -o opt/ pcap/
+#   seconvert2 -f -j solar.json
 #
-#   Convert all the pcap files found in directory pcap/ and write the output to files
-#   inv/inv-yyyymmdd.csv and opt/opt-yyyymmdd.csv with headers.
+#   Monitor stdin and write the current values to
+#   the file solar.json.
 #    
-#   seconvert -a -D"\t" -i inv.tsv -o opt.tsv pcap/
+#   seconvert2 -a -D"\t" -i inv.tsv -o opt.tsv test.pcap
 #
-#   Convert all the pcap files found in directory pcap/ and append the output to files
+#   Convert the file test.pcap and append the output to files
 #   inv.tsv and opt.tsv with tab delimiters.
 #    
-#   seconvert -f -d solar -h dbhost pcap/
+#   seconvert2 -f -d solar -h dbhost
 #
-#   Monitor PCAP files in directory pcap/ and write the converted output into
+#   Monitor stdin and write the converted output into
 #   database "solar" on hostname "dbhost".  No output files are written.
 
 import os
