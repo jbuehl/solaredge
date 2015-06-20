@@ -11,5 +11,6 @@ done
 
 cd /root
 #/usr/bin/python /root/solaredge/seconvert.py -v -f -d solar -h $DBHOST pcap/
-python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json -d solar -h $DBHOST
+#/usr/bin/python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json -d solar -h $DBHOST
+/usr/bin/python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json
 
