@@ -1,7 +1,6 @@
 #!/bin/bash -
 
-SESERVER=prod.solaredge.com # 217.68.152.66
-INTERFACE=eth0
+INTERFACE=eth1
 ROOTDIR=/root/pcap/
 PREFIX=solaredge-
 
@@ -12,6 +11,4 @@ do
 	sleep 1
 done
 
-#IP=`dig $SESERVER +short`  # this doesn't work in arch
-IP=`dig $SESERVER|grep $SESERVER|tail -n1|cut -f5`
-/usr/bin/tcpdump -i $INTERFACE -U -w $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.pcap host $IP
+/usr/bin/tcpdump -i $INTERFACE -U -w $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.pcap tcp
