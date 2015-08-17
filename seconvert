@@ -1,8 +1,5 @@
 #!/bin/bash -
 
-DBHOST=192.168.1.13
-SESERVER=217.68.144.150
-
 # wait for the time to get set
 while [ `date +%Y` == "1969" ]
 do
@@ -11,7 +8,5 @@ do
 done
 
 cd /root
-#/usr/bin/python /root/solaredge/seconvert.py -v -f -d solar -h $DBHOST pcap/
-#/usr/bin/python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json -d solar -h $DBHOST
-/usr/bin/python /root/solaredge/seconvert1.py -f -v -s $SESERVER pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json
+/usr/bin/python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json
 

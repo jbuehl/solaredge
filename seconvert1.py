@@ -51,7 +51,8 @@ debugFiles = False
 debugRecs = False
 debugData = False
 debugSeq = []
-seHostName = "prod.solaredge.com"
+seHostName = ""
+seIpAddr = 0
 pcapDir = ""
 pcapFiles = []
 pcapFileName = ""
@@ -100,7 +101,7 @@ def readPcapRec(pcapFile):
     dataLen = pcapRecLen - etherHdrLen - ipHdrLen - tcpHdrLen
     if debugData: log("pcap", "pcapSeq", pcapSeq, "pcapRecLen", pcapRecLen, "dataLen", dataLen)
     if dataLen > 0:
-        if ipHdr[4] == seIpAddr:   # only process records where IP dest is SE server
+        if (seIpAddr == 0) or (ipHdr[4] == seIpAddr):   # only process records where IP dest is SE server
             if outFile:
                 outFile.write(pcapFile.read(dataLen))
             else:
@@ -166,8 +167,9 @@ def getOpts():
         log("pcapFileName:", pcapFileName)
         log("outFileName:", outFileName)
     # get the IP address of the SolarEdge server
-    try:    
-        seIpAddr = struct.unpack("!I", socket.inet_aton(socket.gethostbyname_ex(seHostName)[2][0]))[0]    # 0xd9449842
+    try:
+        if seHostName != "":    
+            seIpAddr = struct.unpack("!I", socket.inet_aton(socket.gethostbyname_ex(seHostName)[2][0]))[0]    # 0xd9449842
     except:
         print "Unable to resolve hostname", seHostName        
 
