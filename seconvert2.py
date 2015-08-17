@@ -257,7 +257,7 @@ def convertId(seId):
 
 # read device data    
 def readData(inFile, inFmt, seDeviceLen):
-    return list(struct.unpack(inFmt, inFile.read(seDeviceLen)))
+    return list(struct.unpack(inFmt, inFile.read(seDeviceLen)[:(len(inFmt)-1)*4]))
 
 # write device data to json file
 def writeJson():
