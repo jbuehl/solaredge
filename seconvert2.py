@@ -24,6 +24,7 @@
 #   -h hostname     database hostname or IP address
 #   -i invfile      inverter file to write
 #   -j jsonfile     json file to write current values to
+#   -l              send logging messages to sysout
 #   -o optfile      optimizer file to write
 #   -p passwd       database password
 #   -u username     database username
@@ -65,6 +66,7 @@ debug = False
 debugFiles = False
 debugRecs = False
 debugData = False
+debugRaw = False
 debugSeq = []
 inFileName = ""
 inputSeq = 0
@@ -80,6 +82,7 @@ userName = ""
 password = ""
 sleepInterval = 10
 dbRetryInterval = 60
+logSysout = False
 
 # file handles
 inFile = None
@@ -189,16 +192,16 @@ def invDictData(seInvData):
 # SolarEdge data
 def seConvert():
     global inputSeq
-    inRec = inFile.read(4)
+    inRec = readBytes(4)
     while True:
         while inRec:
-            seHeader(inRec+inFile.read(2))
+            seHeader(inRec+readBytes(2))
             inputSeq += 1
-            inRec = inFile.read(4)
+            inRec = readBytes(4)
             if inRec:
                 # read 1 byte at a time until the next magic number
                 while inRec != "\x12\x34\x56\x79":
-                    inRec = inRec[1:4]+inFile.read(1)
+                    inRec = inRec[1:4]+readBytes(1)
         time.sleep(sleepInterval)
 
 def seHeader(inRec):
@@ -209,18 +212,18 @@ def seHeader(inRec):
     if (seMagic != 0x79563412) or (seDataLen == 0):     # is it a solaredge record that is non-zero length
         return
     try:
-        seHdr = struct.unpack("<BBHLLH", inFile.read(seHdrLen-6))
+        seHdr = struct.unpack("<BBHLLH", readBytes(seHdrLen-6))
     except:
         return
     if debugData: log("solaredge", "    seHdr", "%02x %02x %04x %08x %08x %04x" % seHdr)
     # ignore records that aren't type 0xfe or are shorter than a device record
     if (seDataLen < seDevHdrLen) or (seHdr[1] != 0xfe):
-        seData = inFile.read(seDataLen)
+        seData = readBytes(seDataLen)
         seDataLen = 0
     else:
         while seDataLen > 0:
             # process a device record
-            seDevice = struct.unpack("<HLH", inFile.read(seDevHdrLen))
+            seDevice = struct.unpack("<HLH", readBytes(seDevHdrLen))
             seType = seDevice[0]
             seId = convertId(seDevice[1])
             seDeviceLen = seDevice[2]
@@ -240,24 +243,29 @@ def seHeader(inRec):
                 writeDb(seId, seInvData, invIdx, invSqlFmt, "inverters")
             elif seType == 0x0200:
                 if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = inFile.read(seDeviceLen)
+                seData = readBytes(seDeviceLen)
             elif seType == 0x0300:
                 if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = inFile.read(seDeviceLen)
+                seData = readBytes(seDeviceLen)
             else:
                 if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = inFile.read(seDataLen - seDevHdrLen)
+                seData = readBytes(seDataLen - seDevHdrLen)
             seDataLen -= seDeviceLen + seDevHdrLen
-    seCksum = struct.unpack("!H", inFile.read(2))
+    seCksum = struct.unpack("!H", readBytes(2))
     if debugData: log("solaredge", "    seCksum", "%04x" % seCksum, "seDataLen", seDataLen)
 
+def readBytes(length):
+    msg = inFile.read(length)
+    if debugRaw: log("solaredge", "rawdata:", ' '.join(x.encode('hex') for x in msg))
+    return msg
+    
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def convertId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
 
 # read device data    
 def readData(inFile, inFmt, seDeviceLen):
-    return list(struct.unpack(inFmt, inFile.read(seDeviceLen)[:(len(inFmt)-1)*4]))
+    return list(struct.unpack(inFmt, readBytes(seDeviceLen)[:(len(inFmt)-1)*4]))
 
 # write device data to json file
 def writeJson():
@@ -314,12 +322,12 @@ def printTime(timeStamp):
 
 # get command line options and arguments
 def getOpts():
-    global debug, debugFiles, debugRecs, debugData
+    global debug, debugFiles, debugRecs, debugData, debugRaw
     global writeMode, delim, follow, headers
     global invFileName, optFileName, jsonFileName
     global dataBase, dbHostName, password
-    global userName, pcapDir, inFileName, inFiles
-    (opts, args) = getopt.getopt(sys.argv[1:], "aD:d:fp:Hh:i:j:o:p:u:v")
+    global userName, pcapDir, inFileName, inFiles, logSysout
+    (opts, args) = getopt.getopt(sys.argv[1:], "aD:d:fp:Hh:i:j:lo:p:u:v")
     try:
         inFileName = args[0]
     except:
@@ -341,6 +349,8 @@ def getOpts():
             invFileName = opt[1]
         elif opt[0] == "-j":
             jsonFileName = opt[1]
+        elif opt[0] == "-l":
+            logSysout = True
         elif opt[0] == "-o":
             optFileName = opt[1]
         elif opt[0] == "-p":
@@ -355,6 +365,8 @@ def getOpts():
                 debugRecs = True    # -vv
             elif not debugData:
                 debugData = True    # -vvv
+            elif not debugRaw:
+                debugRaw = True    # -vvvv
     if debug:
         log("debug:", debug)  
         log("debugFiles:", debugFiles)  
@@ -370,6 +382,7 @@ def getOpts():
         log("invFileName:", invFileName)
         log("optFileName:", optFileName)
         log("jsonFileName:", jsonFileName)
+        log("logSysout:", logSysout)
 
 # open the output files if they are specified
 def openOutFiles():
@@ -433,8 +446,10 @@ def log(*args):
     message = args[0]+" "
     for arg in args[1:]:
         message += arg.__str__()+" "
-#    print message
-    syslog.syslog(message)
+    if logSysout:
+        print message
+    else:
+        syslog.syslog(message)
 
 def terminate(code, msg=""):
     print msg
