@@ -235,6 +235,13 @@ def seHeader(inRec):
                 writeJson()
                 writeData(seId, seOptData, optIdx, optOutFmt, optFile)
                 writeDb(seId, seOptData, optIdx, optSqlFmt, "optimizers")
+            elif seType == 0x0080:  # new format optimizer log data
+                seData = readBytes(seDeviceLen)
+                seOptData = convertNewOptData(seData)
+                optDict[seId] = optDictData(seOptData)
+                writeJson()
+                writeData(seId, seOptData, optIdx, optOutFmt, optFile)
+                writeDb(seId, seOptData, optIdx, optSqlFmt, "optimizers")
             elif seType == 0x0010:  # inverter log data
                 seInvData = readData(inFile, invInFmt, seDeviceLen)
                 invDict[seId] = invDictData(seInvData)
@@ -262,6 +269,35 @@ def readBytes(length):
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def convertId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
+
+# Decode optimiser data in packet type 0x0080
+#  (into same order as original data)
+#
+# Byte index (in reverse order):
+# 
+# 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
+# Tt Ee ee Cc cO o# pp Uu uu Dd dd dd dd 
+#  # = oo|Pp
+#
+#  Temp, 8bit (1.6 degC)  Signed?, 1.6 is best guess at factor
+#  Energy in day, 16bit (1/4 Wh)
+#  Current (panel), 12 bit (1/160 Amp)
+#  voltage Output, 10 bit (1/8 v)
+#  voltage Panel, 10 bit (1/8 v)
+#  Uptime of optimiser, 16 bit (secs)
+#  DateTime, 32 bit (secs)
+#
+def convertNewOptData(seData):
+    data = bytearray()
+    data.extend(seData)
+    (timeStamp, uptime) = struct.unpack("<LH", seData[0:6])
+    vpan = 0.125 * (data[6] | (data[7] <<8 & 0x300))
+    vopt = 0.125 * (data[7] >>2 | (data[8] <<6 & 0x3c0))
+    imod = 0.00625 * (data[9] <<4 | (data[8] >>4 & 0xf))
+    eday = 0.25 * (data[11] <<8 | data[10])
+    temp = 1.6 * struct.unpack("<b", seData[12:13])[0]
+    # Don't have an inverter ID in the data, substitute 0
+    return [timeStamp, 0, 0, uptime, vpan, vopt, imod, eday, temp]
 
 # read device data    
 def readData(inFile, inFmt, seDeviceLen):
