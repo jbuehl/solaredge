@@ -248,15 +248,15 @@ def seHeader(inRec):
                 writeJson()
                 writeData(seId, seInvData, invIdx, invOutFmt, invFile)
                 writeDb(seId, seInvData, invIdx, invSqlFmt, "inverters")
-            elif seType == 0x0200:
-                if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = readBytes(seDeviceLen)
-            elif seType == 0x0300:
-                if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = readBytes(seDeviceLen)
+#            elif seType == 0x0200:
+#                if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
+#                seData = readBytes(seDeviceLen)
+#            elif seType == 0x0300:
+#                if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
+#                seData = readBytes(seDeviceLen)
             else:
                 if not debugData: log("solaredge", "unknown seType", "%04x" % seType, "seId", seId, "seDeviceLen", seDeviceLen)
-                seData = readBytes(seDataLen - seDevHdrLen)
+                seData = readBytes(seDeviceLen) #(seDataLen - seDevHdrLen)
             seDataLen -= seDeviceLen + seDevHdrLen
     seCksum = struct.unpack("!H", readBytes(2))
     if debugData: log("solaredge", "    seCksum", "%04x" % seCksum, "seDataLen", seDataLen)
