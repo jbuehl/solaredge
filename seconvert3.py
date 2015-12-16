@@ -70,9 +70,6 @@ writeMode = "w"
 sleepInterval = 10
 dbRetryInterval = 60
 logSysout = False
-printPtr = 0
-recPtr = 0
-inBuf = ""
 lineSize = 16
 
 # file handles
@@ -177,49 +174,63 @@ def invDictData(seInvData):
             "Pac": "%f" % seInvData[23] # AC power (W)
             }
 
-# SolarEdge data
-def seConvert():
-    global inputSeq, printPtr, recPtr, inBuf
+def readFile():
     # skip to the start of the first record
-    inBuf = inFile.read(4)
-    while inBuf[-4:] != "\x12\x34\x56\x79":
-        inBuf += inFile.read(1)
-    printPtr = len(inBuf) - 4
-    recPtr = printPtr
-    inBuf += inFile.read(1)
+    readRec()
+    inputSeq = 1
     while True:
-        while inBuf:
-            inputSeq += 1
-            if inBuf:
-                # read 1 byte at a time until the next magic number
-                while inBuf[-4:] != "\x12\x34\x56\x79":
-                    readBytes(1)
-                # start of new record
-                # dump the remaining bytes
-                printRaw(inBuf[printPtr:-4])
-                printPtr = len(inBuf) - 4
-                convertRec(inBuf[recPtr:printPtr])
-                recPtr = printPtr
-                readBytes(1)
-        time.sleep(sleepInterval)
+        rec = readRec()
+        printRec(rec)
+        convertRec(rec, inputSeq)
+        inputSeq += 1
 
+# return the next record in the file
+def readRec():
+    inRec = ""
+    # read 1 byte at a time until the next magic number
+    while inRec[-4:] != "\x12\x34\x56\x79":
+        inRec += readBytes(1)
+    return "\x12\x34\x56\x79" + inRec[:-4]
+
+# return the specified number of bytes from the file
 def readBytes(length):
-    global printPtr, inBuf
-    inBuf += inFile.read(length)
-    if len(inBuf) - printPtr >= lineSize:
-        printRaw(inBuf[printPtr:printPtr+lineSize])
-        printPtr += lineSize
+    inBuf = None
+    inBuf = inFile.read(length)
+    # wait for data
+    while inBuf == None:
+        time.sleep(sleepInterval)
+        inBuf = inFile.read(length)
+    return inBuf
 
-def printRaw(rec):
-    if debugRaw: log("solaredge", "rawdata:", ' '.join(x.encode('hex') for x in rec))
+# dump the specified record
+def printRec(rec):
+    if debugRaw: 
+        printPtr = 0
+        while len(rec) - printPtr >= lineSize:
+            printLine(rec[printPtr:printPtr+lineSize])
+            printPtr += lineSize
+        if printPtr < len(rec):
+            printLine(rec[printPtr:])
 
-def convertRec(rec):
+def printLine(rec):
+    log("solaredge", "rawdata:", ' '.join(x.encode('hex') for x in rec))
+
+def convertRec(rec, inputSeq):
     if debugData: log("solaredge", "record:", inputSeq, "length:", len(rec))
-    dataPtr = 0
-    while dataPtr < len(rec):
-        if debugData: log("solaredge", "data[%02d]:" % (dataPtr/2), "%04x" % struct.unpack("<H", rec[dataPtr:dataPtr+2]))
+    if debugData: log("solaredge", "magic:    ", "%08x" % struct.unpack("!L", rec[0:4]))
+    dataPtr = 4
+    while dataPtr < min(10, len(rec)):
+        if len(rec) - dataPtr > 1:
+            if debugData: log("solaredge", "data[%03d]:" % (dataPtr/2), "%04x" % struct.unpack("<H", rec[dataPtr:dataPtr+2]))
         dataPtr = dataPtr + 2
-    if debugData: log("solaredge")
+    if len(rec) >= 14:
+        if debugData: log("solaredge", "inverter: ", "%08x" % struct.unpack("<L", rec[10:14]))
+        dataPtr = 14
+        while dataPtr < len(rec):
+            if len(rec) - dataPtr > 1:
+                if debugData: log("solaredge", "data[%03d]:" % (dataPtr/2), "%04x" % struct.unpack("<H", rec[dataPtr:dataPtr+2]))
+            dataPtr = dataPtr + 2
+        if debugData: log("solaredge")
     
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def convertId(seId):
@@ -373,5 +384,5 @@ if __name__ == "__main__":
     # process the input file
     if debugFiles: log("reading", inFileName)
     openInFile(inFileName)
-    seConvert()
+    readFile()
     closeFiles()
