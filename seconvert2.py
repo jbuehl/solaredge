@@ -60,6 +60,7 @@ import getopt
 import MySQLdb
 import syslog
 import json
+import serial
 
 # configuration
 debug = False
@@ -449,6 +450,8 @@ def openInFile(inFileName):
     global inFile, inputSeq
     if inFileName == "stdin":
         inFile = sys.stdin
+    elif inFileName[0:8] == "/dev/tty":
+        inFile = serial.Serial(inFileName, baudrate=115200)
     else:
         try:
             if debugFiles: log("opening", inFileName)
