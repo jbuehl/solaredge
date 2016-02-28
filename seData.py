@@ -1,4 +1,4 @@
-# SolarEdge data protocol
+# SolarEdge performance data
 
 import struct
 import json
@@ -12,10 +12,13 @@ statusLen = 14
 invDict = {}
 optDict = {}
 
+writeSeq = 1
+
 # parse status data
-def convertStatus(msg):
-    status = struct.unpack("<HHHHHHH", msg)
-    debug("debugData", "status", "%d "*len(status) % status)
+def convertStatus(data):
+    if len(data) > 0:
+        status = struct.unpack("<HHHHHHH", data)
+        debug("debugData", "status", "%d "*len(status) % status)
 
 # parse device data
 def convertDevice(devData, invFile, optFile, jsonFileName):
@@ -29,18 +32,19 @@ def convertDevice(devData, invFile, optFile, jsonFileName):
         # device data
         if seType == 0x0000:    # optimizer data
             optDict[seId] = convertOptData(seId, optItems, devData[dataPtr:dataPtr+devLen])
-            logDev("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
+            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
             writeData(optFile, optOutFmt, optDict[seId], optItems)
         elif seType == 0x0080:  # new format optimizer data
             optDict[seId] = convertNewOptData(seId, optItems, devData[dataPtr:dataPtr+devLen])
-            logDev("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
+            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
             writeData(optFile, optOutFmt, optDict[seId], optItems)
         elif seType == 0x0010:  # inverter data
             invDict[seId] = convertInvData(seId, invItems, devData[dataPtr:dataPtr+devLen])
-            logDev("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
+            logDevice("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
             writeData(invFile, invOutFmt, invDict[seId], invItems)
         else:   # unknown device type
             raise Exception("Unknown device 0x%04x" % seType) 
+        writeJson(jsonFileName)
         dataPtr += devLen
 
 # inverter data interpretation
@@ -148,7 +152,7 @@ def devDataDict(seId, itemNames, itemValues):
     return devDict
     
 # write device data to json file
-def writeJson():
+def writeJson(jsonFileName):
     if jsonFileName != "":
         debug("debugMsgs", "writing", jsonFileName)
         json.dump({"inverters": invDict, "optimizers": optDict}, open(jsonFileName, "w"))
@@ -162,13 +166,15 @@ def writeHeaders(outFile, items, delim):
 invOutFmt = ["%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f"]
 optOutFmt = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]
 def writeData(outFile, outFmt, devDict, devItems):
+    global writeSeq
     if outFile:
         outMsg = delim.join([(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
         try:
-            logMsg("<--", 0, outMsg, outFile.name)
+            logMsg("<--", writeSeq, outMsg, outFile.name)
             debug("debugData", outMsg)
             outFile.write(outMsg+"\n")
             outFile.flush()
+            writeSeq += 1
         except:
             terminate(1, "Error writing output file "+outFile.name)
 
@@ -185,7 +191,7 @@ def printTime(timeStamp):
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 # formatted print of device data
-def logDev(devName, seType, seId, devLen, devData, devItems):
+def logDevice(devName, seType, seId, devLen, devData, devItems):
     debug("debugData", devName)
     debug("debugData","    type :", "%04x" % seType)
     debug("debugData","    id :", "%s" % seId)
