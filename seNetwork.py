@@ -200,16 +200,15 @@ class DnsMsg(object):
 def startDhcp():
     # handle dhcp requests
     def dhcp():
-        broadcastAddr = "255.255.255.255"
-        # IP address assigned will be this address + 1
-        clientIpAddr = thisIpAddr[0:3] + chr(ord(thisIpAddr[3])+1)
-        # assume class c subnet
-        subnetMask = socket.inet_aton("255.255.255.0")
+        ipAddrNum = socket.inet_aton(ipAddr)
+        clientIpAddrNum = ipAddrNum[0:3] + chr(ord(ipAddrNum[3])+1)
+        subnetMaskNum = socket.inet_aton(subnetMask)
+        # create the socket
         dhcpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         dhcpSocket.bind(("", dhcpServerPort))
         dhcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         seq = 0
-        while waiting:
+        while True:
             debug("debugMsgs", "waiting for dhcp message")
             (msg, addr) = dhcpSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
@@ -217,30 +216,30 @@ def startDhcp():
             dhcpRequest = DhcpMsg()
             dhcpRequest.parse(msg)
 #            if dhcpRequest.chaddr[0:len(validMac)] == validMac: # only consider requests from specific MAC ranges
-            if dhcpRequest.chaddr[0:3] in ["\xb8\x27\xeb", "\x00\x27\x02"]: # only consider requests from specific MAC ranges
+            if dhcpRequest.chaddr[0:3] in validMacs: # only consider requests from specific MAC ranges
                 dhcpRequest.log()
                 if dhcpRequest.options[0][0] == DhcpMsg.optCodeMsgType:
                     if ord(dhcpRequest.options[0][1]) == DhcpMsg.msgTypeDiscover:
                         # respond to discover message with offer
                         dhcpReply = DhcpMsg(op=DhcpMsg.opCodeReply, hlen=dhcpRequest.hlen, xid=dhcpRequest.xid, secs=dhcpRequest.secs, 
-                                               ciaddr=dhcpRequest.ciaddr, yiaddr=clientIpAddr, chaddr=dhcpRequest.chaddr, 
+                                               ciaddr=dhcpRequest.ciaddr, yiaddr=clientIpAddrNum, chaddr=dhcpRequest.chaddr, 
                                                options=[(DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeOffer)),
-                                                        (DhcpMsg.optCodeServerId, thisIpAddr),
+                                                        (DhcpMsg.optCodeServerId, ipAddrNum),
                                                         (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
-                                                        (DhcpMsg.optCodeSubnetMask, subnetMask),
-                                                        (DhcpMsg.optCodeRouter, thisIpAddr),
-                                                        (DhcpMsg.optCodeDNS, thisIpAddr),
+                                                        (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
+                                                        (DhcpMsg.optCodeRouter, ipAddrNum),
+                                                        (DhcpMsg.optCodeDNS, ipAddrNum),
                                                         ])
                     elif ord(dhcpRequest.options[0][1]) == DhcpMsg.msgTypeRequest:
                         # respond to request message with ack
                         dhcpReply = DhcpMsg(op=DhcpMsg.opCodeReply, hlen=dhcpRequest.hlen, xid=dhcpRequest.xid, secs=dhcpRequest.secs, 
-                                               ciaddr=dhcpRequest.ciaddr, yiaddr=clientIpAddr, chaddr=dhcpRequest.chaddr, 
+                                               ciaddr=dhcpRequest.ciaddr, yiaddr=clientIpAddrNum, chaddr=dhcpRequest.chaddr, 
                                                options=[(DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeAck)),
-                                                        (DhcpMsg.optCodeServerId, thisIpAddr),
+                                                        (DhcpMsg.optCodeServerId, ipAddrNum),
                                                         (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
-                                                        (DhcpMsg.optCodeSubnetMask, subnetMask),
-                                                        (DhcpMsg.optCodeRouter, thisIpAddr),
-                                                        (DhcpMsg.optCodeDNS, thisIpAddr),
+                                                        (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
+                                                        (DhcpMsg.optCodeRouter, ipAddrNum),
+                                                        (DhcpMsg.optCodeDNS, ipAddrNum),
                                                         ])
                     else:   # ignore other messages
                         dhcpReply = None
@@ -265,7 +264,7 @@ def startDns():
         dnsSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         dnsSocket.bind(("", dnsPort))
         seq = 0
-        while waiting:
+        while True:
             debug("debugMsgs", "waiting for dns message")
             (msg, addr) = dnsSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
@@ -276,7 +275,7 @@ def startDns():
             seq += 1
             # any hostname will resolve to this IP address
             dnsReply = DnsMsg(ident=dnsRequest.ident, flags=0x8000, questions=dnsRequest.questions,
-                              answers=[question+(dnsTtl, thisIpAddr) for question in dnsRequest.questions])
+                              answers=[question+(dnsTtl, socket.inet_aton(ipAddr)) for question in dnsRequest.questions])
             dnsReplyMsg = dnsReply.format()
             logMsg("<--", seq, dnsReplyMsg, addr[0]+":"+str(addr[1]))
             dnsReply.log()
@@ -287,13 +286,8 @@ def startDns():
     dnsThread.start()
     if debugFiles: log("starting", dnsThreadName)
 
-# open socket for data and start network services
-def openNetwork():
+# start network services
+if __name__ == "__main__":
     startDhcp()
     startDns()
-    inputSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    inputSocket.bind(("", sePort))
-    inputSocket.listen(5)        
-    (clientSocket, addr) = inputSocket.accept()
-    debug("debugFiles", "connection from", addr[0]+":"+str(addr[1]))
-    return clientSocket.makefile()
+
