@@ -2,10 +2,10 @@
 
 # SolarEdge inverter performance monitoring using the SolarEdge protocol
 
-# Usage: semonitor [options] inFile [outFile]
+# Usage: semonitor [options] dataFile [outFile]
 #
 # Arguments:
-#   inFile           file or serial port to read
+#   dataFile         Input file or serial port to read
 #                    If a serial port is specified, monitor the data in real time.
 #                    If no file is specified, the program reads from stdin.
 #                    If a file is specified, the program processes the data in that file and
@@ -22,13 +22,13 @@
 #   -H               write column headers to inverter and optimizer files
 #   -i invfile       inverter file to write
 #   -j jsonfile      json file to write current values to
-#   -l               send logging messages to stdout
+#   -l               send log messages to stdout
 #   -m               function as a SolarEdge master
-#   -n ipaddr        use the specified address on the network
+#   -n interface     use the specified network interface
 #   -o optfile       optimizer file to write
-#   -s invAddrs      comma delimited list of SolarEdge slave inverter addresses
+#   -s invdddrs      comma delimited list of SolarEdge slave inverter addresses
 #   -v               verbose output
-#   -x               halt on exception
+#   -x               halt on data exception
 
 # Examples:
 
@@ -40,71 +40,85 @@ from seConf import *
 from seFiles import *
 from seMsg import *
 from seData import *
-from seSerial import *
-from seNetwork import *
 
-# process the input file
-def readFile(inFile, outFile, invFile, optFile, jsonFile):
-    global waiting
-    try:
-        if parsing:     # process solaredge messages
-            if debugFiles: log("parsing", inFileName)
-            readMsg(inFile)   # skip bytes until the start of the first message
-            inputSeq = 1
-            while waiting:
-                msg = readMsg(inFile)
-                logMsg("-->", inputSeq, msg, inFile.name)
-                if outFile:
-                    outFile.write(msg)
-                    outFile.flush()
+threadLock = threading.Lock()
+
+# process the input data
+def readData(dataFile, outFile, invFile, optFile, jsonFileName):
+#    if parsing:     # process solaredge messages
+        if debugFiles: log("parsing", dataFile.name)
+        if not masterMode:
+            readMsg(dataFile)   # skip data until the start of the first message
+        while True:
+            msg = readMsg(dataFile)
+            if msg == "":   # end of file
+                return
+            if outFile:
+                outFile.write(msg)
+                outFile.flush()
+            with threadLock:
                 try:
                     # parse the message header
-                    (dataLen, invFrom, invTo, function, data) = parseMsg(msg)
+                    (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
                     # parse the data
-                    if dataLen > 0:
-                        if function == 0x0500:
-                            convertDevice(data, invFile, optFile, jsonFileName)
-                            if masterMode: sendMsg(msgSeq, invTo, invFrom, 0x0080)
-                            writeJson()
-                        elif function == 0x039f:
-                            convertStatus(data)
-                        else:   # unknown function type
-                            raise Exception("Unknown function 0x%04x" % function)
-                            logData(data)
+                    if function == 0x0500:
+                        convertDevice(data, invFile, optFile, jsonFileName)
+                        if masterMode:
+                            sendMsg(dataFile, formatMsg(msgSeq, toAddr, fromAddr, 0x0080))
+                    elif function == 0x039f:
+                        convertStatus(data)
+                    elif function in [0x0090, 0x0503, 0x003d, 0x0080]:
+                        logData(data)
+                    else:   # unknown function type
+                        raise Exception("Unknown function 0x%04x" % function)
+                        logData(data)
                 except Exception as ex:
                     log("Exception:", ex.args[0])
                     logData(msg)
                     if haltOnException:
                         raise
-                inputSeq += 1
-        else:   # read and write in bufSize chunks for speed
-            if debugFiles: log("reading", inFileName)
-            while waiting:
-                msg = readBytes(inFile, bufSize)
-                outFile.write(msg)
-    except KeyboardInterrupt:
-        waiting = False
-        return    
+#    else:   # read and write in bufSize chunks for speed
+#        if debugFiles: log("reading", dataFile.name)
+#        while True:
+#            msg = readBytes(dataFile, bufSize)
+#            if msg == "":   # end of file
+#                return
+#            outFile.write(msg)
 
-# start a thread to send SolarEdge master messages
-def startMaster():
-    # master message thread
-    def sendMasterMsg():
-        msgSeq = 0
-        function = 0x0302
-        while waiting:
-            msgSeq += 1
-            for slaveAddr in slaveAddrs:
-                sendMsg(msgSeq, masterAddr, int(slaveAddr, 16), 0x0302)
-            time.sleep(masterMsgInterval)
-    masterThread = threading.Thread(name=masterThreadName, target=sendMasterMsg)
-    masterThread.start()
-    if debugFiles: log("starting", masterThreadName)
-        
+# master commands thread
+def sendCommands(dataFile):
+    msgSeq = 0
+    function = 0x0302
+    while True:
+        msgSeq += 1
+        for slaveAddr in slaveAddrs:
+            with threadLock:
+                sendMsg(dataFile, formatMsg(msgSeq, masterAddr, int(slaveAddr, 16), 0x0302))
+        time.sleep(masterMsgInterval)
+
+# set the inverter mode to 0 and restart it
+def restartInverter(dataFile):
+    slaveAddr = int(slaveAddrs[0], 16)
+    sendMsg(dataFile, formatMsg(1001, masterAddr, slaveAddr, 0x0012, struct.pack("<H", 0x0329)))
+    parseMsg(readMsg(dataFile))
+    sendMsg(dataFile, formatMsg(1002, masterAddr, slaveAddr, 0x0011, struct.pack("<HL", 0x0329, 0)))
+    parseMsg(readMsg(dataFile))
+    sendMsg(dataFile, formatMsg(1003, masterAddr, slaveAddr, 0x0030, struct.pack("<HL", 0x01f4, 0)))
+    parseMsg(readMsg(dataFile))
+            
 if __name__ == "__main__":
-    inFile = openInput()
-    (outFile, invFile, optFile, jsonFile) = openOutFiles()
-    if masterMode: startMaster()
-    readFile(inFile, outFile, invFile, optFile, jsonFile)
-    closeFiles(inFile, outFile, invFile, optFile, jsonFile)
+    dataFile = openData(inFileName)
+    (outFile, invFile, optFile) = openFiles(outFileName, invFileName, optFileName, jsonFileName)
+    if restart:
+        restartInverter(dataFile)
+    elif masterMode:
+        readThread = threading.Thread(name=readThreadName, target=readData, args=(dataFile, outFile, invFile, optFile, jsonFileName))
+        readThread.start()
+        if debugFiles: log("starting", readThreadName)
+        masterThread = threading.Thread(name=masterThreadName, target=sendCommands, args=(dataFile,))
+        masterThread.start()
+        if debugFiles: log("starting", masterThreadName)
+    else:
+        readData(dataFile, outFile, invFile, optFile, jsonFileName)
+    closeFiles(outFile, invFile, optFile)
     
