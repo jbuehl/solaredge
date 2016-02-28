@@ -7,58 +7,78 @@ from seConf import *
 
 # file constants
 magic = "\x12\x34\x56\x79"
+magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
 
+inputSeq = 1
+outputSeq = 1
+
 # return the next message in the file
 def readMsg(inFile):
-    inMsg = ""
-    # read 1 byte at a time until the next magic number
-    while waiting and (inMsg[-4:] != magic):
-        inMsg += readBytes(inFile, 1)
-    return inMsg[:-4]
+    global inputSeq
+    msg = ""
+    if masterMode:
+        # read the magic number and header
+        msg = readBytes(inFile, magicLen+msgHdrLen)
+        if msg == "":
+            return msg
+        (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[magicLen:])
+        # read the data and checksum
+        msg += readBytes(inFile, dataLen+checksumLen)
+        msg = msg[magicLen:]
+    else:
+        # read 1 byte at a time until the next magic number
+        while msg[-magicLen:] != magic:
+            nextByte = readBytes(inFile, 1)
+            if nextByte == "":
+                break
+            msg += nextByte
+        msg = msg[:-magicLen]
+    logMsg("-->", inputSeq, magic+msg, inFile.name)
+    inputSeq += 1
+    return msg
 
 # return the specified number of bytes from the file
 def readBytes(inFile, length):
-    global waiting
     inBuf = inFile.read(length)
-    if inBuf == "":
+    if inBuf == "": # end of file
         if following:
-            # wait for data
+            # wait for more data
             while inBuf == "":
                 time.sleep(sleepInterval)
                 inBuf = inFile.read(length)
-        else:   # end of file
-            waiting = False
     return inBuf
 
 # parse a message            
 def parseMsg(msg):
     # parse the message header
-    (dataLen, dataLenInv, msgSeq, invFrom, invTo, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
-#    if function != 0x0500: return
-#    logData(msg)
-    logMsgHdr(dataLen, dataLenInv, msgSeq, invFrom, invTo, function)
-    data = msg[msgHdrLen:-checksumLen]
+    (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
+    logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
+    data = msg[msgHdrLen:msgHdrLen+dataLen]
     # validate the message
     if dataLen != ~dataLenInv & 0xffff:
         raise Exception("Length error")
-    checksum = struct.unpack("<H", msg[-checksumLen:])[0]
-    calcsum = calcCrc(struct.pack(">HLLH", msgSeq, invFrom, invTo, function)+data)
+    checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
+    calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
     if calcsum != checksum:
         raise Exception("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
-#    logChecksum(checksum)
-    return (dataLen, invFrom, invTo, function, data)
+    return (msgSeq, fromAddr, toAddr, function, data)
+
+# format a message
+def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
+    checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
+    msg = magic + struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
+    logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
+    logData(data)
+    return msg
 
 # send a message
-def sendMsg(msgSeq, fromAddr, toAddr, function, data=""):
-    checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function))
-    msg = magic + struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
-    if debugData: 
-        logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
-        logData(data)
-        logChecksum(checksum)
+def sendMsg(inFile, msg):
+    global outputSeq
+    logMsg("<--", outputSeq, msg, inFile.name)
     inFile.write(msg)
+    outputSeq += 1
 
 # crc calculation
 #
@@ -107,17 +127,12 @@ def calcCrc(data):
     return crc
 
 # formatted print a message header
-def logMsgHdr(dataLen, dataLenInv, msgSeq, invFrom, invTo, function):
-    debug("debugData", "magic:     ", magic.encode('hex'))
+def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):
+#    debug("debugData", "magic:     ", magic.encode('hex'))
     debug("debugData", "dataLen:   ", "%04x" % dataLen)
     debug("debugData", "dataLenInv:", "%04x" % dataLenInv)
     debug("debugData", "sequence:  ", "%04x" % msgSeq)
-    debug("debugData", "source:    ", "%08x" % invFrom)
-    debug("debugData", "dest:      ", "%08x" % invTo)
+    debug("debugData", "source:    ", "%08x" % fromAddr)
+    debug("debugData", "dest:      ", "%08x" % toAddr)
     debug("debugData", "function:  ", "%04x" % function)
-
-# print a checksum
-#def logChecksum(checksum):
-#    debug("debugData", "checksum:  ", "%04x" % checksum)
-
 
