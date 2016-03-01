@@ -11,4 +11,4 @@ do
 	sleep 1
 done
 
-/usr/bin/tcpdump -i $INTERFACE -U -w $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.pcap tcp
+/usr/bin/tcpdump -i $INTERFACE -U -w $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.pcap tcp and port 22222
