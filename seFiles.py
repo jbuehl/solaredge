@@ -1,20 +1,20 @@
-# SolarEdge input data and output file management
+# SolarEdge input data and file management
 
 import serial
 import sys
 import socket
-
 from seConf import *
+from seNetwork import *
 
 # open data socket and wait for connection from inverter
 def openDataSocket():
     try:
         dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         dataSocket.bind(("", sePort))
-        dataSocket.listen(5)        
+        dataSocket.listen(0)        
         (clientSocket, addr) = dataSocket.accept()
         debug("debugFiles", "connection from", addr[0]+":"+str(addr[1]))
-        return clientSocket.makefile()
+        return clientSocket.makefile("rwb")
     except:
         terminate(1, "Unable to open data socket")
 
@@ -25,7 +25,7 @@ def openSerial(inFileName):
     except:
         terminate(1, "Unable to open "+inFileName)
         
-def openFile(inFileName):
+def openInFile(inFileName):
     try:
         if inFileName == "stdin":
             return sys.stdin
@@ -37,50 +37,46 @@ def openFile(inFileName):
 # open the specified data source
 def openData(inFileName):
     if debugFiles: log("opening", inFileName)
-    if networkMode:
+    if networkDevice:
+        if networkSvcs:
+            # start network services
+            startDhcp()
+            startDns()
         return openDataSocket()
     elif serialDevice:
         return openSerial(inFileName)
     else:
-        return openFile(inFileName)
+        return openInFile(inFileName)
 
-# open the output files if they are specified
-def openFiles(outFileName, invFileName, optFileName, jsonFileName):
-    outFile = None
-    invFile = None
-    optFile = None
-    if outFileName != "":
+# close the data source
+def closeData(dataFile):
+    if networkDevice:
+        dataFile._sock.close()
+    dataFile.close()
+
+# open in output file if it is specified
+def openOutFile(fileName, writeMode="w"):
+    if fileName != "":
         try:
-            outFile = open(outFileName, writeMode)
-            debug("debugFiles", "writing", outFileName)
+            return open(fileName, writeMode)
+            debug("debugFiles", "writing", fileName)
         except:
-            terminate(1, "Unable to open "+outFileName)
-    if invFileName != "":
-        try:
-            invFile = open(invFileName, writeMode)
-            if headers: writeHeaders(invFile, invItems, delim)
-            debug("debugFiles", "writing", invFileName)
-        except:
-            terminate(1, "Unable to open "+invFileName)
-    if optFileName != "":
-        try:
-            optFile = open(optFileName, writeMode)
-            if headers: writeHeaders(optFile, optItems, delim)
-            debug("debugFiles", "writing", optFileName)
-        except:
-            terminate(1, "Unable to open "+optFileName)
-    if jsonFileName != "":
-        try:
-            jsonFile = open(jsonFileName, "w")
-            jsonFile.close()    # don't leave this one open
-            debug("debugFiles", "writing", jsonFileName)
-        except:
-            terminate(1, "Unable to open "+jsonFileName)
-    return (outFile, invFile, optFile)
+            terminate(1, "Unable to open "+fileName)
+    else:
+        return None
+
+# open the output files
+def openOutFiles(outFileName, invFileName, optFileName, jsonFileName):
+    outFile = openOutFile(outFileName, writeMode)
+    invFile = openOutFile(invFileName, writeMode)
+    optFile = openOutFile(optFileName, writeMode)
+    jsonFile = openOutFile(jsonFileName, writeMode)
+    return (outFile, invFile, optFile, jsonFile)
     
 # close output files        
-def closeFiles(outFile, invFile, optFile):
+def closeOutFiles(outFile, invFile, optFile, jsonFile):
     if outFile: outFile.close()
     if invFile: invFile.close()
     if optFile: optFile.close()
+    if jsonFile: jsonFile.close()
 

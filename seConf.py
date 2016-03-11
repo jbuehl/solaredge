@@ -7,6 +7,9 @@ import getopt
 import sys
 import socket
 import netifaces
+import os
+import signal
+import serial.tools.list_ports
 
 # debug flags
 debugEnable = True
@@ -17,15 +20,24 @@ debugRaw = False
 logStdout = False
 haltOnException = False
 
-# data input parameters
+# data source parameters
 inFileName = ""
 following = False
+serialDevice = False
 baudRate = 115200
+networkDevice = False
+
+# operating mode paramaters
+passiveMode = True
 masterMode = False
 slaveAddrs = []
-restart = False
-networkMode = False
-serialDevice = False
+
+# action parameters
+commandAction = False
+commands = ""
+commandDelay = 2
+networkInterface = ""
+networkSvcs = False
 
 # output file parameters
 outFileName = ""
@@ -35,6 +47,7 @@ jsonFileName = ""
 headers = False
 delim = ","
 writeMode = "w"
+updateFileName = ""
 
 # global constants
 bufSize = 1024
@@ -47,6 +60,8 @@ readThreadName = "read thread"
 masterThreadName = "master thread"
 masterMsgInterval = 5
 masterAddr = 0xfffffffe
+seqFileName = "seseq.txt"
+updateSize = 0x80000
 
 # network constants
 netInterface = ""
@@ -83,10 +98,13 @@ def debug(*args):
 # log an incoming or outgoing data message
 def logMsg(direction, seq, msg, endPoint=""):
     if debugMsgs:
-#        log(" ")
+        if direction == "-->" and debugData:
+            log(" ")
         log(endPoint, direction, "message:", seq, "length:", len(msg))
-    if debugRaw:
-        logData(msg)
+        if debugRaw:
+            logData(msg)
+        if direction == "<--" and debugData:
+            log(" ")
 
 # program termination
 def terminate(code=0, msg=""):
@@ -105,17 +123,62 @@ def logData(data):
         if printPtr < len(data):
             logLine(data[printPtr:])
 
+# get next sequence number
+def nextSeq():
+    try:
+        with open(seqFileName) as seqFile:
+            seq = int(seqFile.read().rstrip("\n"))
+        seq += 1
+    except:
+        seq = 1
+    with open(seqFileName, "w") as seqFile:
+        seqFile.write(str(seq)+"\n")
+    return seq
+
+# block while waiting for a keyboard interrupt
+def waitForEnd():
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        # commit suicide
+        os.kill(os.getpid(), signal.SIGKILL)
+        return False
+
+# parse and validate the commands specified in the -c option
+def parseCommands(opt):
+    try:
+        commands = [command.split(",") for command in opt.split("/")]
+        for command in commands:
+            try:
+                # validate the command function
+                v = int(command[0],16)
+                # validate command parameters
+                for p in command[1:]:
+                    # validate data type
+                    if p[0] not in "bhlBHL":
+                        log(" ".join(c for c in command))
+                        terminate(1, "Invalid data type "+p[0])
+                    # validate parameter value
+                    v = int(p[1:],16)
+            except ValueError:
+                log(" ".join(c for c in command))
+                terminate(1, "Invalid numeric value")
+    except:
+        raise
+        terminate(1, "Error parsing commands")
+    return commands
+                        
 # get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ab:D:fp:Hi:j:lmn:o:rs:vx")
+(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:D:fp:Hi:j:lmn:o:s:u:vx")
 try:
     inFileName = args[0]
     if inFileName == "-":
         inFileName = "stdin"
-    if inFileName[0:len(serialFileName)] == serialFileName:
+    elif inFileName in serial.tools.list_ports.comports():
         serialDevice = True      
 except:
-    networkMode = True
-    inFileName = "network"
+        inFileName = "stdin"
 try:
     outFileName = args[1]
 except:
@@ -125,6 +188,10 @@ for opt in opts:
         writeMode = "a"
     elif opt[0] == "-b":
         baudRate = opt[1] 
+    elif opt[0] == "-c":
+        commandAction = True
+        commands = parseCommands(opt[1])
+        passiveMode = False 
     elif opt[0] == "-D":
         delim = opt[1] 
     elif opt[0] == "-f":
@@ -139,23 +206,21 @@ for opt in opts:
         logStdout = True
     elif opt[0] == "-m":
         masterMode = True
+        passiveMode = False
     elif opt[0] == "-n":
-        networkMode = True
+        networkDevice = True
+        inFileName = "network"
+        passiveMode = False
         try:
-            # network interface parameters
             netInterface = opt[1]
-            netInterfaceParams = netifaces.ifaddresses(netInterface)[2][0]
-            ipAddr = netInterfaceParams["addr"]
-            broadcastAddr = netInterfaceParams["broadcast"]
-            subnetMask = netInterfaceParams["netmask"]
         except:
-            terminate(1, "network interface is not available")
+            pass
     elif opt[0] == "-o":
         optFileName = opt[1]
-    elif opt[0] == "-r":
-        restart = True
     elif opt[0] == "-s":
         slaveAddrs = opt[1].split(",")
+    elif opt[0] == "-u":
+        updateFileName = opt[1]
     elif opt[0] == "-v":
         if debugEnable:
             if not debugFiles:
@@ -169,20 +234,32 @@ for opt in opts:
     elif opt[0] == "-x":
         haltOnException = True
 
+# check for network device
+if netInterface != "":
+    try:
+        netInterfaceParams = netifaces.ifaddresses(netInterface)[2][0]
+        ipAddr = netInterfaceParams["addr"]
+        broadcastAddr = netInterfaceParams["broadcast"]
+        subnetMask = netInterfaceParams["netmask"]
+        networkSvcs = True
+    except:
+        raise
+        terminate(1, "network interface is not available")
+
 # force following for input from serial device
 if serialDevice:
     following = True
 
-# network mode implies master mode
-if networkMode:
-    masterMode = True
-elif masterMode and not serialDevice:
-    terminate(1, "Master mode not allowed with file input")
-   
-# determine if data is going to need to be parsed
-if (outFileName != "") and (invFileName == "") and (optFileName == "") and (jsonFileName == "") and not masterMode:
-    parsing = False
+# master mode is only for serial device
+if masterMode and not serialDevice:
+    terminate(1, "Master mode only allowed with serial device")
 
+# master and network mode require slaves to be specified
+if masterMode and (len(slaveAddrs) < 1):
+    terminate(1, "At least one slave address must be specified for master mode")
+if not passiveMode and (len(slaveAddrs) != 1):
+    terminate(1, "Exactly one slave address must be specified for active modes")
+       
 if debugFiles: 
     log("debugEnable:", debugEnable)  
     log("debugFiles:", debugFiles)  
@@ -191,28 +268,38 @@ if debugFiles:
     log("debugRaw:", debugRaw)
     log("logStdout:", logStdout)
     log("haltOnException:", haltOnException)
-    log("following:", following)
-    log("parsing:", parsing)
     log("inFileName:", inFileName)
     log("serialDevice:", serialDevice)
     if serialDevice:
-        log("baudRate:", baudRate)
-    log("restart:", restart)
+        log("    baudRate:", baudRate)
+    log("following:", following)
+    log("passiveMode:", passiveMode)
+    log("commandAction:", commandAction)
+    if commandAction:
+        for command in commands:
+            log("    command:", " ".join(c for c in command))
     log("masterMode:", masterMode)
-    if masterMode:
-        log("slaveAddrs:", slaveAddrs)
-    log("networkMode:", networkMode)
-    if netInterface != "":
+    log("networkDevice:", networkDevice)
+    if masterMode or networkDevice:
+        log("slaveAddrs:", ",".join(slaveAddr for slaveAddr in slaveAddrs))
+    log("networkSvcs:", networkSvcs)
+    if networkSvcs:
         log("netInterface", netInterface)
-        log("ipAddr", ipAddr)
-        log("subnetMask", subnetMask)
-        log("broadcastAddr", broadcastAddr)
-    log("outFileName:", outFileName)
-    log("invFileName:", invFileName)
-    log("optFileName:", optFileName)
+        log("    ipAddr", ipAddr)
+        log("    subnetMask", subnetMask)
+        log("    broadcastAddr", broadcastAddr)
+    if outFileName != "":
+        log("outFileName:", outFileName)
+    if invFileName != "":
+        log("invFileName:", invFileName)
+    if optFileName != "":
+        log("optFileName:", optFileName)
     if (invFileName != "") or (optFileName != ""):
-        log("headers:", headers)
-        log("delim:", delim)
+        log("    headers:", headers)
+        log("    delim:", delim)
+    if jsonFileName != "":
+        log("jsonFileName:", jsonFileName)
     log("append:", writeMode)
-    log("jsonFileName:", jsonFileName)
+    if updateFileName != "":
+        log("updateFileName:", updateFileName)
 

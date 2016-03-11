@@ -2,23 +2,23 @@
 
 import struct
 import time
-
 from seConf import *
 
-# file constants
+# message constants
 magic = "\x12\x34\x56\x79"
 magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
 
+# file sequence numbers
 inputSeq = 1
 outputSeq = 1
 
-# return the next message in the file
-def readMsg(inFile):
-    global inputSeq
+# return the next message
+def readMsg(inFile, seq, outFile):
+    seq += 1
     msg = ""
-    if masterMode:
+    if not passiveMode:
         # read the magic number and header
         msg = readBytes(inFile, magicLen+msgHdrLen)
         if msg == "":
@@ -35,11 +35,13 @@ def readMsg(inFile):
                 break
             msg += nextByte
         msg = msg[:-magicLen]
-    logMsg("-->", inputSeq, magic+msg, inFile.name)
-    inputSeq += 1
-    return msg
+    logMsg("-->", seq, magic+msg, inFile.name)
+    if outFile:
+        outFile.write(magic+msg)
+        outFile.flush()
+    return (msg, seq)
 
-# return the specified number of bytes from the file
+# return the specified number of bytes
 def readBytes(inFile, length):
     inBuf = inFile.read(length)
     if inBuf == "": # end of file
@@ -52,33 +54,39 @@ def readBytes(inFile, length):
 
 # parse a message            
 def parseMsg(msg):
-    # parse the message header
-    (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
-    logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
-    data = msg[msgHdrLen:msgHdrLen+dataLen]
-    # validate the message
-    if dataLen != ~dataLenInv & 0xffff:
-        raise Exception("Length error")
-    checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
-    calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
-    if calcsum != checksum:
-        raise Exception("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
-    return (msgSeq, fromAddr, toAddr, function, data)
+    if len(msg) < msgHdrLen + checksumLen:   # throw out messages that are too short
+        return (0, 0, 0, 0, "")
+    else:
+        # parse the message header
+        (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
+        logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
+        data = msg[msgHdrLen:msgHdrLen+dataLen]
+        # validate the message
+        checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
+        calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
+        if calcsum != checksum:
+            raise Exception("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
+        if dataLen != ~dataLenInv & 0xffff:
+            raise Exception("Length error")
+        return (msgSeq, fromAddr, toAddr, function, data)
 
 # format a message
 def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
     checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     msg = magic + struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
     logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
-    logData(data)
     return msg
 
 # send a message
-def sendMsg(inFile, msg):
-    global outputSeq
-    logMsg("<--", outputSeq, msg, inFile.name)
-    inFile.write(msg)
-    outputSeq += 1
+def sendMsg(dataFile, msg, seq, outFile):
+    seq += 1
+    logMsg("<--", seq, msg, dataFile.name)
+    dataFile.write(msg)
+    dataFile.flush()
+    if outFile:
+        outFile.write(msg)
+        outFile.flush()
+    return seq
 
 # crc calculation
 #
@@ -128,7 +136,6 @@ def calcCrc(data):
 
 # formatted print a message header
 def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):
-#    debug("debugData", "magic:     ", magic.encode('hex'))
     debug("debugData", "dataLen:   ", "%04x" % dataLen)
     debug("debugData", "dataLenInv:", "%04x" % dataLenInv)
     debug("debugData", "sequence:  ", "%04x" % msgSeq)

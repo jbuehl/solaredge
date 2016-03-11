@@ -1,51 +1,157 @@
-# SolarEdge performance data
+# SolarEdge data interpretation
 
 import struct
 import json
-
 from seConf import *
+from seCommands import *
 
-devHdrLen = 8
-statusLen = 14
+# file sequence numbers
+invSeq = 0
+optSeq = 0
+jsonSeq = 0
 
-# device data dictionaries
-invDict = {}
-optDict = {}
+# parse the message data
+def parseData(function, data):
+    if function == 0:
+        # message was too short to be valid
+        debug("debugEnable", "Message too short")
+        logData(data)
+    elif function in [PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER, PROT_CMD_MISC_GET_TYPE, PROT_CMD_SERVER_GET_GMT, PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS]:
+        # functions with no arguments
+        pass
+    elif function == PROT_CMD_SERVER_POST_DATA:
+        return parseDeviceData(data)
+    elif function == PROT_RESP_POLESTAR_GET_STATUS:
+        return parseStatus(data)
+    elif function in [PROT_CMD_PARAMS_GET_SINGLE, PROT_CMD_UPGRADE_START]:
+        return parseParam(data)
+    elif function in [PROT_CMD_MISC_RESET, PROT_RESP_PARAMS_SINGLE]:
+        return parseValueType(data)
+    elif function == PROT_RESP_MISC_GET_VER:
+        return parseVersion(data)
+    elif function == PROT_CMD_PARAMS_SET_SINGLE:
+        return parseParamValue(data)
+    elif function == PROT_CMD_UPGRADE_WRITE:
+        return parseOffsetLength(data)
+    elif function == PROT_RESP_UPGRADE_SIZE:
+        return parseLong(data)
+    elif function in [PROT_RESP_MISC_GET_TYPE]:
+        return parseParam(data)
+    elif function == PROT_CMD_SERVER_GET_GMT:
+        return parseTime(data)
+    elif function in [0x0503, 0x003d]:
+        # encrypted messages
+        pass
+    else:
+        # unknown function type
+        raise Exception("Unknown function 0x%04x" % function)
+    return {}
 
-writeSeq = 1
+def parseParam(data):
+    param = struct.unpack("<H", data)[0]
+    debug("debugData", "param:     ", "%04x" % param)
+    return {"param": param}
 
+def parseVersion(data):
+    version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
+    debug("debugData", "version:    "+version)
+    return {"version": version}
+
+def formatParam(param):
+    return struct.pack("<H", param)
+        
+def parseOffsetLength(data):
+    (offset, length) = struct.unpack("<LL", data[0:8])
+    debug("debugData", "offset:   ", "%08x" % (offset))
+    debug("debugData", "length:   ", "%08x" % (length))
+    return {"offset": offset, "length": length, "data": data[8:]}
+
+def parseLong(data):
+    param = struct.unpack("<L", data)[0]
+    debug("debugData", "param:     ", "%08x" % param)
+    return {"param": param}
+
+def formatLong(param):
+    return struct.pack("<L", param)
+        
+def parseValueType(data):
+    (value, dataType) = struct.unpack("<LH", data)
+    debug("debugData", "value:     ", "%08x" % value)
+    debug("debugData", "type:      ", "%04x" % dataType)
+    return {"value": value, "type": dataType}
+
+def formatValueType(value, dataType):
+    return struct.pack("<HL", value, dataType) 
+           
+def parseParamValue(data):
+    (param, value) = struct.unpack("<HL", data)
+    debug("debugData", "param:     ", "%04x" % param)
+    debug("debugData", "value:     ", "%08x" % value)
+    return {"param": param, "value": value}
+
+def formatParamValue(param, value):
+    return struct.pack("<HL", param, value)
+    
+def parseTime(data):
+    (timeValue, tzOffset) = struct.unpack("<Ll", data)
+    debug("debugData", "time:      ", time.asctime(time.gmtime(timeValue)))
+    debug("debugData", "tz:        ", "UTC%+d" % (tzOffset/60/60))
+    return {"time": timeValue, "tz": tzOffset}
+
+def formatTime(timeValue, tzOffset):
+    return struct.pack("<Ll", timeValue, tzOffset)
+    
 # parse status data
-def convertStatus(data):
+def parseStatus(data):
     if len(data) > 0:
         status = struct.unpack("<HHHHHHH", data)
         debug("debugData", "status", "%d "*len(status) % status)
+    return {"status": status}
 
 # parse device data
-def convertDevice(devData, invFile, optFile, jsonFileName):
-    global invDict, optDict
+def parseDeviceData(data):
+    devHdrLen = 8
+    invDict = {}
+    optDict = {}
+    timeDict = {}
     dataPtr = 0
-    while dataPtr < len(devData):
+    while dataPtr < len(data):
         # device header
-        (seType, seId, devLen) = struct.unpack("<HLH", devData[dataPtr:dataPtr+devHdrLen])
-        seId = convertId(seId)
+        (seType, seId, devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr+devHdrLen])
+        seId = parseId(seId)
         dataPtr += devHdrLen
         # device data
         if seType == 0x0000:    # optimizer data
-            optDict[seId] = convertOptData(seId, optItems, devData[dataPtr:dataPtr+devLen])
+            optDict[seId] = parseOptData(seId, optItems, data[dataPtr:dataPtr+devLen])
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
-            writeData(optFile, optOutFmt, optDict[seId], optItems)
         elif seType == 0x0080:  # new format optimizer data
-            optDict[seId] = convertNewOptData(seId, optItems, devData[dataPtr:dataPtr+devLen])
+            optDict[seId] = parseNewOptData(seId, optItems, data[dataPtr:dataPtr+devLen])
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
-            writeData(optFile, optOutFmt, optDict[seId], optItems)
         elif seType == 0x0010:  # inverter data
-            invDict[seId] = convertInvData(seId, invItems, devData[dataPtr:dataPtr+devLen])
+            invDict[seId] = parseInvData(seId, invItems, data[dataPtr:dataPtr+devLen])
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
-            writeData(invFile, invOutFmt, invDict[seId], invItems)
+        elif seType == 0x0300:  # something with a bunch of time stamps in it
+            timeDict[seId] = parseTimeData(seId, timeItems, data[dataPtr:dataPtr+devLen])
+            logDevice("time:         ", seType, seId, devLen, timeDict[seId], timeItems)
         else:   # unknown device type
             raise Exception("Unknown device 0x%04x" % seType) 
-        writeJson(jsonFileName)
         dataPtr += devLen
+    return {"inverters": invDict, "optimizers": optDict, "event": timeDict}
+
+# format string used to unpack input data
+timeInFmt = "<LLLLLLL"
+# length of data that will be unpacked
+timeInFmtLen = (len(timeInFmt)-1)*4
+# mapping of input data to device data items
+timeIdx = [0,1,2,3,4,5,6]
+# device data item names
+timeItems = ["Date", "Time", "ID", "Time0", "Time1", "Time2", "Time3", "Time4", "Time5"]
+
+def parseTimeData(seId, timeItems, devData):
+    # unpack data and map to items
+    seTimeData = [struct.unpack(timeInFmt, devData[:invInFmtLen])[i] for i in timeIdx]
+    seTimeStamps = [seTimeData[0]] + [time.asctime(time.localtime(t)) for t in seTimeData[1:]]
+    return devDataDict(seId, timeItems, seTimeStamps)
 
 # inverter data interpretation
 #
@@ -78,14 +184,16 @@ def convertDevice(devData, invFile, optFile, jsonFileName):
     
 # format string used to unpack input data
 invInFmt = "<LLLffffffLLfLffLfffffLLffL"
+# length of data that will be unpacked
+invInFmtLen = (len(invInFmt)-1)*4
 # mapping of input data to device data items
 invIdx = [0,1,2,3,4,5,6,7,8,11,13,18,23]
 # device data item names
 invItems = ["Date", "Time", "ID", "Uptime", "Interval", "Temp", "Eday", "Eac", "Vac", "Iac", "Freq", "Vdc", "Etot", "Pmax", "Pac"]
 
-def convertInvData(seId, invItems, devData):
+def parseInvData(seId, invItems, devData):
     # unpack data and map to items
-    seInvData = [struct.unpack(invInFmt, devData)[i] for i in invIdx]
+    seInvData = [struct.unpack(invInFmt, devData[:invInFmtLen])[i] for i in invIdx]
     return devDataDict(seId, invItems, seInvData)
 
 # optimizer data interpretation
@@ -101,15 +209,17 @@ def convertInvData(seId, invItems, devData):
 
 # format string used to unpack input data
 optInFmt = "<LLLLfffff"
+# length of data that will be unpacked
+optInFmtLen = (len(optInFmt)-1)*4
 # mapping of input data to device data items
 optIdx = [0,1,3,4,5,6,7,8]
 # device data item names
 optItems = ["Date", "Time", "ID", "Inverter", "Uptime", "Vmod", "Vopt", "Imod", "Eday", "Temp"]
 
-def convertOptData(seId, optItems, devData):
+def parseOptData(seId, optItems, devData):
     # unpack data and map to items
-    seOptData = [struct.unpack(optInFmt, devData)[i] for i in optIdx]
-    seOptData[1] = convertId(seOptData[1])
+    seOptData = [struct.unpack(optInFmt, devData[:optInFmtLen])[i] for i in optIdx]
+    seOptData[1] = parseId(seOptData[1])
     return devDataDict(seId, optItems, seOptData)
 
 # Decode optimiser data in packet type 0x0080
@@ -129,7 +239,7 @@ def convertOptData(seId, optItems, devData):
 #  Uptime of optimiser, 16 bit (secs)
 #  DateTime, 32 bit (secs)
 #
-def convertNewOptData(seId, optItems, devData):
+def parseNewOptData(seId, optItems, devData):
     data = bytearray()
     data.extend(devData)
     (timeStamp, uptime) = struct.unpack("<LH", devData[0:6])
@@ -144,50 +254,70 @@ def convertNewOptData(seId, optItems, devData):
 # create a dictionary of device data items
 def devDataDict(seId, itemNames, itemValues):
     devDict = {}
-    devDict["Date"] = printDate(itemValues[0])
-    devDict["Time"] = printTime(itemValues[0])
+    devDict["Date"] = formatDateStamp(itemValues[0])
+    devDict["Time"] = formatTimeStamp(itemValues[0])
     devDict["ID"] = seId
     for i in range(3, len(itemNames)):
         devDict[itemNames[i]] = itemValues[i-2]
     return devDict
     
 # write device data to json file
-def writeJson(jsonFileName):
-    if jsonFileName != "":
-        debug("debugMsgs", "writing", jsonFileName)
-        json.dump({"inverters": invDict, "optimizers": optDict}, open(jsonFileName, "w"))
+def writeJson(jsonFile, devDict, seq):
+    seq += 1
+    msg = json.dumps(devDict)
+    logMsg("<--", seq, msg, jsonFile.name)
+    debug("debugData", msg)
+    jsonFile.write(msg+"\n")
+    jsonFile.flush()
+    return seq
     
 # write output file headers
-def writeHeaders(outFile, items, delim):
+def writeHeaders(outFile, items):
     outFile.write(delim.join(item for item in items)+"\n")
 
+# write data to output files
+def writeData(msgDict, invFile, optFile, jsonFile):
+    global invSeq, optSeq, jsonSeq
+    if invFile:
+        if headers and invSeq == 0:
+            writeHeaders(invFile, invItems)
+        for seId in msgDict["inverters"].keys():
+            invSeq = writeDevData(invFile, invOutFmt, msgDict["inverters"][seId], invItems, invSeq)
+    if optFile:
+        if headers and optSeq == 0:
+            writeHeaders(optFile, optItems)
+        for seId in msgDict["optimizers"].keys():
+            optSeq = writeDevData(optFile, optOutFmt, msgDict["optimizers"][seId], optItems, optSeq)
+    if jsonFile:
+        jsonSeq = writeJson(jsonFile, msgDict, jsonSeq)
+        
 # write device data to output file
 # device data output file format strings
 invOutFmt = ["%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f"]
 optOutFmt = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]
-def writeData(outFile, outFmt, devDict, devItems):
-    global writeSeq
+def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
     if outFile:
         outMsg = delim.join([(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
         try:
-            logMsg("<--", writeSeq, outMsg, outFile.name)
+            devSeq += 1
+            logMsg("<--", devSeq, outMsg, outFile.name)
             debug("debugData", outMsg)
             outFile.write(outMsg+"\n")
             outFile.flush()
-            writeSeq += 1
         except:
             terminate(1, "Error writing output file "+outFile.name)
+    return devSeq
 
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
-def convertId(seId):
+def parseId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
 
 # format a date        
-def printDate(timeStamp):
+def formatDateStamp(timeStamp):
     return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
 
 # format a time       
-def printTime(timeStamp):
+def formatTimeStamp(timeStamp):
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 # formatted print of device data

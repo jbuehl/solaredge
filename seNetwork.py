@@ -1,4 +1,6 @@
-# SolarEdge network  I/O
+# SolarEdge network daemon
+
+# Implements a dhcp and a dns server.
 
 import socket
 import threading
@@ -215,7 +217,6 @@ def startDhcp():
             logMsg("-->", seq, msg, addr[0]+":"+str(addr[1]))
             dhcpRequest = DhcpMsg()
             dhcpRequest.parse(msg)
-#            if dhcpRequest.chaddr[0:len(validMac)] == validMac: # only consider requests from specific MAC ranges
             if dhcpRequest.chaddr[0:3] in validMacs: # only consider requests from specific MAC ranges
                 dhcpRequest.log()
                 if dhcpRequest.options[0][0] == DhcpMsg.optCodeMsgType:
@@ -286,8 +287,4 @@ def startDns():
     dnsThread.start()
     if debugFiles: log("starting", dnsThreadName)
 
-# start network services
-if __name__ == "__main__":
-    startDhcp()
-    startDns()
 
