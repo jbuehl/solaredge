@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 # Read a PCAP file that is a capture of the traffic between a SolarEdge inverter and the SE server.
-# Filter out the TCP stream between the inverter to the server..
+# Filter out the TCP stream between the inverter to the server.
 
-# Usage: seextract [-a] [-f] [-o outFile] 
-#                  [-s server] [-v] pcapFile
+# Usage: python seextract.py [-a] [-f] [-o outFile] 
+#                 [-s server] [-v] pcapFile
 # Arguments:
 #   pcapFile        pcap file or directory to read
 #                   If a file is specified, the program processes the data in that file and
@@ -23,16 +23,16 @@
 #   -v              verbose output
 
 # Examples:
-#   seextract -o test.pcap pcap-20140122000001.pcap
+#   # python seextract.py -o test.pcap pcap-20140122000001.pcap
 #
 #   Convert the data in file pcap-20140122000001.pcap and write the output to file
 #   test.pcap
 #    
-#   seextract -f pcap/
+#   # python seextract.py -f pcap/
 #
 #   Monitor PCAP files in directory pcap/ and write the current values to stdin.
 #    
-#   seextract -o allfiles.pcap pcap/
+#   # python seextract.py -o allfiles.pcap pcap/
 #
 #   Convert all the pcap files found in directory pcap/ and write the output to files
 #   allfiles.pcap.
