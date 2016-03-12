@@ -171,11 +171,26 @@ def parseCommands(opt):
                         
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:D:fp:Hi:j:lmn:o:s:u:vx")
+
+# figure out the list of valid serial ports
+try:
+    serialPortNames = []
+    serialPorts = serial.tools.list_ports.comports()
+    # this is either a list of tuples or ListPortInfo objects
+    if isinstance(serialPorts[0], tuple):
+        for serialPort in serialPorts:
+            serialPortNames.append(serialPort[0])
+    elif isinstance(serialPorts[0], serial.tools.list_ports_common.ListPortInfo):
+        for serialPort in serialPorts:
+            serialPortNames.append(serialPort.device)
+except:
+    pass
+
 try:
     inFileName = args[0]
     if inFileName == "-":
         inFileName = "stdin"
-    elif inFileName in serial.tools.list_ports.comports():
+    elif inFileName in serialPortNames:
         serialDevice = True      
 except:
         inFileName = "stdin"
