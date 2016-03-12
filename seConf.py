@@ -272,8 +272,8 @@ if masterMode and not serialDevice:
 # master and network mode require slaves to be specified
 if masterMode and (len(slaveAddrs) < 1):
     terminate(1, "At least one slave address must be specified for master mode")
-if not passiveMode and (len(slaveAddrs) != 1):
-    terminate(1, "Exactly one slave address must be specified for active modes")
+if commandAction and (len(slaveAddrs) != 1):
+    terminate(1, "Exactly one slave address must be specified for command mode")
        
 if debugFiles: 
     log("debugEnable:", debugEnable)  
