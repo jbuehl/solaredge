@@ -130,7 +130,7 @@ def parseDeviceData(data):
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems, data[dataPtr:dataPtr+devLen])
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
-        elif seType == 0x0300:  # something with a bunch of time stamps in it
+        elif seType == 0x0300:  # wake or sleep event
             eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
             logDevice("event:         ", seType, seId, devLen, eventDict[seId], eventItems)
         else:   # unknown device type
@@ -140,13 +140,13 @@ def parseDeviceData(data):
 
 # event data interpretation
 #
-#   timeStamp = seData[0]
-#   Type = seData[1] # 0 or 1
-#   timeStamp = seData[2] # start time
-#   timeStamp = seData[3] # end time (Type = 0) or tzOffset (Type = 1)
-#   timeStamp = seData[4] # 0 (Type = 0) or end time (Type = 1)
-#   data5 = seData[5] # 0
-#   data6 = seData[6] # 0
+#   timeStamp = devData[0]
+#   Type = devData[1] # 0 or 1
+#   timeStamp = devData[2] # event start time
+#   timeStamp = devData[3] # event end time (Type == 0) or tzOffset (Type == 1)
+#   timeStamp = devData[4] # 0 (Type == 0) or event end time (Type == 1)
+#   data5 = devData[5] # 0
+#   data6 = devData[6] # 0
 
 # format string used to unpack input data
 eventInFmt = "<LLLlLLL"
@@ -169,32 +169,32 @@ def parseEventData(seId, eventItems, devData):
 
 # inverter data interpretation
 #
-#   timeStamp = seData[0]
-#   Uptime = seData[1] # uptime (secs) ?
-#   Interval = seData[2] # time in last interval (secs) ?
-#   Temp = seData[3] # temperature (C)
-#   Eday = seData[4] # energy produced today (Wh)
-#   Eac = seData[5] # energy produced in last interval (Wh)
-#   Vac = seData[6] # AC volts
-#   Iac = seData[7] # AC current
-#   freq = seData[8] # frequency (Hz)
-#   data9 = seData[9] # 0xff7fffff
-#   data10 = seData[10] # 0xff7fffff
-#   Vdc = seData[11] # DC volts
-#   data12 = seData[12] # 0xff7fffff
-#   Etot = seData[13] # total energy produced (Wh)
-#   data14 = seData[14] # ?
-#   data15 = seData[15] # 0xff7fffff
-#   data16 = seData[16] # 0.0
-#   data17 = seData[17] # 0.0
-#   Pmax = seData[18] # max power (W) = 5000
-#   data19 = seData[19] # 0.0
-#   data20 = seData[20] # ?
-#   data21 = seData[21] # 0xff7fffff
-#   data22 = seData[22] # 0xff7fffff
-#   Pac = seData[23] # AC power (W)
-#   data24 = seData[24] # ?
-#   data25 = seData[25] # 0xff7fffff
+#   timeStamp = devData[0]
+#   Uptime = devData[1] # uptime (secs) ?
+#   Interval = devData[2] # time in last interval (secs) ?
+#   Temp = devData[3] # temperature (C)
+#   Eday = devData[4] # energy produced today (Wh)
+#   Eac = devData[5] # energy produced in last interval (Wh)
+#   Vac = devData[6] # AC volts
+#   Iac = devData[7] # AC current
+#   freq = devData[8] # frequency (Hz)
+#   data9 = devData[9] # 0xff7fffff
+#   data10 = devData[10] # 0xff7fffff
+#   Vdc = devData[11] # DC volts
+#   data12 = devData[12] # 0xff7fffff
+#   Etot = devData[13] # total energy produced (Wh)
+#   data14 = devData[14] # ?
+#   data15 = devData[15] # 0xff7fffff
+#   data16 = devData[16] # 0.0
+#   data17 = devData[17] # 0.0
+#   Pmax = devData[18] # max power (W) = 5000
+#   data19 = devData[19] # 0.0
+#   data20 = devData[20] # ?
+#   data21 = devData[21] # 0xff7fffff
+#   data22 = devData[22] # 0xff7fffff
+#   Pac = devData[23] # AC power (W)
+#   data24 = devData[24] # ?
+#   data25 = devData[25] # 0xff7fffff
     
 # format string used to unpack input data
 invInFmt = "<LLLffffffLLfLffLfffffLLffL"
@@ -212,14 +212,14 @@ def parseInvData(seId, invItems, devData):
 
 # optimizer data interpretation
 #
-#   timeStamp = seData[0]
-#   inverter = seData[1] & 0xff7fffff
-#   Uptime = seData[3] # uptime (secs) ?
-#   Vmod = seData[4] # module voltage
-#   Vopt = seData[5] # optimizer voltage
-#   Imod = seData[6] # module current
-#   Eday = seData[7] # energy produced today (Wh)
-#   Temp = seData[8] # temperature (C)
+#   timeStamp = devData[0]
+#   inverter = devData[1] & 0xff7fffff
+#   Uptime = devData[3] # uptime (secs) ?
+#   Vmod = devData[4] # module voltage
+#   Vopt = devData[5] # optimizer voltage
+#   Imod = devData[6] # module current
+#   Eday = devData[7] # energy produced today (Wh)
+#   Temp = devData[8] # temperature (C)
 
 # format string used to unpack input data
 optInFmt = "<LLLLfffff"
