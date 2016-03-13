@@ -37,7 +37,7 @@ def parseData(function, data):
         return parseLong(data)
     elif function in [PROT_RESP_MISC_GET_TYPE]:
         return parseParam(data)
-    elif function == PROT_CMD_SERVER_GET_GMT:
+    elif function == PROT_RESP_SERVER_GMT:
         return parseTime(data)
     elif function in [0x0503, 0x003d]:
         # encrypted messages
@@ -113,7 +113,7 @@ def parseDeviceData(data):
     devHdrLen = 8
     invDict = {}
     optDict = {}
-    timeDict = {}
+    eventDict = {}
     dataPtr = 0
     while dataPtr < len(data):
         # device header
@@ -131,27 +131,41 @@ def parseDeviceData(data):
             invDict[seId] = parseInvData(seId, invItems, data[dataPtr:dataPtr+devLen])
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
         elif seType == 0x0300:  # something with a bunch of time stamps in it
-            timeDict[seId] = parseTimeData(seId, timeItems, data[dataPtr:dataPtr+devLen])
-            logDevice("time:         ", seType, seId, devLen, timeDict[seId], timeItems)
+            eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
+            logDevice("event:         ", seType, seId, devLen, eventDict[seId], eventItems)
         else:   # unknown device type
             raise Exception("Unknown device 0x%04x" % seType) 
         dataPtr += devLen
-    return {"inverters": invDict, "optimizers": optDict, "event": timeDict}
+    return {"inverters": invDict, "optimizers": optDict, "events": eventDict}
+
+# event data interpretation
+#
+#   timeStamp = seData[0]
+#   Type = seData[1] # 0 or 1
+#   timeStamp = seData[2] # start time
+#   timeStamp = seData[3] # end time (Type = 0) or tzOffset (Type = 1)
+#   timeStamp = seData[4] # 0 (Type = 0) or end time (Type = 1)
+#   data5 = seData[5] # 0
+#   data6 = seData[6] # 0
 
 # format string used to unpack input data
-timeInFmt = "<LLLLLLL"
+eventInFmt = "<LLLlLLL"
 # length of data that will be unpacked
-timeInFmtLen = (len(timeInFmt)-1)*4
+eventInFmtLen = (len(eventInFmt)-1)*4
 # mapping of input data to device data items
-timeIdx = [0,1,2,3,4,5,6]
+eventIdx = [0,1,2,3,4]
 # device data item names
-timeItems = ["Date", "Time", "ID", "Time0", "Time1", "Time2", "Time3", "Time4", "Time5"]
+eventItems = ["Date", "Time", "ID", "Type", "Event1", "Event2", "Event3"]
 
-def parseTimeData(seId, timeItems, devData):
+def parseEventData(seId, eventItems, devData):
     # unpack data and map to items
-    seTimeData = [struct.unpack(timeInFmt, devData[:invInFmtLen])[i] for i in timeIdx]
-    seTimeStamps = [seTimeData[0]] + [time.asctime(time.localtime(t)) for t in seTimeData[1:]]
-    return devDataDict(seId, timeItems, seTimeStamps)
+    seEventData = [struct.unpack(eventInFmt, devData[:invInFmtLen])[i] for i in eventIdx]
+    seEventData[2] = time.asctime(time.localtime(seEventData[2]))
+    if seEventData[1] == 0:
+        seEventData[3] = time.asctime(time.localtime(seEventData[3]))
+    else:
+        seEventData[4] = time.asctime(time.localtime(seEventData[4]))    
+    return devDataDict(seId, eventItems, seEventData)
 
 # inverter data interpretation
 #
