@@ -296,12 +296,12 @@ def writeHeaders(outFile, items):
 def writeData(msgDict, invFile, optFile, jsonFile):
     global invSeq, optSeq, jsonSeq
     if invFile:
-        if headers and invSeq == 0:
+        if headers and (invSeq == 0) and (msgDict["inverters"] != {}):
             writeHeaders(invFile, invItems)
         for seId in msgDict["inverters"].keys():
             invSeq = writeDevData(invFile, invOutFmt, msgDict["inverters"][seId], invItems, invSeq)
     if optFile:
-        if headers and optSeq == 0:
+        if headers and (optSeq == 0) and (msgDict["optimizers"] != {}):
             writeHeaders(optFile, optItems)
         for seId in msgDict["optimizers"].keys():
             optSeq = writeDevData(optFile, optOutFmt, msgDict["optimizers"][seId], optItems, optSeq)
