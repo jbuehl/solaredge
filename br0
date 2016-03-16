@@ -1,8 +1,0 @@
-Description="Example Bridge connection"
-Interface=br0
-Connection=bridge
-BindsToInterfaces=(eth0 eth1)
-IP=static
-Address=('192.168.1.56/24')
-Gateway='192.168.1.1'
-DNS=('192.168.1.1')
