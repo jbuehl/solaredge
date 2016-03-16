@@ -19,7 +19,7 @@ def parseData(function, data):
     elif function in [PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER,
                       PROT_CMD_MISC_GET_TYPE, PROT_CMD_SERVER_GET_GMT,
                       PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS,
-                      PROT_RESP_POLESTAR_MASTER_GRANT_ACK]:
+                      PROT_CMD_POLESTAR_MASTER_GRANT, PROT_RESP_POLESTAR_MASTER_GRANT_ACK]:
         # functions with no arguments
         pass
     elif function == PROT_CMD_SERVER_POST_DATA:
@@ -206,7 +206,9 @@ invInFmtLen = (len(invInFmt)-1)*4
 # mapping of input data to device data items
 invIdx = [0,1,2,3,4,5,6,7,8,11,13,18,23]
 # device data item names
-invItems = ["Date", "Time", "ID", "Uptime", "Interval", "Temp", "Eday", "Eac", "Vac", "Iac", "Freq", "Vdc", "Etot", "Pmax", "Pac"]
+invItems = ["Date", "Time", "ID", "Uptime", "Interval", "Temp",
+            "Eday", "Eac", "Vac", "Iac", "Freq", "Vdc",
+            "Etot", "Pmax", "Pac"]
 
 def parseInvData(seId, invItems, devData):
     # unpack data and map to items
@@ -231,7 +233,8 @@ optInFmtLen = (len(optInFmt)-1)*4
 # mapping of input data to device data items
 optIdx = [0,1,3,4,5,6,7,8]
 # device data item names
-optItems = ["Date", "Time", "ID", "Inverter", "Uptime", "Vmod", "Vopt", "Imod", "Eday", "Temp"]
+optItems = ["Date", "Time", "ID", "Inverter", "Uptime",
+            "Vmod", "Vopt", "Imod", "Eday", "Temp"]
 
 def parseOptData(seId, optItems, devData):
     # unpack data and map to items
