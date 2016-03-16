@@ -227,7 +227,7 @@ if __name__ == "__main__":
             doCommands(dataFile, commands, outFile)
         else:   # network or RS485
             # start a thread for reading
-            readThread = threading.Thread(name=readThreadName, target=readData, args=(dataFile, outFile, invFile, optFile, jsonFileName))
+            readThread = threading.Thread(name=readThreadName, target=readData, args=(dataFile, outFile, invFile, optFile, jsonFile))
             readThread.start()
             debug("debugFiles", "starting", readThreadName)
             if masterMode:  # send RS485 master commands
