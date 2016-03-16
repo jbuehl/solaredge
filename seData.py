@@ -137,7 +137,8 @@ def parseDeviceData(data):
             eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
             logDevice("event:         ", seType, seId, devLen, eventDict[seId], eventItems)
         else:   # unknown device type
-            raise Exception("Unknown device 0x%04x" % seType) 
+            log("Unknown device 0x%04x" % seType)
+            logData(data[dataPtr-devHdrLen:dataPtr+devLen])
         dataPtr += devLen
     return {"inverters": invDict, "optimizers": optDict, "events": eventDict}
 
