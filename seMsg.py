@@ -22,7 +22,7 @@ def readMsg(inFile, seq, outFile):
         # read the magic number and header
         msg = readBytes(inFile, magicLen+msgHdrLen)
         if msg == "":
-            return msg
+            return (msg, seq)
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
         msg += readBytes(inFile, dataLen+checksumLen)
