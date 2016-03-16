@@ -2,7 +2,7 @@
 
 INTERFACE=eth1
 ROOTDIR=/root/pcap/
-PREFIX=solaredge-
+PREFIX=
 
 # wait for the time to get set
 while [ `date +%Y` == "1969" ]
