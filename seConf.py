@@ -262,7 +262,7 @@ if netInterface != "":
         terminate(1, "network interface is not available")
 
 # force following for input from serial device
-if serialDevice:
+if serialDevice or networkDevice:
     following = True
 
 # master mode is only for serial device
