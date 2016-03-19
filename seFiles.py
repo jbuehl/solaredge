@@ -10,6 +10,7 @@ from seNetwork import *
 def openDataSocket():
     try:
         dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         dataSocket.bind(("", sePort))
         dataSocket.listen(0)        
         (clientSocket, addr) = dataSocket.accept()
