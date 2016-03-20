@@ -44,14 +44,19 @@ def readMsg(inFile, seq, outFile):
 
 # return the specified number of bytes
 def readBytes(inFile, length):
-    inBuf = inFile.read(length)
-    if inBuf == "": # end of file
-        if following:
-            # wait for more data
-            while inBuf == "":
-                time.sleep(sleepInterval)
-                inBuf = inFile.read(length)
-    return inBuf
+    try:
+        inBuf = inFile.read(length)
+        if inBuf == "": # end of file
+            if following:
+                # wait for more data
+                while inBuf == "":
+                    time.sleep(sleepInterval)
+                    inBuf = inFile.read(length)
+        return inBuf
+    # treat exceptions as end of file
+    except Exception as ex:
+        debug("debugEnable", "Exception:", ex.args[0])
+        return ""
 
 # parse a message            
 def parseMsg(msg):

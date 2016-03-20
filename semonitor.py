@@ -143,12 +143,17 @@ def readData(dataFile, outFile, invFile, optFile, jsonFile):
     while running:
         (msg, inSeq) = readMsg(dataFile, inSeq, outFile)
         if msg == "":   # end of file
-            if updateFileName != "":    # write the firmware update file
-                updateBuf = "".join(updateBuf)
-#                print struct.unpack("<H", updateBuf[0:2])[0], calcCrc(updateBuf[12:struct.unpack("<L", updateBuf[4:8])[0]-4])
-                with open("se.dat", "w") as updateFile:
-                    updateFile.write(updateBuf)
-            return
+            # eof from network means connection was broken, wait for a reconnect and continue
+            if networkDevice:
+                closeData(dataFile)
+                dataFile = openDataSocket()
+            else:
+                if updateFileName != "":    # write the firmware update file
+                    updateBuf = "".join(updateBuf)
+    #                print struct.unpack("<H", updateBuf[0:2])[0], calcCrc(updateBuf[12:struct.unpack("<L", updateBuf[4:8])[0]-4])
+                    with open("se.dat", "w") as updateFile:
+                        updateFile.write(updateBuf)
+                return
         if msg == "\x00"*len(msg):   # ignore messages containing all zeros
             if debugData: logData(msg)
         else:

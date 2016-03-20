@@ -9,12 +9,17 @@ from seNetwork import *
 # open data socket and wait for connection from inverter
 def openDataSocket():
     try:
+        # open a socket and wait for a connection
         dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         dataSocket.bind(("", sePort))
         dataSocket.listen(0)        
+        debug("debugFiles", "waiting for connection")
         (clientSocket, addr) = dataSocket.accept()
+        dataSocket.close()
         debug("debugFiles", "connection from", addr[0]+":"+str(addr[1]))
+        # set a timeout so lost connection can be detected
+        clientSocket.settimeout(socketTimeout)
         return clientSocket.makefile("rwb")
     except:
         terminate(1, "Unable to open data socket")
@@ -51,6 +56,7 @@ def openData(inFileName):
 
 # close the data source
 def closeData(dataFile):
+    debug("debugFiles", "closing", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
     dataFile.close()
@@ -79,8 +85,16 @@ def openOutFiles(outFileName, invFileName, optFileName, jsonFileName):
     
 # close output files        
 def closeOutFiles(outFile, invFile, optFile, jsonFile):
-    if outFile: outFile.close()
-    if invFile: invFile.close()
-    if optFile: optFile.close()
-    if jsonFile: jsonFile.close()
+    if outFile:
+        debug("debugFiles", "closing", outFile.name)
+        outFile.close()
+    if invFile:
+        debug("debugFiles", "closing", invFile.name)
+        invFile.close()
+    if optFile:
+        debug("debugFiles", "closing", optFile.name)
+        optFile.close()
+    if jsonFile:
+        debug("debugFiles", "closing", jsonFile.name)
+        jsonFile.close()
 

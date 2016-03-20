@@ -69,6 +69,7 @@ ipAddr = ""
 broadcastAddr = ""
 subnetMask = ""
 sePort = 22222
+socketTimeout = 120.0
 dhcpDnsBufferSize = 4096
 dhcpLeaseTime = 24*60*60    # 1 day
 validMacs = ["\xb8\x27\xeb",   # Raspberry Pi
