@@ -126,16 +126,16 @@ def parseDeviceData(data):
         # device data
         if seType == 0x0000:    # optimizer data
             optDict[seId] = parseOptData(seId, optItems, data[dataPtr:dataPtr+devLen])
-            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
+            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
         elif seType == 0x0080:  # new format optimizer data
             optDict[seId] = parseNewOptData(seId, optItems, data[dataPtr:dataPtr+devLen])
-            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId], optItems)
+            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems, data[dataPtr:dataPtr+devLen])
-            logDevice("inverter:     ", seType, seId, devLen, invDict[seId], invItems)
+            logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
         elif seType == 0x0300:  # wake or sleep event
             eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
-            logDevice("event:         ", seType, seId, devLen, eventDict[seId], eventItems)
+            logDevice("event:         ", seType, seId, devLen, eventDict[seId])
         else:   # unknown device type
             log("Unknown device 0x%04x" % seType)
             logData(data[dataPtr-devHdrLen:dataPtr+devLen])
@@ -268,9 +268,9 @@ def parseNewOptData(seId, optItems, devData):
     vopt = 0.125 * (data[7] >>2 | (data[8] <<6 & 0x3c0))
     imod = 0.00625 * (data[9] <<4 | (data[8] >>4 & 0xf))
     eday = 0.25 * (data[11] <<8 | data[10])
-    temp = 1.6 * struct.unpack("<b", devData[12:13])[0]
+    temp = 2.0 * struct.unpack("<b", devData[12:13])[0]
     # Don't have an inverter ID in the data, substitute 0
-    return devDataDict(seId, optItems, [timeStamp, 0, 0, uptime, vpan, vopt, imod, eday, temp])
+    return devDataDict(seId, optItems, [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp])
 
 # create a dictionary of device data items
 def devDataDict(seId, itemNames, itemValues):
@@ -342,12 +342,9 @@ def formatTimeStamp(timeStamp):
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 # formatted print of device data
-def logDevice(devName, seType, seId, devLen, devData, devItems):
-    debug("debugData", devName)
-    debug("debugData","    type :", "%04x" % seType)
-    debug("debugData","    id :", "%s" % seId)
-    debug("debugData","    len :", "%04x" % devLen)
-    for item in devItems:
+def logDevice(devType, seType, seId, devLen, devData):
+    debug("debugData", devType, seId, "type: %04x" % seType, "len: %04x" % devLen)
+    for item in devData.keys():
         debug("debugData","   ", item, ":", devData[item])
 
 
