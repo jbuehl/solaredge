@@ -71,7 +71,10 @@ def openOutFiles(outFileName, invFileName, optFileName, jsonFileName):
     outFile = openOutFile(outFileName, writeMode)
     invFile = openOutFile(invFileName, writeMode)
     optFile = openOutFile(optFileName, writeMode)
-    jsonFile = openOutFile(jsonFileName, writeMode)
+    if jsonFileName == "stdout":
+        jsonFile = sys.stdout
+    else:
+        jsonFile = openOutFile(jsonFileName, writeMode)
     return (outFile, invFile, optFile, jsonFile)
     
 # close output files        
