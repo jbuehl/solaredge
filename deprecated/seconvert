@@ -1,0 +1,12 @@
+#!/bin/bash -
+
+# wait for the time to get set
+while [ `date +%Y` == "1969" ]
+do
+	echo "Waiting for correct time"
+	sleep 1
+done
+
+cd /root
+/usr/bin/python /root/solaredge/seextract.py -f -v pcap/ | python /root/solaredge/semonitor.py -v -j /root/solar.json -
+
