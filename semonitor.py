@@ -134,7 +134,7 @@ inSeq = 0
 outSeq = 0
 
 # process the input data
-def readData(dataFile, outFile, invFile, optFile, jsonFile):
+def readData(dataFile, outFile, jsonFile):
     global inSeq, outSeq
     if updateFileName != "":    # create an array of zeros for the firmware update file
         updateBuf = list('\x00'*updateSize)
@@ -156,7 +156,7 @@ def readData(dataFile, outFile, invFile, optFile, jsonFile):
         else:
             with threadLock:
                 try:
-                    processMsg(msg, dataFile, outFile, invFile, optFile, jsonFile)
+                    processMsg(msg, dataFile, outFile, jsonFile)
                 except Exception as ex:
                     debug("debugEnable", "Exception:", ex.args[0])
                     if haltOnException:
@@ -164,14 +164,14 @@ def readData(dataFile, outFile, invFile, optFile, jsonFile):
                         raise
 
 # process a received message
-def processMsg(msg, dataFile, outFile, invFile, optFile, jsonFile):
+def processMsg(msg, dataFile, outFile, jsonFile):
     global inSeq, outSeq
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
     msgData = parseData(function, data)                    
     if (function == PROT_CMD_SERVER_POST_DATA) and (data != ""):    # performance data
         # write performance data to output files
-        writeData(msgData, invFile, optFile, jsonFile)
+        writeData(msgData, jsonFile)
     elif (updateFileName != "") and function == PROT_CMD_UPGRADE_WRITE:    # firmware update data
         updateBuf[msgData["offset"]:msgData["offset"]+msgData["length"]] = msgData["data"]
     if (networkDevice or masterMode):    # send reply
@@ -231,17 +231,17 @@ def doCommands(dataFile, commands, outFile):
 if __name__ == "__main__":
     # initialization
     dataFile = openData(inFileName)
-    (outFile, invFile, optFile, jsonFile) = openOutFiles(outFileName, invFileName, optFileName, jsonFileName)
+    (outFile, jsonFile) = openOutFiles(outFileName, jsonFileName)
     if passiveMode: # only reading from file or serial device
         # read until eof then terminate
-        readData(dataFile, outFile, invFile, optFile, jsonFile)
+        readData(dataFile, outFile, jsonFile)
     else:   # reading and writing to network or serial device
         if commandAction:   # commands were specified
             # perform commands then terminate
             doCommands(dataFile, commands, outFile)
         else:   # network or RS485
             # start a thread for reading
-            readThread = threading.Thread(name=readThreadName, target=readData, args=(dataFile, outFile, invFile, optFile, jsonFile))
+            readThread = threading.Thread(name=readThreadName, target=readData, args=(dataFile, outFile, jsonFile))
             readThread.start()
             debug("debugFiles", "starting", readThreadName)
             if masterMode:  # send RS485 master commands
@@ -253,5 +253,5 @@ if __name__ == "__main__":
             running = waitForEnd()
     # cleanup
     closeData(dataFile)
-    closeOutFiles(outFile, invFile, optFile, jsonFile)
+    closeOutFiles(outFile, jsonFile)
     

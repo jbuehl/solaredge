@@ -41,11 +41,7 @@ networkSvcs = False
 
 # output file parameters
 outFileName = ""
-invFileName = ""
-optFileName = ""
 jsonFileName = ""
-headers = False
-delim = ","
 writeMode = "w"
 updateFileName = ""
 
@@ -171,7 +167,7 @@ def parseCommands(opt):
     return commands
                         
 # get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:D:fp:Hi:j:lmn:o:s:u:vx")
+(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:fp:j:lmn:s:u:vx")
 
 # figure out the list of valid serial ports
 try:
@@ -208,14 +204,8 @@ for opt in opts:
         commandAction = True
         commands = parseCommands(opt[1])
         passiveMode = False 
-    elif opt[0] == "-D":
-        delim = opt[1] 
     elif opt[0] == "-f":
         following = True
-    elif opt[0] == "-H":
-        headers = True
-    elif opt[0] == "-i":
-        invFileName = opt[1]
     elif opt[0] == "-j":
         jsonFileName = opt[1]
     elif opt[0] == "-l":
@@ -231,8 +221,6 @@ for opt in opts:
             netInterface = opt[1]
         except:
             pass
-    elif opt[0] == "-o":
-        optFileName = opt[1]
     elif opt[0] == "-s":
         slaveAddrs = opt[1].split(",")
     elif opt[0] == "-u":
@@ -306,13 +294,6 @@ if debugFiles:
         log("    broadcastAddr", broadcastAddr)
     if outFileName != "":
         log("outFileName:", outFileName)
-    if invFileName != "":
-        log("invFileName:", invFileName)
-    if optFileName != "":
-        log("optFileName:", optFileName)
-    if (invFileName != "") or (optFileName != ""):
-        log("    headers:", headers)
-        log("    delim:", delim)
     if jsonFileName != "":
         log("jsonFileName:", jsonFileName)
     log("append:", writeMode)

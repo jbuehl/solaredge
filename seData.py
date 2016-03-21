@@ -7,8 +7,6 @@ from seCommands import *
 from seDataParams import *
 
 # file sequence numbers
-invSeq = 0
-optSeq = 0
 jsonSeq = 0
 
 # parse the message data
@@ -196,40 +194,12 @@ def writeJson(jsonFile, devDict, seq):
     jsonFile.flush()
     return seq
     
-# write output file headers
-def writeHeaders(outFile, items):
-    outFile.write(delim.join(item for item in items)+"\n")
-
 # write data to output files
-def writeData(msgDict, invFile, optFile, jsonFile):
-    global invSeq, optSeq, jsonSeq
-    if invFile:
-        if headers and (invSeq == 0) and (msgDict["inverters"] != {}):
-            writeHeaders(invFile, invItems)
-        for seId in msgDict["inverters"].keys():
-            invSeq = writeDevData(invFile, invOutFmt, msgDict["inverters"][seId], invItems, invSeq)
-    if optFile:
-        if headers and (optSeq == 0) and (msgDict["optimizers"] != {}):
-            writeHeaders(optFile, optItems)
-        for seId in msgDict["optimizers"].keys():
-            optSeq = writeDevData(optFile, optOutFmt, msgDict["optimizers"][seId], optItems, optSeq)
+def writeData(msgDict, jsonFile):
+    global jsonSeq
     if jsonFile:
         jsonSeq = writeJson(jsonFile, msgDict, jsonSeq)
         
-# write device data to output file
-def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
-    if outFile:
-        outMsg = delim.join([(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
-        try:
-            devSeq += 1
-            logMsg("<--", devSeq, outMsg, outFile.name)
-            debug("debugData", outMsg)
-            outFile.write(outMsg+"\n")
-            outFile.flush()
-        except:
-            terminate(1, "Error writing output file "+outFile.name)
-    return devSeq
-
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def parseId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
