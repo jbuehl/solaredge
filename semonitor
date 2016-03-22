@@ -11,4 +11,4 @@ do
 	sleep 1
 done
 
-python /root/solaredge/semonitor.py -vv -n $INTERFACE -j stdout | tee $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.json | python /root/solaredge/se2state.py -o /root/solar.json
+python /root/solaredge/semonitor.py -vv -n $INTERFACE | tee $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.json | python /root/solaredge/se2state.py -o /root/solar.json

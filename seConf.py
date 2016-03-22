@@ -17,12 +17,14 @@ debugFiles = False
 debugMsgs = False
 debugData = False
 debugRaw = False
-logStdout = False
+debugFileName = "syslog"
+debugFile = None
 haltOnException = False
 
 # data source parameters
 inFileName = ""
 following = False
+inputType = ""
 serialDevice = False
 baudRate = 115200
 networkDevice = False
@@ -34,14 +36,15 @@ slaveAddrs = []
 
 # action parameters
 commandAction = False
-commands = ""
+commandStr = ""
+commands = []
 commandDelay = 2
 networkInterface = ""
 networkSvcs = False
 
 # output file parameters
-outFileName = ""
-jsonFileName = ""
+outFileName = "stdout"
+recFileName = ""
 writeMode = "w"
 updateFileName = ""
 
@@ -78,8 +81,8 @@ def log(*args):
     message = args[0]+" "
     for arg in args[1:]:
         message += arg.__str__()+" "
-    if logStdout:
-        print time.asctime(time.localtime())+" "+message
+    if debugFile:
+        debugFile.write(time.asctime(time.localtime())+" "+message+"\n")
     else:
         syslog.syslog(appName+" "+message)
 
@@ -162,14 +165,10 @@ def parseCommands(opt):
                 log(" ".join(c for c in command))
                 terminate(1, "Invalid numeric value")
     except:
-        raise
         terminate(1, "Error parsing commands")
     return commands
                         
-# get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:fp:j:lmn:s:u:vx")
-
-# figure out the list of valid serial ports
+# figure out the list of valid serial ports on this server
 try:
     serialPortNames = []
     serialPorts = serial.tools.list_ports.comports()
@@ -183,6 +182,9 @@ try:
 except:
     pass
 
+# get program arguments and options
+(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fmn:o:r:s:t:u:vx")
+# arguments
 try:
     inFileName = args[0]
     if inFileName == "-":
@@ -191,38 +193,30 @@ try:
         serialDevice = True      
 except:
         inFileName = "stdin"
-try:
-    outFileName = args[1]
-except:
-    pass
+# options
 for opt in opts:
     if opt[0] == "-a":
         writeMode = "a"
     elif opt[0] == "-b":
         baudRate = opt[1] 
     elif opt[0] == "-c":
-        commandAction = True
-        commands = parseCommands(opt[1])
-        passiveMode = False 
+        commandStr = opt[1]
+    elif opt[0] == "-d":
+        debugFileName = opt[1]
     elif opt[0] == "-f":
         following = True
-    elif opt[0] == "-j":
-        jsonFileName = opt[1]
-    elif opt[0] == "-l":
-        logStdout = True
     elif opt[0] == "-m":
         masterMode = True
-        passiveMode = False
     elif opt[0] == "-n":
-        networkDevice = True
-        inFileName = "network"
-        passiveMode = False
-        try:
-            netInterface = opt[1]
-        except:
-            pass
+        netInterface = opt[1]
+    elif opt[0] == "-o":
+        outFileName = opt[1]
+    elif opt[0] == "-r":
+        recFileName = opt[1]
     elif opt[0] == "-s":
         slaveAddrs = opt[1].split(",")
+    elif opt[0] == "-t":
+        inputType = opt[1]
     elif opt[0] == "-u":
         updateFileName = opt[1]
     elif opt[0] == "-v":
@@ -234,12 +228,36 @@ for opt in opts:
             elif not debugData:
                 debugData = True    # -vvv
             elif not debugRaw:
-                debugRaw = True    # -vvvv
+                debugRaw = True     # -vvvv
     elif opt[0] == "-x":
         haltOnException = True
+    else:
+        terminate(1, "Unknown option "+opt[0])
 
-# check for network device
+# open debug file
+if debugFileName != "syslog":
+    if debugFileName == "stdout":
+        debugFile = sys.stdout
+    else:
+        debugFile = open(debugFileName, writeMode)
+
+# validate input type
+if inputType in ["2", "4"]:
+    if not serialDevice:
+        terminate(1, "Input device types 2 and 4 are only valid for a serial device")
+elif inputType == "n":
+    if inFileName != "":
+        terminate(1, "Input file cannot be specified for network mode")
+    networkDevice = True
+    inFileName = "network"
+elif inputType != "":
+    terminate(1, "Invalid input type "+inputType)
+    
+# get network interface parameters
 if netInterface != "":
+    networkDevice = True
+    inFileName = "network"
+    passiveMode = False
     try:
         netInterfaceParams = netifaces.ifaddresses(netInterface)[2][0]
         ipAddr = netInterfaceParams["addr"]
@@ -250,52 +268,68 @@ if netInterface != "":
         raise
         terminate(1, "network interface is not available")
 
-# force following for input from serial device
+# serial device validation
 if serialDevice:
     following = True
+    if inputType == "2":
+        passiveMode = False
+    elif inputType != "4":
+        terminate(1, "Input device type 2 or 4 must be specified for serial device")
 
-# master mode is only for serial device
-if masterMode and not serialDevice:
-    terminate(1, "Master mode only allowed with serial device")
+# master mode validation
+if masterMode:
+    passiveMode = False
+    if inputType != "4":
+        terminate(1, "Master mode only allowed with RS485 serial device")
+    if len(slaveAddrs) < 1:
+        terminate(1, "At least one slave address must be specified for master mode")
 
-# master and network mode require slaves to be specified
-if masterMode and (len(slaveAddrs) < 1):
-    terminate(1, "At least one slave address must be specified for master mode")
-if commandAction and (len(slaveAddrs) != 1):
-    terminate(1, "Exactly one slave address must be specified for command mode")
-       
-if debugFiles: 
+# command mode validation
+if commandStr != "":
+    commands = parseCommands(commandStr)
+    commandAction = True
+    passiveMode = False 
+    if len(slaveAddrs) != 1:
+        terminate(1, "Exactly one slave address must be specified for command mode")
+
+# print out the arguments and options       
+if debugFiles:
+    # debug parameters 
     log("debugEnable:", debugEnable)  
     log("debugFiles:", debugFiles)  
     log("debugMsgs:", debugMsgs)
     log("debugData:", debugData)
     log("debugRaw:", debugRaw)
-    log("logStdout:", logStdout)
+    log("debugFileName:", debugFileName)
     log("haltOnException:", haltOnException)
+    # input parameters
     log("inFileName:", inFileName)
+    if inputType != "":
+        log("inputType:", inputType)
     log("serialDevice:", serialDevice)
     if serialDevice:
         log("    baudRate:", baudRate)
-    log("following:", following)
-    log("passiveMode:", passiveMode)
-    log("commandAction:", commandAction)
-    if commandAction:
-        for command in commands:
-            log("    command:", " ".join(c for c in command))
-    log("masterMode:", masterMode)
     log("networkDevice:", networkDevice)
-    if masterMode or networkDevice:
-        log("slaveAddrs:", ",".join(slaveAddr for slaveAddr in slaveAddrs))
     log("networkSvcs:", networkSvcs)
     if networkSvcs:
         log("netInterface", netInterface)
         log("    ipAddr", ipAddr)
         log("    subnetMask", subnetMask)
         log("    broadcastAddr", broadcastAddr)
-    if outFileName != "":
-        log("outFileName:", outFileName)
-    if jsonFileName != "":
-        log("jsonFileName:", jsonFileName)
+    log("following:", following)
+    # action parameters
+    log("passiveMode:", passiveMode)
+    log("commandAction:", commandAction)
+    if commandAction:
+        for command in commands:
+            log("    command:", " ".join(c for c in command))
+    log("masterMode:", masterMode)
+    if masterMode or commandAction:
+        log("slaveAddrs:", ",".join(slaveAddr for slaveAddr in slaveAddrs))
+    # output parameters
+    log("outFileName:", outFileName)
+    if recFileName != "":
+        log("recFileName:", recFileName)
     log("append:", writeMode)
     if updateFileName != "":
         log("updateFileName:", updateFileName)
