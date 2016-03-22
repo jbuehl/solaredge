@@ -53,8 +53,6 @@ bufSize = 1024
 parsing = True
 sleepInterval = .1
 lineSize = 16
-appName = "semonitor"
-serialFileName = "/dev/tty"
 readThreadName = "read thread"
 masterThreadName = "master thread"
 masterMsgInterval = 5
@@ -82,9 +80,9 @@ def log(*args):
     for arg in args[1:]:
         message += arg.__str__()+" "
     if debugFile:
-        debugFile.write(time.asctime(time.localtime())+" "+message+"\n")
+        debugFile.write(time.strftime('%b %d %H:%M:%S',time.localtime())+" "+message+"\n")
     else:
-        syslog.syslog(appName+" "+message)
+        syslog.syslog(message)
 
 # log a debug message
 def debug(*args):
