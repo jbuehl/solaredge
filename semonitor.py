@@ -14,19 +14,15 @@ from seCommands import *
 threadLock = threading.Lock()       # lock to synchronize reads and writes
 masterEvent = threading.Event()     # event to signal RS485 master release
 running = True
-dataInSeq = 0
-dataOutSeq = 0
-outSeq = 0
 
 # process the input data
 def readData(dataFile, recFile, outFile):
-    global dataInSeq, dataOutSeq
     if updateFileName != "":    # create an array of zeros for the firmware update file
         updateBuf = list('\x00'*updateSize)
     if passiveMode:
-        (msg, dataInSeq) = readMsg(dataFile, dataInSeq, recFile)   # skip data until the start of the first complete message
+        msg = readMsg(dataFile, recFile)   # skip data until the start of the first complete message
     while running:
-        (msg, dataInSeq) = readMsg(dataFile, dataInSeq, recFile)
+        msg = readMsg(dataFile, recFile)
         if msg == "":   # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if networkDevice:
@@ -50,13 +46,12 @@ def readData(dataFile, recFile, outFile):
 
 # process a received message
 def processMsg(msg, dataFile, recFile, outFile):
-    global dataInSeq, dataOutSeq, outSeq
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
     msgData = parseData(function, data)                    
     if (function == PROT_CMD_SERVER_POST_DATA) and (data != ""):    # performance data
         # write performance data to output files
-        outSeq = writeData(msgData, outFile, outSeq)
+        writeData(msgData, outFile)
     elif (updateFileName != "") and function == PROT_CMD_UPGRADE_WRITE:    # firmware update data
         updateBuf[msgData["offset"]:msgData["offset"]+msgData["length"]] = msgData["data"]
     if (networkDevice or masterMode):    # send reply
@@ -73,7 +68,7 @@ def processMsg(msg, dataFile, recFile, outFile):
             masterEvent.set()
         if replyFunction != "":
             msg = formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
-            dataOutSeq = sendMsg(dataFile, msg, dataOutSeq, recFile)
+            sendMsg(dataFile, msg, recFile)
 
 # write firmware image to file
 def writeUpdate():
@@ -84,12 +79,11 @@ def writeUpdate():
 
 # RS485 master commands thread
 def masterCommands(dataFile, recFile):
-    global dataOutSeq
     while running:
         for slaveAddr in slaveAddrs:
             with threadLock:
                 # grant control of the bus to the slave
-                dataOutSeq = sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16), PROT_CMD_POLESTAR_MASTER_GRANT), dataOutSeq, recFile)
+                sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16), PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
             # wait for slave to release the bus
             masterEvent.clear()
             masterEvent.wait()
@@ -97,7 +91,6 @@ def masterCommands(dataFile, recFile):
 
 # perform the specified commands
 def doCommands(dataFile, commands, recFile):
-    global dataInSeq, dataOutSeq
     slaveAddr = int(slaveAddrs[0], 16)
     for command in commands:
         # format the command parameters
@@ -105,9 +98,9 @@ def doCommands(dataFile, commands, recFile):
         format = "<"+"".join(c[0] for c in command[1:])
         params = [int(p[1:],16) for p in command[1:]]
         # send the command
-        dataOutSeq = sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, slaveAddr, function, struct.pack(format, *tuple(params))), dataOutSeq, recFile)
+        sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, slaveAddr, function, struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        (msg, dataInSeq) = readMsg(dataFile, dataInSeq, recFile)
+        msg = readMsg(dataFile, recFile)
         (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
         msgData = parseData(function, data)
         # wait a bit before sending the next one                    

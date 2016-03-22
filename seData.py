@@ -6,6 +6,9 @@ from seConf import *
 from seCommands import *
 from seDataParams import *
 
+# message debugging sequence numbers
+outSeq = 0
+
 # parse the message data
 def parseData(function, data):
     if function == 0:
@@ -182,7 +185,7 @@ def devDataDict(seId, itemNames, itemValues):
     return devDict
     
 # write device data to output files
-def writeData(msgDict, outFile, outSeq):
+def writeData(msgDict, outFile):
     if outFile:
         outSeq += 1
         msg = json.dumps(msgDict)
@@ -190,7 +193,6 @@ def writeData(msgDict, outFile, outSeq):
         debug("debugData", msg)
         outFile.write(msg+"\n")
         outFile.flush()
-    return outSeq
         
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def parseId(seId):

@@ -10,20 +10,22 @@ magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
 
-# file sequence numbers
+# message debugging sequence numbers
+dataInSeq = 0
+dataOutSeq = 0
 recSeq = 0
 
 # return the next message
-def readMsg(inFile, seq, recFile):
-    global recSeq
-    seq += 1
+def readMsg(inFile, recFile):
+    global dataInSeq, recSeq
+    dataInSeq += 1
     msg = ""
     if not passiveMode:
         # read the magic number and header
         msg = readBytes(inFile, magicLen+msgHdrLen)
         if msg == "":
             debug("debugFiles", "end of file")
-            return (msg, seq)
+            return msg
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
         msg += readBytes(inFile, dataLen+checksumLen)
@@ -36,13 +38,13 @@ def readMsg(inFile, seq, recFile):
                 break
             msg += nextByte
         msg = msg[:-magicLen]
-    logMsg("-->", seq, magic+msg, inFile.name)
+    logMsg("-->", dataInSeq, magic+msg, inFile.name)
     if recFile:
         recSeq += 1
         logMsg("<--", recSeq, magic+msg, recFile.name)
         recFile.write(magic+msg)
         recFile.flush()
-    return (msg, seq)
+    return msg
 
 # return the specified number of bytes
 def readBytes(inFile, length):
@@ -86,10 +88,10 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
     return msg
 
 # send a message
-def sendMsg(dataFile, msg, seq, recFile):
-    global recSeq
-    seq += 1
-    logMsg("<--", seq, msg, dataFile.name)
+def sendMsg(dataFile, msg, recFile):
+    global dataOutSeq, recSeq
+    dataOutSeq += 1
+    logMsg("<--", dataOutSeq, msg, dataFile.name)
     dataFile.write(msg)
     dataFile.flush()
     if recFile:
@@ -97,7 +99,6 @@ def sendMsg(dataFile, msg, seq, recFile):
         logMsg("<--", recSeq, msg, recFile.name)
         recFile.write(msg)
         recFile.flush()
-    return seq
 
 # crc calculation
 #
