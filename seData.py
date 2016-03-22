@@ -186,6 +186,7 @@ def devDataDict(seId, itemNames, itemValues):
     
 # write device data to output files
 def writeData(msgDict, outFile):
+    global outSeq
     if outFile:
         outSeq += 1
         msg = json.dumps(msgDict)
