@@ -14,10 +14,10 @@ Performance data is output to a file in JSON format.
 **seextract.py** is a program that can extract the SolarEdge protocol messages from a PCAP
 file that contains data captured from the network.
 
-**se2state.py** follows a file containing performance data and outputs a JSON file
+**se2state.py** follows a file containing JSON performance data and outputs a JSON file
 that contains the current state of the inverter and optimizer values.
 
-**se2csv.py** reads a file containing performance data and outputs two separate comma delimited
+**se2csv.py** reads a file containing JSON performance data and outputs two separate comma delimited
 files that contain inverter and optimizer data that is suitable for input to a spreadsheet.
 
 semonitor.py
@@ -60,7 +60,7 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
 
 ### Notes
 Data may be read from a file containing messages in the SolarEdge protocol that was previously created by 
-seextract from a pcap file, or the output from a previous run of semonitor.  It may also be
+seextract.py from a pcap file, or the output from a previous run of semonitor.py.  It may also be
 read in real time from one of the RS232, RS485, or ethernet interfaces on a SolarEdge inverter.
 
 Debug messages are sent to the system log, unless the -d option is specified.  If an error occurs
@@ -74,28 +74,29 @@ The level of debug messaging is controlled using the -v option, which may be spe
     -vvv    log the parsed data of incoming and outgoing messages
     -vvvv   log the raw data of incoming and outgoing messages
 Messages logged at the -vv level and above contain the device or file sending or receiving the
-message, the direction it was sent, the message size, and an internal sequence number.  Separate
+message, the direction it was sent, the message size, and a sequence number.  Separate
 sequences are kept for incoming and outgoing messages.
 
 The -t option is used to specify the data source type for non-file input.  If the data source is 
-a serial port, the -t option must be included with either the 2 or 4 value to specify
+a serial port, the -t option must be included with either the values 2 or 4 to specify
 whether it is connected to the RS232 or RS485 port.  If there is no data source specified and 
--t n is specified, semonitor will listen on port 2222 for a connection from an inverter.
+-t n is specified, semonitor.py will listen on port 22222 for a connection from an inverter.
 
-To interact directly with an inverter over the network, semonitor must function as the SolarEdge
-monitoring server.  This means that the host running semonitor must be connected to the inverter
-over the ethernet interface.  In this configuration, semonitor may function as the DHCP server
+To interact directly with an inverter over the network, semonitor.py must function as the SolarEdge
+monitoring server.  This means that the host running semonitor.py must be connected to the inverter
+over the ethernet interface.  In this configuration, semonitor.py may function as the DHCP server
 and the DNS server to provide an IP address to the inverter and to resolve the hostname of the
-SolarEdge server (usually prod.solaredge.com) to the IP address of the semonitor host.  This
-requires that semonitor be run with elevated (root) priveleges in order to access the standard
+SolarEdge server (usually prod.solaredge.com) to the IP address of the semonitor.py host.  This
+requires that semonitor.py be run with elevated (root) priveleges in order to access the standard
 DHCP and DNS ports.  The -n option specifies the name of the network interface that the inverter
-is connected to.
+is connected to.  If the inverter acquires an IP address and is able to resolve the server hostname
+by some other means, the -n option is not required.
 
-The -c, -m, and -s options are not meaningful if input is from a file or stdin.
+The -c, -m, and -s options are not vaild if input is from a file or stdin.
 
 The -m option is only valid if a serial port is specified, and one or more inverter IDs
 must be specified with the -s option.  If this option is specified, there cannot
-be another master device on the RS485 bus.  semonintor will repeatedly send commands to
+be another master device on the RS485 bus.  semonintor.py will repeatedly send commands to
 the specified inverters to request performance data.
 
 The -c option may be specified for a serial device or the network.  The option specifies one
@@ -108,28 +109,24 @@ length of the parameter:
     L = 32 bits
 All function codes and parameters must be hexadecimal numbers, without the leading "0x".
 Exactly one inverter ID must be specified with the -s option.  After each command is sent,
-semonitor will wait for a response before sending the next command.  When all commands
+semonitor.py will wait for a response before sending the next command.  When all commands
 have been sent and responded to, the program terminates.  Use the -vvv option to view
 the responses.
 
-Commands initiated by semonitor as the result of the -c or -m options need to maintain a
-monotonically increasing sequence number.  A file named seseq.dat will be created to persist the
-value of this sequence number across multiple executions of semonitor.
+Commands initiated by semonitor.py as the result of the -c or -m options need to maintain a
+monotonically increasing sequence number which is used as a transaction ID.  A file named 
+seseq.dat will be created to persist the
+value of this sequence number across multiple executions of semonitor.py.
 
 ### Examples
     python semonitor.py -o yyyymmdd.json yyyymmdd.dat
 
 Read from SE data file yyyymmdd.dat and write data to the json file yyyymmdd.json.
 
-    python seextract.py yyyymmdd.pcap | python semonitor.py -o yyyymmdd.json
-
-Extract SolarEdge data from the file yyyymmdd.pcap using seextract, process
-it with semonitor, and write data to the json file yyyymmdd.json.
-
-    python semonitor.py -o yyyymmdd.json -m -s RS232 7f101234,7f105678 -t 4 COM4
+    python semonitor.py -o yyyymmdd.json -m -s 7f101234,7f105678 -t 4 COM4
 
 Function as a RS485 master to request data from the inverters 7f101234 and 7f105678
-using serial port COM4.
+using RS485 serial port COM4.
 
     python semonitor.py -c 0012,H0329 -s 7f101234 -d stdout -vvv -t 2 /dev/ttyUSB0
 
@@ -140,13 +137,14 @@ using RS232 serial port /dev/ttyUSB0.  Display the messages on stdout.
 
 Send commands to the inverter 7f101234 to set the value of parameter 0x0329 to 1,
 followed by a command to reset the inverter using RS232 serial port /dev/ttyUSB0.
-Display the messages on stdout.
+Display the debug messages on stdout.
 
-    sudo python semonitor.py -o yyyymmdd.json -t n -n eth1
+    sudo python semonitor.py -o yyyymmdd.json -n eth1
 
 Start the dhcp and dns services on network interface eth1.  Accept connections
 from inverters and function as a SolarEdge monitoring server.  Write performance
-data to file yyyymmdd.json.
+data to the file yyyymmdd.json.  Because the -n option is specified, the -t n option
+is implied.
 
 seextract.py
 ------------
@@ -184,18 +182,23 @@ monitoring server.  Filter out the TCP stream between the inverter to the server
 
 Convert the data in file yyyymmdd.pcap and write the output to file yyyymmdd.dat
     
-    python seextract.py -f pcap/
+    python seextract.py -o yyyymmdd.dat -f pcap/
 
-Monitor PCAP files in directory pcap/ and write the output to stdout.
+Monitor PCAP files in directory pcap/ and write the output to the file yyyymmdd.dat.
     
     python seextract.py -o allfiles.pcap pcap/
 
 Convert all the pcap files found in directory pcap/ and write the output to files
 allfiles.pcap.
 
+    python seextract.py yyyymmdd.pcap | python semonitor.py -o yyyymmdd.json
+
+Extract SolarEdge data from the file yyyymmdd.pcap using seextract.py, process
+it with semonitor.py, and write data to the json file yyyymmdd.json.
+
 se2state.py
 -----------
-Maintain a file containing the current state of SolarEdge inverters and optimizers.
+Maintain a JSON file containing the current state of SolarEdge inverters and optimizers.
 
 ### Usage
     python se2state.py options [inFile]
@@ -216,6 +219,8 @@ Maintain a file containing the current state of SolarEdge inverters and optimize
 
 Accept connections from inverters over the network.  Send performance data to
 the file yyyymmdd.json and also maintain the file solar.json with the current state.
+The inverter acquires its IP address and resolves the server hostname by a means
+other than semonitor.py.
     
 se2csv.py
 ---------
@@ -238,7 +243,7 @@ Convert SolarEdge inverter performance monitoring data from JSON to CSV.
 ### Examples
     python se2csv.py -i yyyymmdd-inv.csv -o yyyymmdd-opt.csv -h yyyymmdd.json
 
-Read from SE data file yyyymmdd.json and write inverter and optimizer data to the csv files
+Read from SE data file yyyymmdd.json and write inverter and optimizer data to the CSV files
 yyyymmdd-inv.csv and yyyymmdd-opt.csv with headers.
 
 
