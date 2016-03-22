@@ -1,0 +1,9 @@
+[Unit]
+Description=SolarEdge monitor
+After=syslog.target
+[Service]
+ExecStart=/root/solaredge/semonitor
+Restart=on-abort
+[Install]
+WantedBy=multi-user.target
+

@@ -8,5 +8,5 @@ do
 done
 
 cd /root
-/usr/bin/python /root/solaredge/seconvert1.py -f -v pcap/ | python /root/solaredge/seconvert2.py -v -j /root/solar.json
+/usr/bin/python /root/solaredge/seextract.py -f -v pcap/ | python /root/solaredge/semonitor.py -v -j /root/solar.json -
 

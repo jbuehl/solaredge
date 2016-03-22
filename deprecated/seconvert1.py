@@ -99,7 +99,7 @@ def readPcapRec(pcapFile):
     tcpHdr = readTcpHdr(pcapFile)
     # data is whatever is left
     dataLen = pcapRecLen - etherHdrLen - ipHdrLen - tcpHdrLen
-    if debugData: log("pcap", "pcapSeq", pcapSeq, "pcapRecLen", pcapRecLen, "dataLen", dataLen)
+    if debugData: log("pcap", "pcapSeq", pcapSeq, "srcIp", ip2str(ipHdr[3]), "dstIp", ip2str(ipHdr[4]), "pcapRecLen", pcapRecLen, "dataLen", dataLen)
     if dataLen > 0:
         if (seIpAddr == 0) or (ipHdr[4] == seIpAddr):   # only process records where IP dest is SE server
             if outFile:
@@ -170,6 +170,7 @@ def getOpts():
     try:
         if seHostName != "":    
             seIpAddr = struct.unpack("!I", socket.inet_aton(socket.gethostbyname_ex(seHostName)[2][0]))[0]    # 0xd9449842
+            log("serverIpAddr:", ip2str(seIpAddr))
     except:
         print "Unable to resolve hostname", seHostName        
 
@@ -235,6 +236,9 @@ def log(*args):
 #    print message
     syslog.syslog(message)
 
+def ip2str(ipAddr):
+    return "%d.%d.%d.%d" % struct.unpack("!BBBB", struct.pack("!L", ipAddr))
+    
 def terminate(code, msg=""):
     print msg
     sys.exit(code)
