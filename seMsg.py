@@ -34,11 +34,13 @@ def readMsg(inFile, recFile):
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
             nextByte = readBytes(inFile, 1)
-            if nextByte == "":
-                break
-            msg += nextByte
-        msg = msg[:-magicLen]
-    logMsg("-->", dataInSeq, magic+msg, inFile.name)
+            if nextByte == "":  # end of file
+                msg += magic    # pretend there was a magic number
+            else:
+                msg += nextByte
+        msg = msg[:-magicLen]   # drop the magic from the end
+    if len(msg) > 0:    # don't log zero length messages
+        logMsg("-->", dataInSeq, magic+msg, inFile.name)
     if recFile:
         recSeq += 1
         logMsg("<--", recSeq, magic+msg, recFile.name)
@@ -83,7 +85,7 @@ def parseMsg(msg):
 # format a message
 def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
     checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
-    msg = magic + struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
+    msg = struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
     logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
     return msg
 
@@ -91,13 +93,13 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
 def sendMsg(dataFile, msg, recFile):
     global dataOutSeq, recSeq
     dataOutSeq += 1
-    logMsg("<--", dataOutSeq, msg, dataFile.name)
-    dataFile.write(msg)
+    logMsg("<--", dataOutSeq, magic+msg, dataFile.name)
+    dataFile.write(magic+msg)
     dataFile.flush()
     if recFile:
         recSeq += 1
-        logMsg("<--", recSeq, msg, recFile.name)
-        recFile.write(msg)
+        logMsg("<--", recSeq, magic+msg, recFile.name)
+        recFile.write(magic+msg)
         recFile.flush()
 
 # crc calculation
