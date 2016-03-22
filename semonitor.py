@@ -50,7 +50,7 @@ def processMsg(msg, dataFile, recFile, outFile):
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
     msgData = parseData(function, data)                    
     if (function == PROT_CMD_SERVER_POST_DATA) and (data != ""):    # performance data
-        # write performance data to output files
+        # write performance data to output file
         writeData(msgData, outFile)
     elif (updateFileName != "") and function == PROT_CMD_UPGRADE_WRITE:    # firmware update data
         updateBuf[msgData["offset"]:msgData["offset"]+msgData["length"]] = msgData["data"]
@@ -103,6 +103,8 @@ def doCommands(dataFile, commands, recFile):
         msg = readMsg(dataFile, recFile)
         (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
         msgData = parseData(function, data)
+        # write response to output file
+        writeData({function: msgData}, outFile)
         # wait a bit before sending the next one                    
         time.sleep(commandDelay)
 

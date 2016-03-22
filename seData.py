@@ -20,7 +20,7 @@ def parseData(function, data):
                       PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS,
                       PROT_CMD_POLESTAR_MASTER_GRANT, PROT_RESP_POLESTAR_MASTER_GRANT_ACK]:
         # functions with no arguments
-        pass
+        return ''.join(x.encode('hex') for x in data)
     elif function == PROT_CMD_SERVER_POST_DATA:
         return parseDeviceData(data)
     elif function == PROT_RESP_POLESTAR_GET_STATUS:
@@ -43,11 +43,11 @@ def parseData(function, data):
         return parseTime(data)
     elif function in [0x0503, 0x003d]:
         # encrypted messages
-        pass
+        return ''.join(x.encode('hex') for x in data)
     else:
         # unknown function type
         raise Exception("Unknown function 0x%04x" % function)
-    return {}
+    return ''.join(x.encode('hex') for x in data)
 
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
