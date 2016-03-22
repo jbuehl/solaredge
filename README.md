@@ -69,10 +69,12 @@ specified.
 
 The level of debug messaging is controlled using the -v option, which may be specified up to
 4 times:
+
     -v      log input parameters and file operations
     -vv     log incoming and outgoing messages
     -vvv    log the parsed data of incoming and outgoing messages
     -vvvv   log the raw data of incoming and outgoing messages
+    
 Messages logged at the -vv level and above contain the device or file sending or receiving the
 message, the direction it was sent, the message size, and a sequence number.  Separate
 sequences are kept for incoming and outgoing messages.
@@ -104,9 +106,11 @@ or more SolarEdge protocol command functions separated by a "/".  Each command f
 consists of a hex function code followed by zero or more comma separated hex parameters.
 Each parameter must begin with one of the letters "B", "H", or "L" to designate the
 length of the parameter:
+
     B = 8 bits
     H = 16 bits
     L = 32 bits
+    
 All function codes and parameters must be hexadecimal numbers, without the leading "0x".
 Exactly one inverter ID must be specified with the -s option.  After each command is sent,
 semonitor.py will wait for a response before sending the next command.  When all commands
