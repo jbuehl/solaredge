@@ -105,10 +105,12 @@ def formatTime(timeValue, tzOffset):
     
 # parse status data
 def parseStatus(data):
-    if len(data) > 0:
-        status = struct.unpack("<HHHHHHH", data)
-        debug("debugData", "status", "%d "*len(status) % status)
-    return {"status": status}
+#    if len(data) > 0:
+#        status = struct.unpack("<HHHHHHH", data)
+#        debug("debugData", "status", "%d "*len(status) % status)
+#    return {"status": status}
+    logData(data)
+    return {"status": 0}
 
 # parse device data
 def parseDeviceData(data):
