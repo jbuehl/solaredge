@@ -11,11 +11,11 @@ msgHdrLen = 16
 checksumLen = 2
 
 # file sequence numbers
-inputSeq = 1
-outputSeq = 1
+recSeq = 0
 
 # return the next message
-def readMsg(inFile, seq, outFile):
+def readMsg(inFile, seq, recFile):
+    global recSeq
     seq += 1
     msg = ""
     if not passiveMode:
@@ -37,9 +37,11 @@ def readMsg(inFile, seq, outFile):
             msg += nextByte
         msg = msg[:-magicLen]
     logMsg("-->", seq, magic+msg, inFile.name)
-    if outFile:
-        outFile.write(magic+msg)
-        outFile.flush()
+    if recFile:
+        recSeq += 1
+        logMsg("<--", recSeq, magic+msg, recFile.name)
+        recFile.write(magic+msg)
+        recFile.flush()
     return (msg, seq)
 
 # return the specified number of bytes
@@ -84,14 +86,17 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
     return msg
 
 # send a message
-def sendMsg(dataFile, msg, seq, outFile):
+def sendMsg(dataFile, msg, seq, recFile):
+    global recSeq
     seq += 1
     logMsg("<--", seq, msg, dataFile.name)
     dataFile.write(msg)
     dataFile.flush()
-    if outFile:
-        outFile.write(msg)
-        outFile.flush()
+    if recFile:
+        recSeq += 1
+        logMsg("<--", recSeq, msg, recFile.name)
+        recFile.write(msg)
+        recFile.flush()
     return seq
 
 # crc calculation
