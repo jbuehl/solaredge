@@ -114,8 +114,7 @@ length of the parameter:
 All function codes and parameters must be hexadecimal numbers, without the leading "0x".
 Exactly one inverter ID must be specified with the -s option.  After each command is sent,
 semonitor.py will wait for a response before sending the next command.  When all commands
-have been sent and responded to, the program terminates.  Use the -vvv option to view
-the responses.
+have been sent and responded to, the program terminates.  Responses are sent to output.
 
 Commands initiated by semonitor.py as the result of the -c or -m options need to maintain a
 monotonically increasing sequence number which is used as a transaction ID.  A file named 

@@ -97,14 +97,15 @@ def doCommands(dataFile, commands, recFile):
         function = int(command[0],16)
         format = "<"+"".join(c[0] for c in command[1:])
         params = [int(p[1:],16) for p in command[1:]]
+        seq = nextSeq()
         # send the command
-        sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, slaveAddr, function, struct.pack(format, *tuple(params))), recFile)
+        sendMsg(dataFile, formatMsg(seq, masterAddr, slaveAddr, function, struct.pack(format, *tuple(params))), recFile)
         # wait for the response
         msg = readMsg(dataFile, recFile)
-        (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
-        msgData = parseData(function, data)
+        (msgSeq, fromAddr, toAddr, response, data) = parseMsg(msg)
+        msgData = parseData(response, data)
         # write response to output file
-        writeData({function: msgData}, outFile)
+        writeData({"command": function, "response": response, "sequence": seq, "data": msgData}, outFile)
         # wait a bit before sending the next one                    
         time.sleep(commandDelay)
 
