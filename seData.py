@@ -46,7 +46,7 @@ def parseData(function, data):
         return ''.join(x.encode('hex') for x in data)
     else:
         # unknown function type
-        raise Exception("Unknown function 0x%04x" % function)
+        log("Unknown function 0x%04x" % function)
     return ''.join(x.encode('hex') for x in data)
 
 def parseParam(data):
