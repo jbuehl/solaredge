@@ -126,8 +126,10 @@ def parseMsg(msg):
                 # decrypt the data and validate that as a message
                 debug("debugData", "decrypting message")
                 (seq, dataMsg) = decrypt.decrypt(data)
-                logData(dataMsg)
-                (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg)
+                logData(dataMsg[4:])
+                (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
+            else:   # don't have a key yet
+                return (0, 0, 0, 0, "")
         return (msgSeq, fromAddr, toAddr, function, data)
 
 # parse the header and validate the message
