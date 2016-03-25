@@ -5,6 +5,7 @@
 import json
 import getopt
 import sys
+import struct
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "o:")
@@ -21,5 +22,6 @@ for opt in opts:
 key = ""
 for i in range(4):
     data = json.loads(inFile.readline().rstrip("\n"))
-    key += "%08x" % data["data"]["value"]
-outFile.write(key)
+    key += struct.pack("<L", data["data"]["value"])
+outFile.write(''.join(x.encode('hex') for x in key))
+
