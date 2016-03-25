@@ -48,27 +48,32 @@ def readData(dataFile, recFile, outFile):
 def processMsg(msg, dataFile, recFile, outFile):
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
-    msgData = parseData(function, data)                    
-    if (function == PROT_CMD_SERVER_POST_DATA) and (data != ""):    # performance data
-        # write performance data to output file
-        writeData(msgData, outFile)
-    elif (updateFileName != "") and function == PROT_CMD_UPGRADE_WRITE:    # firmware update data
-        updateBuf[msgData["offset"]:msgData["offset"]+msgData["length"]] = msgData["data"]
-    if (networkDevice or masterMode):    # send reply
-        replyFunction = ""
-        if function == PROT_CMD_SERVER_POST_DATA:      # performance data
-            # send ack
-            replyFunction = PROT_RESP_ACK
-            replyData = ""
-        elif function == PROT_CMD_SERVER_GET_GMT:    # time request
-            # set time
-            replyFunction = PROT_RESP_SERVER_GMT
-            replyData = formatTime(int(time.time()), (time.localtime().tm_hour-time.gmtime().tm_hour)*60*60)
-        elif function == PROT_RESP_POLESTAR_MASTER_GRANT_ACK:   # RS485 master release
-            masterEvent.set()
-        if replyFunction != "":
-            msg = formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
-            sendMsg(dataFile, msg, recFile)
+    if function == 0:
+        # message could not be processed
+        debug("debugData", "Ignoring this message")
+        logData(data)
+    else:
+        msgData = parseData(function, data)                    
+        if (function == PROT_CMD_SERVER_POST_DATA) and (data != ""):    # performance data
+            # write performance data to output file
+            writeData(msgData, outFile)
+        elif (updateFileName != "") and function == PROT_CMD_UPGRADE_WRITE:    # firmware update data
+            updateBuf[msgData["offset"]:msgData["offset"]+msgData["length"]] = msgData["data"]
+        if (networkDevice or masterMode):    # send reply
+            replyFunction = ""
+            if function == PROT_CMD_SERVER_POST_DATA:      # performance data
+                # send ack
+                replyFunction = PROT_RESP_ACK
+                replyData = ""
+            elif function == PROT_CMD_SERVER_GET_GMT:    # time request
+                # set time
+                replyFunction = PROT_RESP_SERVER_GMT
+                replyData = formatTime(int(time.time()), (time.localtime().tm_hour-time.gmtime().tm_hour)*60*60)
+            elif function == PROT_RESP_POLESTAR_MASTER_GRANT_ACK:   # RS485 master release
+                masterEvent.set()
+            if replyFunction != "":
+                msg = formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
+                sendMsg(dataFile, msg, recFile)
 
 # write firmware image to file
 def writeUpdate():

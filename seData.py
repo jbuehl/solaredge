@@ -11,11 +11,7 @@ outSeq = 0
 
 # parse the message data
 def parseData(function, data):
-    if function == 0:
-        # message was too short to be valid
-        debug("debugEnable", "Message too short")
-        logData(data)
-    elif function in [PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER,
+    if function in [PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER,
                       PROT_CMD_MISC_GET_TYPE, PROT_CMD_SERVER_GET_GMT,
                       PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS,
                       PROT_CMD_POLESTAR_MASTER_GRANT, PROT_RESP_POLESTAR_MASTER_GRANT_ACK]:
