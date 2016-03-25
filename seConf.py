@@ -48,6 +48,10 @@ recFileName = ""
 writeMode = "w"
 updateFileName = ""
 
+# encryption key
+keyFileName = ""
+keyStr = ""
+
 # global constants
 bufSize = 1024
 parsing = True
@@ -181,7 +185,7 @@ except:
     pass
 
 # get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fmn:o:r:s:t:u:vx")
+(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:r:s:t:u:vx")
 # arguments
 try:
     inFileName = args[0]
@@ -203,6 +207,8 @@ for opt in opts:
         debugFileName = opt[1]
     elif opt[0] == "-f":
         following = True
+    elif opt[0] == "-k":
+        keyFileName = opt[1]
     elif opt[0] == "-m":
         masterMode = True
     elif opt[0] == "-n":
@@ -290,6 +296,11 @@ if commandStr != "":
     if len(slaveAddrs) != 1:
         terminate(1, "Exactly one slave address must be specified for command mode")
 
+# get encryption key
+if keyFileName != "":
+    with open(keyFileName) as keyFile:
+        keyStr = keyFile.read().rstrip("\n")
+    
 # print out the arguments and options       
 if debugFiles:
     # debug parameters 
@@ -329,6 +340,9 @@ if debugFiles:
     if recFileName != "":
         log("recFileName:", recFileName)
     log("append:", writeMode)
+    if keyFileName != "":
+        log("keyFileName:", keyFileName)
+        log("key:", keyStr)
     if updateFileName != "":
         log("updateFileName:", updateFileName)
 
