@@ -3,6 +3,49 @@
 import struct
 import time
 from seConf import *
+from Crypto.Cipher import AES
+
+class SEDecrypt:
+    def __init__(self, key, msg0503):
+        """
+        Initialise a SolarEdge communication decryption object.
+
+        key:     a 16-byte string which consists of the values of
+                 parameters 0239, 023a, 023b, and 023c.
+        msg0503: a 34-byte string with the contents of a 0503 message.
+        """
+        enkey1 = map(ord, AES.new(key).encrypt(msg0503[0:16]))
+        self.cipher = AES.new("".join(map(chr,
+            (enkey1[i] ^ ord(msg0503[i+16]) for i in range(16)))))
+
+    def decrypt(self, msg003d):
+        """
+        msg003d: the contents of the 003d message to decrypt.
+
+        Returns a tuple(int(sequenceNumber), str(data)).
+        """
+        rand1 = map(ord, msg003d[0:16])
+        rand = map(ord, self.cipher.encrypt(msg003d[0:16]))
+        msg003d = map(ord, msg003d)
+        posa = 0
+        posb = 16
+        while posb < len(msg003d):
+            msg003d[posb] ^= rand[posa]
+            posb += 1
+            posa += 1
+            if posa == 16:
+                posa = 0
+                for posc in range(15, -1, -1):
+                    rand1[posc] = (rand1[posc] + 1) & 0x0FF
+                    if rand1[posc]:
+                        break
+                rand = map(ord, self.cipher.encrypt("".join(map(chr, rand1))))
+        return (msg003d[16] + (msg003d[17] << 8),
+                "".join(map(chr, (msg003d[i+22] ^ msg003d[18+(i&3)]
+                    for i in range(len(msg003d)-22)))))
+
+# decryption object
+decrypt = None
 
 # message constants
 magic = "\x12\x34\x56\x79"
@@ -66,21 +109,45 @@ def readBytes(inFile, length):
 
 # parse a message            
 def parseMsg(msg):
+    global decrypt
     if len(msg) < msgHdrLen + checksumLen:   # throw out messages that are too short
         return (0, 0, 0, 0, "")
     else:
-        # parse the message header
-        (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
-        logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
-        data = msg[msgHdrLen:msgHdrLen+dataLen]
-        # validate the message
-        checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
-        calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
-        if calcsum != checksum:
-            raise Exception("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
-        if dataLen != ~dataLenInv & 0xffff:
-            raise Exception("Length error")
+        (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
+        # encryption key
+        if function == 0x0503:
+            if keyStr != "":
+                debug("debugData", "creating decryption object with key", keyStr)
+                decrypt = SEDecrypt(keyStr.decode("hex"), data)
+            return (0, 0, 0, 0, "")
+        # encrypted message
+        elif function == 0x003d:
+            if decrypt:
+                # decrypt the data and validate that as a message
+                debug("debugData", "decrypting message")
+                (seq, dataMsg) = decrypt.decrypt(data)
+                logData(dataMsg)
+                (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg)
         return (msgSeq, fromAddr, toAddr, function, data)
+
+# parse the header and validate the message
+def validateMsg(msg):
+    # parse the message header
+    (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
+    logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
+    data = msg[msgHdrLen:msgHdrLen+dataLen]
+    # validate the message
+    checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
+    calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
+    if calcsum != checksum:
+        log("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
+        logData(msg)
+        return (0, 0, 0, 0, "")
+    if dataLen != ~dataLenInv & 0xffff:
+        log("Length error")
+        logData(msg)
+        return (0, 0, 0, 0, "")
+    return (msgSeq, fromAddr, toAddr, function, data)
 
 # format a message
 def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):

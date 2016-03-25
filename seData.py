@@ -5,7 +5,7 @@ import json
 from seConf import *
 from seCommands import *
 from seDataParams import *
-
+                    
 # message debugging sequence numbers
 outSeq = 0
 
@@ -41,9 +41,6 @@ def parseData(function, data):
         return parseParam(data)
     elif function == PROT_RESP_SERVER_GMT:
         return parseTime(data)
-    elif function in [0x0503, 0x003d]:
-        # encrypted messages
-        return ''.join(x.encode('hex') for x in data)
     else:
         # unknown function type
         log("Unknown function 0x%04x" % function)
