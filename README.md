@@ -14,6 +14,8 @@ Performance data is output to a file in JSON format.
 **seextract.py** is a program that can extract the SolarEdge protocol messages from a PCAP
 file that contains data captured from the network.
 
+**sekey.py** is used to extract the unique encryption key from an inverter.
+
 **se2state.py** follows a file containing JSON performance data and outputs a JSON file
 that contains the current state of the inverter and optimizer values.
 
@@ -47,6 +49,7 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
                          (default: syslog)
     -f                   wait for appended data as the input file grows 
                          (as in tail -f)
+    -k keyfile           file containing a hex encoded encryption key
     -m                   function as a RS485 master
     -n interface         run DHCP and DNS network services on the specified 
                          interface
@@ -224,6 +227,25 @@ Accept connections from inverters over the network.  Send performance data to
 the file yyyymmdd.json and also maintain the file solar.json with the current state.
 The inverter acquires its IP address and resolves the server hostname by a means
 other than semonitor.py.
+    
+sekey.py
+-----------
+Maintain a JSON file containing the current state of SolarEdge inverters and optimizers.
+
+### Usage
+    python sekey.py options [inFile]
+    
+### Arguments
+    inFile          File containing the values of the 4 encryption key parameters
+                    of an inverter output from semonitor.py. (default: stdin)
+    
+### Options
+    -o keyFile      File containing the hex encoded key. (Default: stdout)
+                    
+### Examples
+    python solaredge/semonitor.py -c 12,H239/12,H23a/12,H23b/12,H23c -s 7f101234 -t 2  /dev/ttyUSB0|python solaredge/sekey.py -o 7f101234.key
+
+Read the parameters 0x0239-0x023c and write the key value to the file 7f101234.key.
     
 se2csv.py
 ---------
