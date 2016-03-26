@@ -126,7 +126,6 @@ def parseMsg(msg):
                 # decrypt the data and validate that as a message
                 debug("debugData", "decrypting message")
                 (seq, dataMsg) = decrypt.decrypt(data)
-                logData(dataMsg[4:])
                 (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
             else:   # don't have a key yet
                 return (0, 0, 0, 0, "")
@@ -138,6 +137,10 @@ def validateMsg(msg):
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
     data = msg[msgHdrLen:msgHdrLen+dataLen]
+    extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
+    if extraLen != 0:
+        debug("debugData", "Discarding", extraLen, "bytes")
+        logData(msg[-extraLen:])
     # validate the message
     checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
     calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
