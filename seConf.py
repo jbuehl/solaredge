@@ -195,6 +195,7 @@ try:
         serialDevice = True      
 except:
         inFileName = "stdin"
+        following = True
 # options
 for opt in opts:
     if opt[0] == "-a":
