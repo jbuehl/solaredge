@@ -65,6 +65,7 @@ def readPcapRec(pcapFile):
     tcpHdr = readTcpHdr(pcapFile)
     # data is whatever is left
     dataLen = pcapRecLen - etherHdrLen - ipHdrLen - tcpHdrLen
+    print dataLen
     if debugData: log("pcap", "pcapSeq", pcapSeq, "srcIp", ip2str(ipHdr[3]), "dstIp", ip2str(ipHdr[4]), "pcapRecLen", pcapRecLen, "dataLen", dataLen)
     if dataLen > 0:
         if (seIpAddr == 0) or (ipHdr[4] == seIpAddr):   # only process records where IP dest is SE server
@@ -105,7 +106,8 @@ def getOpts():
             pcapDir = ""
             pcapFiles = [pcapFileName]       
     except:
-        terminate(1, "PCAP file must be specified")        
+        pcapFileName = "stdin"
+        follow = True
     for opt in opts:
         if opt[0] == "-a":
             writeMode = "a"
@@ -155,7 +157,10 @@ def openPcapFile(pcapFileName):
     global pcapFile, pcapSeq
     try:
         if debugFiles: log("opening", pcapFileName)
-        pcapFile = open(pcapFileName)
+        if pcapFileName == "stdin":
+            pcapFile = sys.stdin
+        else:
+            pcapFile = open(pcapFileName)
         pcapHdr = readPcapFileHdr(pcapFile) # ignore the pcap file header
         pcapSeq = 0
     except:
