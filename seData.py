@@ -37,11 +37,18 @@ def parseData(function, data):
         return parseParam(data)
     elif function == PROT_RESP_SERVER_GMT:
         return parseTime(data)
+    elif function == PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
+        return parseEnergyStats(data)
     else:
         # unknown function type
         log("Unknown function 0x%04x" % function)
     return ''.join(x.encode('hex') for x in data)
 
+def parseEnergyStats(data):
+    (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
+    return {"Eday": Eday, "Emon": Emon, "Eyear": Eyear, "Etot": Etot, 
+            "Time1": time.asctime(time.localtime(Time1))}
+    
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
     debug("debugData", "param:     ", "%04x" % param)
