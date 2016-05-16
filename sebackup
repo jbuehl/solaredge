@@ -1,0 +1,6 @@
+#!/bin/bash
+
+BACKUPSERVER=192.168.1.14
+rsync -rutv /root/data/* ${BACKUPSERVER}:/backups/solaredge/data
+rsync -rutv /root/pcap/* ${BACKUPSERVER}:/backups/solaredge/pcap
+
