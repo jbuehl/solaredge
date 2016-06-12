@@ -251,7 +251,7 @@ if inputType in ["2", "4"]:
     if not serialDevice:
         terminate(1, "Input device types 2 and 4 are only valid for a serial device")
 elif inputType == "n":
-    if inFileName != "":
+    if inFileName != "stdin":
         terminate(1, "Input file cannot be specified for network mode")
     networkDevice = True
     inFileName = "network"
