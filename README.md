@@ -134,21 +134,22 @@ Read from SE data file yyyymmdd.dat and write data to the json file yyyymmdd.jso
 Function as a RS485 master to request data from the inverters 7f101234 and 7f105678
 using RS485 serial port COM4.
 
-    python semonitor.py -c 0012,H0329 -s 7f101234 -d stdout -vvv -t 2 /dev/ttyUSB0
+    python semonitor.py -c 0012,H0329 -s 7f101234 -t 2 /dev/ttyUSB0
 
 Send a command to the inverter 7f101234 to request the value of parameter 0x0329
 using RS232 serial port /dev/ttyUSB0.  Display the messages on stdout.
 
-    python semonitor.py -c 0011,H329,L1/0012,H329/0030,H01f4,L0 -s 7f101234 -d stdout -vvv -t 2 /dev/ttyUSB0
+    python semonitor.py -c 0011,H329,L0/0030,H01f4,L0 -s 7f101234 -t 2 /dev/ttyUSB0
 
-Send commands to the inverter 7f101234 to set the value of parameter 0x0329 to 1,
+Send commands to the inverter 7f101234 to set the value of parameter 0x0329 to 0,
 followed by a command to reset the inverter using RS232 serial port /dev/ttyUSB0.
 Display the debug messages on stdout.
 
-    sudo python semonitor.py -o yyyymmdd.json -n eth1
+    sudo python semonitor.py -o yyyymmdd.json -n eth1 -k 7f101234.key
 
 Start the dhcp and dns services on network interface eth1.  Accept connections
-from inverters and function as a SolarEdge monitoring server.  Write performance
+from inverters and function as a SolarEdge monitoring server.  Use the inverter
+encryption key contained in the file 7f101234.key.  Write performance
 data to the file yyyymmdd.json.  Because the -n option is specified, the -t n option
 is implied.
 
@@ -230,7 +231,7 @@ other than semonitor.py.
     
 sekey.py
 -----------
-Maintain a JSON file containing the current state of SolarEdge inverters and optimizers.
+Create a file containing the encryption key for a SolarEdge inverter.
 
 ### Usage
     python sekey.py options [inFile]
