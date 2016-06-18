@@ -65,6 +65,10 @@ def processMsg(msg, dataFile, recFile, outFile):
                 # send ack
                 replyFunction = PROT_RESP_ACK
                 replyData = ""
+            elif function == 0x0503:                     # encryption key
+                # send ack
+                replyFunction = PROT_RESP_ACK
+                replyData = ""
             elif function == PROT_CMD_SERVER_GET_GMT:    # time request
                 # set time
                 replyFunction = PROT_RESP_SERVER_GMT

@@ -39,6 +39,8 @@ def parseData(function, data):
         return parseTime(data)
     elif function == PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
         return parseEnergyStats(data)
+    elif function == 0x0503:
+        return {}
     else:
         # unknown function type
         log("Unknown function 0x%04x" % function)

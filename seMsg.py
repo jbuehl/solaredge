@@ -119,7 +119,7 @@ def parseMsg(msg):
             if keyStr != "":
                 debug("debugData", "creating decryption object with key", keyStr)
                 decrypt = SEDecrypt(keyStr.decode("hex"), data)
-            return (0, 0, 0, 0, "")
+            return (msgSeq, fromAddr, toAddr, function, "")
         # encrypted message
         elif function == 0x003d:
             if decrypt:
