@@ -136,6 +136,9 @@ def parseDeviceData(data):
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems, data[dataPtr:dataPtr+devLen])
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
+        elif seType == 0x0011:  # 3 phase inverter data
+            invDict[seId] = parseInv3PhData(seId, inv3PhItems, data[dataPtr:dataPtr+devLen])
+            logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
         elif seType == 0x0300:  # wake or sleep event
             eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
             logDevice("event:         ", seType, seId, devLen, eventDict[seId])
@@ -158,6 +161,11 @@ def parseEventData(seId, eventItems, devData):
 def parseInvData(seId, invItems, devData):
     # unpack data and map to items
     seInvData = [struct.unpack(invInFmt, devData[:invInFmtLen])[i] for i in invIdx]
+    return devDataDict(seId, invItems, seInvData)
+
+def parseInv3PhData(seId, invItems, devData):
+    # unpack data and map to items
+    seInvData = [struct.unpack(inv3PhInFmt, devData[:inv3PhInFmtLen])[i] for i in inv3PhIdx]
     return devDataDict(seId, invItems, seInvData)
 
 def parseOptData(seId, optItems, devData):
@@ -216,5 +224,4 @@ def logDevice(devType, seType, seId, devLen, devData):
     debug("debugData", devType, seId, "type: %04x" % seType, "len: %04x" % devLen)
     for item in devData.keys():
         debug("debugData","   ", item, ":", devData[item])
-
 
