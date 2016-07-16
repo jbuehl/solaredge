@@ -117,39 +117,53 @@ def parseMsg(msg):
         # encryption key
         if function == 0x0503:
             if keyStr != "":
-                debug("debugData", "creating decryption object with key", keyStr)
+                debug("debugData", "Creating decryption object with key", keyStr)
                 decrypt = SEDecrypt(keyStr.decode("hex"), data)
             return (msgSeq, fromAddr, toAddr, function, "")
         # encrypted message
         elif function == 0x003d:
             if decrypt:
                 # decrypt the data and validate that as a message
-                debug("debugData", "decrypting message")
+                debug("debugData", "Decrypting message")
                 (seq, dataMsg) = decrypt.decrypt(data)
                 (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
             else:   # don't have a key yet
+                debug("debugData", "Decryption key not yet available")
                 return (0, 0, 0, 0, "")
         return (msgSeq, fromAddr, toAddr, function, data)
 
 # parse the header and validate the message
 def validateMsg(msg):
+    # message must be at least a header and checksum
+    if len(msg) < msgHdrLen + checksumLen:
+        log("Message too short")
+        logData(msg)
+        return (0, 0, 0, 0, "")
     # parse the message header
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
+    # header + data + checksum can't be longer than the message
+    if msgHdrLen + dataLen + checksumLen > len(msg):
+        log("Data length is too big for the message")
+        logData(msg)
+        return (0, 0, 0, 0, "")
+    # data length must match inverse length
+    if dataLen != ~dataLenInv & 0xffff:
+        log("Data length doesn't match inverse length")
+        logData(msg)
+        return (0, 0, 0, 0, "")
     data = msg[msgHdrLen:msgHdrLen+dataLen]
+    # discard extra bytes after the message
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
     if extraLen != 0:
-        debug("debugData", "Discarding", extraLen, "bytes")
-        logData(msg[-extraLen:])
-    # validate the message
+        debug("debugData", "Discarding", extraLen, "extra bytes")
+        if debugData:
+            logData(msg[-extraLen:])
+    # validate the checksum
     checksum = struct.unpack("<H", msg[msgHdrLen+dataLen:msgHdrLen+dataLen+checksumLen])[0]
     calcsum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)+data)
     if calcsum != checksum:
         log("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
-        logData(msg)
-        return (0, 0, 0, 0, "")
-    if dataLen != ~dataLenInv & 0xffff:
-        log("Length error")
         logData(msg)
         return (0, 0, 0, 0, "")
     return (msgSeq, fromAddr, toAddr, function, data)
