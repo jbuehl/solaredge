@@ -85,6 +85,7 @@ def log(*args):
         message += arg.__str__()+" "
     if debugFile:
         debugFile.write(time.strftime('%b %d %H:%M:%S',time.localtime())+" "+message+"\n")
+        debugFile.flush()
     else:
         syslog.syslog(message)
 
