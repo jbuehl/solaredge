@@ -60,6 +60,7 @@ lineSize = 16
 readThreadName = "read thread"
 masterThreadName = "master thread"
 masterMsgInterval = 5
+masterMsgTimeout = 10
 masterAddr = 0xfffffffe
 seqFileName = "seseq.txt"
 updateSize = 0x80000

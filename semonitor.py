@@ -93,9 +93,17 @@ def masterCommands(dataFile, recFile):
             with threadLock:
                 # grant control of the bus to the slave
                 sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16), PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+            def masterTimerExpire():
+                debug("debugMsgs", "RS485 master ack timeout")
+                masterEvent.set()
+            # start a timeout to release the bus if the slave doesn't respond
+            masterTimer = threading.timer(masterMsgTimeout, masterTimerExpire)
+            masterTimer.start()
             # wait for slave to release the bus
             masterEvent.clear()
             masterEvent.wait()
+            # cancel the timeout
+            masterTimer.cancel()
         time.sleep(masterMsgInterval)
 
 # perform the specified commands
