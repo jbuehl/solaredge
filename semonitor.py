@@ -97,7 +97,7 @@ def masterCommands(dataFile, recFile):
                 debug("debugMsgs", "RS485 master ack timeout")
                 masterEvent.set()
             # start a timeout to release the bus if the slave doesn't respond
-            masterTimer = threading.timer(masterMsgTimeout, masterTimerExpire)
+            masterTimer = threading.Timer(masterMsgTimeout, masterTimerExpire)
             masterTimer.start()
             # wait for slave to release the bus
             masterEvent.clear()
