@@ -99,7 +99,10 @@ for opt in opts:
 inFile = openInput(inFileName)
 (invFile, optFile) = openOutFiles(invFileName, optFileName)
 for jsonStr in inFile:
-    writeData(json.loads(jsonStr), invFile, optFile)
+    try:
+        writeData(json.loads(jsonStr), invFile, optFile)
+    except ValueError:
+        print jsonStr
 closeInput(inFile)
 closeOutFiles(invFile, optFile)
     
