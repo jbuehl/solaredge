@@ -63,7 +63,7 @@ def readMsg(inFile, recFile):
     global dataInSeq, recSeq
     dataInSeq += 1
     msg = ""
-    if not passiveMode:
+    if not (passiveMode or serialDevice):
         # read the magic number and header
         msg = readBytes(inFile, magicLen+msgHdrLen)
         if msg == "":
