@@ -187,7 +187,7 @@ except:
     pass
 
 # get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:r:s:t:u:vx")
+(opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
 # arguments
 try:
     inFileName = args[0]
@@ -218,6 +218,8 @@ for opt in opts:
         netInterface = opt[1]
     elif opt[0] == "-o":
         outFileName = opt[1]
+    elif opt[0] == "-p":
+        sePort = int(opt[1])
     elif opt[0] == "-r":
         recFileName = opt[1]
     elif opt[0] == "-s":
@@ -322,6 +324,7 @@ if debugFiles:
     if serialDevice:
         log("    baudRate:", baudRate)
     log("networkDevice:", networkDevice)
+    log("sePort:", sePort)
     log("networkSvcs:", networkSvcs)
     if networkSvcs:
         log("netInterface", netInterface)
