@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Convert SolarEdge inverter performance monitoring data from JSON to CSV
 

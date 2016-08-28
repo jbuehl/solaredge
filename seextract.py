@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Read a PCAP file that is a capture of the traffic between a SolarEdge inverter and the SE server.
 # Filter out the TCP stream between the inverter to the server.
