@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/usr/bin/env python
 
 # Maintain a file containing the current state of SolarEdge inverters and optimizers
 
