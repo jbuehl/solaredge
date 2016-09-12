@@ -133,6 +133,8 @@ def nextSeq():
         with open(seqFileName) as seqFile:
             seq = int(seqFile.read().rstrip("\n"))
         seq += 1
+        if seq > 65535:
+            seq = 1
     except:
         seq = 1
     with open(seqFileName, "w") as seqFile:
