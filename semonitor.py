@@ -126,6 +126,13 @@ def doCommands(dataFile, commands, recFile):
         # wait a bit before sending the next one                    
         time.sleep(commandDelay)
 
+# start RS485 master thread
+def startMaster(args):
+    # start a thread to poll for data
+    masterThread = threading.Thread(name=masterThreadName, target=masterCommands, args=args)
+    masterThread.start()
+    debug("debugFiles", "starting", masterThreadName)
+
 if __name__ == "__main__":
     # initialization
     dataFile = openData(inFileName)
@@ -135,6 +142,8 @@ if __name__ == "__main__":
         readData(dataFile, recFile, outFile)
     else:   # reading and writing to network or serial device
         if commandAction:   # commands were specified
+            if masterMode:  # send RS485 master commands
+                startMaster(args=(dataFile, recFile))
             # perform commands then terminate
             doCommands(dataFile, commands, recFile)
         else:   # network or RS485
@@ -143,10 +152,7 @@ if __name__ == "__main__":
             readThread.start()
             debug("debugFiles", "starting", readThreadName)
             if masterMode:  # send RS485 master commands
-                # start a thread to poll for data
-                masterThread = threading.Thread(name=masterThreadName, target=masterCommands, args=(dataFile, recFile))
-                masterThread.start()
-                debug("debugFiles", "starting", masterThreadName)
+                startMaster(args=(dataFile, recFile))
             # wait for termination
             running = waitForEnd()
     # cleanup
