@@ -109,6 +109,9 @@ def masterCommands(dataFile, recFile):
 # perform the specified commands
 def doCommands(dataFile, commands, recFile):
     slaveAddr = int(slaveAddrs[0], 16)
+    if masterMode:  # send RS485 master command
+        # grant control of the bus to the slave
+        sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, slaveAddr, PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
         # format the command parameters
         function = int(command[0],16)
@@ -142,9 +145,6 @@ if __name__ == "__main__":
         readData(dataFile, recFile, outFile)
     else:   # reading and writing to network or serial device
         if commandAction:   # commands were specified
-            if masterMode:  # send RS485 master command
-                # grant control of the bus to the slave
-                sendMsg(dataFile, formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16), PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
             # perform commands then terminate
             doCommands(dataFile, commands, recFile)
         else:   # network or RS485
