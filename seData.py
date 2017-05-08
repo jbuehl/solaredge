@@ -5,6 +5,7 @@ import json
 from seConf import *
 from seCommands import *
 from seDataParams import *
+from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
                     
 # message debugging sequence numbers
 outSeq = 0
@@ -120,6 +121,9 @@ def parseDeviceData(data):
     invDict = {}
     optDict = {}
     eventDict = {}
+    # Add a master dictionary, to store anything parsed by ParseDevice, indexed by the `_devType`
+    devsDict = {}
+
     dataPtr = 0
     while dataPtr < len(data):
         # device header
@@ -142,11 +146,24 @@ def parseDeviceData(data):
         elif seType == 0x0300:  # wake or sleep event
             eventDict[seId] = parseEventData(seId, eventItems, data[dataPtr:dataPtr+devLen])
             logDevice("event:         ", seType, seId, devLen, eventDict[seId])
-        else:   # unknown device type
-            log("Unknown device 0x%04x" % seType)
-            logData(data[dataPtr-devHdrLen:dataPtr+devLen])
+        else:   # unknown device type, or one that ParseDevice can handle
+            # log("Unknown device 0x%04x" % seType)
+            # logData(data[dataPtr-devHdrLen:dataPtr+devLen])
+
+            # In production would usually set explorer to False, to prevent excessively long (and mostly useless) parse
+            # results for unknown device types.
+            parsedDevice = ParseDevice(data[dataPtr - devHdrLen:dataPtr + devLen], explorer=False)
+            # Add the new device attributes (wrapped in  dictionary of appropriate identifiers) to the dictionary of devices
+            merge_update(devsDict, parsedDevice.wrap_in_ids())
+            logDevice("{}: ".format(parsedDevice._devType), seType, seId, devLen, parsedDevice.wrap_in_ids())
+
         dataPtr += devLen
-    return {"inverters": invDict, "optimizers": optDict, "events": eventDict}
+    # A bit of a lazy way out, but embed the pre-existing dictionaries into devsDict
+    devsDict["inverters"] = invDict
+    devsDict["optimizers"] = optDict
+    devsDict["events"] = eventDict
+
+    return devsDict
 
 def parseEventData(seId, eventItems, devData):
     # unpack data and map to items
