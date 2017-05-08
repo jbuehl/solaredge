@@ -1,7 +1,8 @@
 #!/bin/bash -
 
 INTERFACE=eth1
-ROOTDIR=/root/data/
+DATADIR=/data/data/
+STATEDIR=/root/
 PREFIX=
 
 # wait for the time to get set
@@ -11,4 +12,4 @@ do
 	sleep 1
 done
 
-python /root/solaredge/semonitor.py -vv -n $INTERFACE | tee $ROOTDIR$PREFIX`date +%Y%m%d%H%M%S`.json | python /root/solaredge/se2state.py -o /root/solar.json
+python /root/solaredge/semonitor.py -vv -n ${INTERFACE} | tee ${DATADIR}${PREFIX}`date +%Y%m%d%H%M%S`.json | python /root/solaredge/se2state.py -o ${STATEDIR}solar.json
