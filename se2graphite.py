@@ -7,6 +7,7 @@ import getopt
 import time
 import sys
 import socket
+from seDataDevices import unwrap_metricsDict
 
 # parameter defaults
 base = ""
@@ -35,19 +36,33 @@ if __name__ == "__main__":
     jsonStr = inFile.readline()
     while jsonStr != "":
         inDict = json.loads(jsonStr)
-        for devType in devices:
-            for devId in inDict[devType].keys():
-                devAttrs = inDict[devType][devId]
-                # convert date and time to unix time
-                (year, month, day ) = devAttrs["Date"].split("-")
+        for baseName, devAttrs in unwrap_metricsDict(inDict):
+            # convert date and time to unix time
+            try:
+                (year, month, day) = devAttrs["Date"].split("-")
                 (hour, minute, second) = devAttrs["Time"].split(":")
-                timeStamp = time.mktime((int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, 0))
-                # every attribute is a metric
-                for devAttr in devAttrs.keys():
-                    if devAttr != "Date" and devAttr != "Time":
-                        metric = "%s.%s.%s.%s %s %d\n" % (base, devType, devId, devAttr, str(devAttrs[devAttr]), timeStamp)
-                        graphiteSocket.send(metric)
-                        time.sleep(delay)
+            except KeyError:
+                raise ValueError("Date or Time is missing or incorrrectly formatted for this set of metrics")
+            # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
+            # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
+            timeStamp = time.mktime((int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, -1))
+            # Treat every attribute as a metric - except for non-numeric ones!
+            for devAttr in devAttrs.keys():
+                if devAttr != "Date" and devAttr != "Time" and devAttr != 'Undeciphered_data':
+                    try:
+                        # Weed out attributes with non numeric values (graphite does this too, but why clog the network?)
+                        test = float(devAttrs[devAttr])
+                        if test != test:
+                            # It's a nan!
+                            pass
+                        else:
+                            fullName = "{}{}.{}".format(base, baseName, devAttr)
+                            metric = "{} {} {}\n".format(fullName, str(devAttrs[devAttr]), timeStamp)
+                            graphiteSocket.send(metric)
+                            time.sleep(delay)
+                    except ValueError:
+                        # It's not a numeric metric, ignore it
+                        pass
         jsonStr = inFile.readline()
     graphiteSocket.close()
 
