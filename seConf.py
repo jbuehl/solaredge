@@ -1,6 +1,10 @@
 # SolarEdge configuration, logging, and debugging
 
-import syslog
+try:
+    import syslog
+except ImportError:
+    # Allow for the fact that syslog is not (to my knowledge) available on Windows
+    import seWindowsSyslog as syslog
 import sys
 import time
 import getopt

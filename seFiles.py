@@ -56,7 +56,8 @@ def openInFile(inFileName):
         if inFileName == "stdin":
             return sys.stdin
         else:
-            return open(inFileName)
+            # Explicitly specify mode rb to keep windows happy!
+            return open(inFileName, 'rb')
     except:
         terminate(1, "Unable to open "+inFileName)
 
