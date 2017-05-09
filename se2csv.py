@@ -11,18 +11,12 @@ from seDataDevices import ParseDevice
 from seDataDevices import unwrap_metricsDict
 
 # file parameters
-# inFileName = ""
-# invFileName = ""
-# optFileName = ""
 devsFilePrefix = ""
 devsFile = {}
 eventsFileName = ""
 headers = False
 delim = ","
 writeMode = "w"
-# invSeq = 0
-# optSeq = 0
-# eventsSeq = 0
 devsSeq = {}
 devsItems = {}
 
