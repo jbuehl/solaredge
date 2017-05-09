@@ -6,7 +6,6 @@ import getopt
 import json
 import sys
 
-from seDataParams import *
 from seDataDevices import ParseDevice
 from seDataDevices import unwrap_metricsDict
 
