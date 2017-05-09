@@ -120,7 +120,6 @@ class Pickle2Graphite(list):
         graphiteSocket.send(header + payload)
         time.sleep(delay)
 
-import pprint as pp
 
 if __name__ == "__main__":
     # Timeout if no connection after 10 seconds,
@@ -134,8 +133,6 @@ if __name__ == "__main__":
         try:
             inDict = json.loads(jsonStr)
             pickle2graphite = Pickle2Graphite(inDict, base=base)
-            pp.pprint(pickle2graphite)
-            print
             pickle2graphite.send(graphiteSocket)
         except ValueError:
             log('WARNING json.loads had a problem with the following jsonStr\n', jsonStr, "\n", "="*80, "\n")
