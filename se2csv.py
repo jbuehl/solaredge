@@ -51,29 +51,28 @@ def writeHeaders(outFile, items):
 def writeData(msgDict, devsFilePrefix):
     global devsSeq, devsFile
     if devsFilePrefix:
-        if msgDict != {}:
-            for baseName, devAttrs in unwrap_metricsDict(msgDict):
-                devName, devId = baseName.split(".", 1)
-                if devName not in devsSeq.keys():
-                    # First time we've seen this devName, construct devsFileName entry and open the file
-                    devsSeq[devName] = 0
-                    devsFileName = '{}.{}.csv'.format(devsFilePrefix, devName)
-                    devsFile[devName] = openOutFile(devsFileName, writeMode)
-                    # Extract the list of item names for this devName
-                    itemNames = get_device_items(devAttrs)
-                    # Add deviceId to the start of list of itemNames to put into the csv file
-                    itemNames.insert(0, "__Identifier__")
-                    devsItems[devName] = itemNames
-                    if headers:
-                        writeHeaders(devsFile[devName], devsItems[devName])
+        for baseName, devAttrs in unwrap_metricsDict(msgDict):
+            devName, devId = baseName.split(".", 1)
+            if devName not in devsSeq.keys():
+                # First time we've seen this devName, construct devsFileName entry and open the file
+                devsSeq[devName] = 0
+                devsFileName = '{}.{}.csv'.format(devsFilePrefix, devName)
+                devsFile[devName] = openOutFile(devsFileName, writeMode)
+                # Extract the list of item names for this devName
+                itemNames = get_device_items(devAttrs)
+                # Add deviceId to the start of list of itemNames to put into the csv file
+                itemNames.insert(0, "__Identifier__")
+                devsItems[devName] = itemNames
+                if headers:
+                    writeHeaders(devsFile[devName], devsItems[devName])
 
-                # Make sure __Identifer__ is actually stored in devAttrs
-                devAttrs["__Identifier__"] = devId
-                devsSeq[devName] = writeDevData(devsFile[devName],
-                                                # todo Implement a more elegant way of building a generic format list
-                                                ["%s"] * len(devsItems[devName]), #optOutFmt,
-                                                devAttrs,
-                                                devsItems[devName], devsSeq[devName])
+            # Make sure __Identifer__ is actually stored in devAttrs
+            devAttrs["__Identifier__"] = devId
+            devsSeq[devName] = writeDevData(devsFile[devName],
+                                            # todo Implement a more elegant way of building a generic format list
+                                            ["%s"] * len(devsItems[devName]), #optOutFmt,
+                                            devAttrs,
+                                            devsItems[devName], devsSeq[devName])
 
 
 def get_device_items(devAttrs):
