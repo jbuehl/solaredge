@@ -6,17 +6,18 @@ import getopt
 import json
 import sys
 
-from seDataParams import *
+from seDataDevices import ParseDevice
+from seDataDevices import unwrap_metricsDict
 
 # file parameters
-inFileName = ""
-invFileName = ""
-optFileName = ""
+devsFilePrefix = ""
+devsFile = {}
+eventsFileName = ""
 headers = False
 delim = ","
 writeMode = "w"
-invSeq = 0
-optSeq = 0
+devsSeq = {}
+devsItems = {}
 
 def openInFile(inFileName):
     if inFileName == "stdin":
@@ -36,37 +37,67 @@ def closeInput(dataFile):
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
         return open(fileName, writeMode)
-
-# open the output files
-def openOutFiles(invFileName, optFileName):
-    invFile = openOutFile(invFileName, writeMode)
-    optFile = openOutFile(optFileName, writeMode)
-    return (invFile, optFile)
     
 # close output files        
-def closeOutFiles(invFile, optFile):
-    if invFile:
-        invFile.close()
-    if optFile:
-        optFile.close()
+def closeOutFiles(devsFile):
+    for devFile in devsFile.itervalues():
+        devFile.close()
 
 # write output file headers
 def writeHeaders(outFile, items):
     outFile.write(delim.join(item for item in items)+"\n")
 
 # write data to output files
-def writeData(msgDict, invFile, optFile):
-    global invSeq, optSeq
-    if invFile:
-        if headers and (invSeq == 0) and (msgDict["inverters"] != {}):
-            writeHeaders(invFile, invItems)
-        for seId in msgDict["inverters"].keys():
-            invSeq = writeDevData(invFile, invOutFmt, msgDict["inverters"][seId], invItems, invSeq)
-    if optFile:
-        if headers and (optSeq == 0) and (msgDict["optimizers"] != {}):
-            writeHeaders(optFile, optItems)
-        for seId in msgDict["optimizers"].keys():
-            optSeq = writeDevData(optFile, optOutFmt, msgDict["optimizers"][seId], optItems, optSeq)
+def writeData(msgDict, devsFilePrefix):
+    global devsSeq, devsFile
+    if devsFilePrefix:
+        for baseName, devAttrs in unwrap_metricsDict(msgDict):
+            devName, devId = baseName.split(".", 1)
+            if devName not in devsSeq.keys():
+                # First time we've seen this devName, construct devsFileName entry and open the file
+                devsSeq[devName] = 0
+                devsFileName = '{}.{}.csv'.format(devsFilePrefix, devName)
+                devsFile[devName] = openOutFile(devsFileName, writeMode)
+                # Extract the list of item names for this devName
+                itemNames = get_device_items(devAttrs)
+                # Add deviceId to the start of list of itemNames to put into the csv file
+                itemNames.insert(0, "__Identifier__")
+                devsItems[devName] = itemNames
+                if headers:
+                    writeHeaders(devsFile[devName], devsItems[devName])
+
+            # Make sure __Identifer__ is actually stored in devAttrs
+            devAttrs["__Identifier__"] = devId
+            devsSeq[devName] = writeDevData(devsFile[devName],
+                                            # todo Implement a more elegant way of building a generic format list
+                                            ["%s"] * len(devsItems[devName]), #optOutFmt,
+                                            devAttrs,
+                                            devsItems[devName], devsSeq[devName])
+
+
+def get_device_items(devAttrs):
+    # Extract the list of item names for this devName
+    # When the parsed data is reduced to reduced to json we lose the information about which subclass parsed it! :-(
+    # So we have to examine the subclasses again.
+    try:
+        seType, devLen = get_device_header_details(devAttrs)
+        for subclass in ParseDevice.__subclasses__():
+            if subclass._dev == seType:
+                return subclass.itemNames()
+    except KeyError:
+        pass
+    # This won't work for the unrecognised devices which are parsed by the special ParseDevice_Explorer, because of the
+    # way each instance generates (lots of) names when the __init__ method runs.
+    # So, just get all the names from the json dictionary!  It's what I want when exploring a new device anyway.
+    outItems = devAttrs.keys()
+    outItems.sort()
+    return outItems
+
+def get_device_header_details(devAttrs):
+    seType = int(devAttrs["seType"], 16)  # (At the moment) I am storing seType as a hex str
+    devLen = devAttrs["devLen"]
+    return seType, devLen
+
 
 # write device data to output file
 def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
@@ -76,34 +107,42 @@ def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
         outFile.write(outMsg+"\n")
     return devSeq
 
-# get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ad:hi:o:")
 
-try:
-    inFileName = args[0]
-except:
-    inFileName = "stdin"
+# get program arguments and options
+(opts, args) = getopt.getopt(sys.argv[1:], "ad:hi:o:p:e:")
+
 for opt in opts:
     if opt[0] == "-a":
         writeMode = "a"
     elif opt[0] == "-d":
-        delim = opt[1] 
+        delim = opt[1]
     elif opt[0] == "-h":
         headers = True
     elif opt[0] == "-i":
         invFileName = opt[1]
     elif opt[0] == "-o":
         optFileName = opt[1]
+    elif opt[0] == "-e":
+        eventsFileName = opt[1]
+    elif opt[0] == "-p":
+        devsFilePrefix = opt[1]
 
-# process the data
-inFile = openInput(inFileName)
-(invFile, optFile) = openOutFiles(invFileName, optFileName)
-for jsonStr in inFile:
+
+if __name__ == "__main__":
+
     try:
-        writeData(json.loads(jsonStr), invFile, optFile)
-    except ValueError:
-        print jsonStr
-closeInput(inFile)
-closeOutFiles(invFile, optFile)
-    
+        inFileName = args[0]
+    except:
+        inFileName = "stdin"
+
+    # process the data
+    inFile = openInput(inFileName)
+    for jsonStr in inFile:
+        try:
+            writeData(json.loads(jsonStr), devsFilePrefix)
+        except ValueError:
+            print jsonStr
+    closeInput(inFile)
+    closeOutFiles(devsFile)
+
 

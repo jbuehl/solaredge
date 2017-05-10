@@ -9,7 +9,11 @@ import struct
 import sys
 import time
 import getopt
-import syslog
+try:
+    import syslog
+except ImportError:
+    # Allow for the fact that syslog is not (to my knowledge) available on Windows
+    import seWindowsSyslog as syslog
 
 # configuration
 debug = False
