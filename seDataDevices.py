@@ -223,10 +223,14 @@ class ParseDevice(dict) :
             # Extract the field
             if paramInFmt == 'hex':
                 self[paramName] = data[dataPtr: dataPtr + paramLen]
-            # Test for nan float values and set them to 'nan'
-            # On my machine, '7fffffff' is unpacked to nan for both big endian and little endian formats.
-            # 'ffff7fff' also unpacks as nan for big endian, BUT as -3.402...*10**38 for little endian.
-            # I suspect a bug somewhere, but in the meantime just check the bytes
+            # Check for a specific value which I believe should be interpreted as nan
+            # In little endian format '\xff\xff\x7f\xff' unpacks -3.402...*10**38.
+            # But the solaredge messages seem to use it to signify "not reported".
+            # In all the cases I have encountered it makes more sense to interpret this particular float value as NaN
+            # rather than as a very large negative number, so that is what I do below.
+            # Note that if unpacked in **big** endian format, this special value actually unpacks as nan.
+            # I suspect a legacy "bug" somewhere in the solaredge messages, but in the meantime just check the bytes
+            # and fix it.
             elif paramInFmt == 'f' and (data[dataPtr: dataPtr + paramLen] == '\xff\xff\x7f\xff'):
                 self[paramName] = float('nan')
             else:
