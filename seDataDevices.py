@@ -669,12 +669,15 @@ class ParseDevice_Explorer(ParseDevice) :
 
     @classmethod
     def itemDefs(cls):
-        msg = ["\n\n{} / {} parses data blocks with any unrecognised seType.\n{}".format(cls.__name__, cls._devType, "="*80)]
-        msg.append("Each pair/quadruple of bytes is parsed multiple times, using a number of different fields types.")
-        msg.append("Item names are generated automatically, signalling the offset where the bytes began")
-        msg.append("and the Python field type they have been parsed as.")
-        msg.append("Inspecting the parsed fields (eg using se2csv) and identifying sensible and/or recognised values is")
-        msg.append("a step towards deciphering a new seType block, and creating a more sensible parser for it.")
+        msg = ["\n\n{} / {} parses data blocks with any unrecognised seType.\n{}".format(cls.__name__, cls._devType,
+                                                                                         "=" * 80),
+               """\
+Each pair/quadruple of bytes is parsed multiple times, using a number of different fields types.
+Item names are generated automatically, signalling the offset where the bytes began
+and the Python field type they have been parsed as.
+Inspecting the parsed fields (eg using se2csv) and identifying sensible and/or recognised values is
+a step towards deciphering a new seType block, and creating a more sensible parser for it."""
+               ]
         return '\n'.join(msg)
 
 
