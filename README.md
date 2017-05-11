@@ -322,14 +322,15 @@ Send SolarEdge performance monitoring data from JSON to a graphite pickle listen
     -b base         base prefix for the names of the metrics sent to graphite
     -h host         the host url or IP address of the graphite server (default: "localhost")
     -p port         the port number of the graphite / carbon pickle listener port (default: 2004)
+    -f              follow (wait for new data to be written to) the JSON inFile
 
 ### Examples
     python pickle2graphite.py -b "semonitor" yyyymmdd.json
 
-Send all numeric metric data for each device encountered in yyymmdd.json
+Send all numeric metric data for each device encountered in yyyymmdd.json
 to the graphite server whose "pickle" port is listening on "localhost:2004".
 
-Each line from the json file is batched up into a pickled list of metrics,
+Each json line from the file is batched up into a pickled list of metrics,
 so many metrics may be sent at the same time. There is a short delay (default 0.2 sec)
 between each transmission.
 
@@ -342,5 +343,9 @@ enough time to create new whisper files, before the next batch of metrics
 from the next line in the json file arrives.
 
 In graphite / whisper all metric names will begin with "semonitor."
+
+If the `-f` option had been included, pickle2graphite.py would follow (wait for new
+json lines to be written to) the inFile (yyyymmdd.json) until interrupted
+(Ctrl-C) or otherwise killed.
 
 
