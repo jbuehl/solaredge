@@ -242,12 +242,13 @@ class ParseDevice(dict) :
                 try:
                     self['Date'] = self.formatDateStamp(self[paramName])
                 except ValueError:
-                    # se2graphite will not like this 'error' value for a Date field, but it should be OK in se2csv
-                    self['Date'] = "{} is not a valid date".format(self[paramName])
+                    log('"{} is not a valid date, changed to "1970-01-01"'.format(self[paramName]))
+                    self['Date'] = "1970-01-01"
                 try:
                     self['Time'] = self.formatTimeStamp(self[paramName])
                 except ValueError:
-                    self['Time'] = "{} is not a valid time".format(self[paramName])
+                    log('"{} is not a valid time, changed to "00:00:01"'.format(self[paramName]))
+                    self["Time"] = "00:00:01"
             elif outFormatFn is not None:
                 self[paramName] = outFormatFn(self[paramName])
             dataPtr += paramLen
