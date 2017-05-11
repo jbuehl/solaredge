@@ -8,6 +8,7 @@ import sys
 
 from seDataDevices import ParseDevice
 from seDataDevices import unwrap_metricsDict
+from seDataDevices import log
 
 # file parameters
 devsFilePrefix = ""
@@ -120,13 +121,18 @@ for opt in opts:
         headers = True
     elif opt[0] == "-i":
         invFileName = opt[1]
+        log('The -i option is deprecated, use -p "csvFileNamePrefix" instead')
     elif opt[0] == "-o":
         optFileName = opt[1]
+        log('The -o option is deprecated, use -p "csvFileNamePrefix" instead')
     elif opt[0] == "-e":
         eventsFileName = opt[1]
+        log('The -e option is deprecated, use -p "csvFileNamePrefix" instead')
     elif opt[0] == "-p":
         devsFilePrefix = opt[1]
 
+if devsFilePrefix == "":
+    log('No csv file output will be produced unless the -p "a-csvFileNamePrefix" is used')
 
 if __name__ == "__main__":
 
