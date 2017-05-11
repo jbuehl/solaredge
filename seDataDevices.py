@@ -214,7 +214,7 @@ class ParseDevice(dict) :
                     )
 
         if self.defnLen > devLen :
-            log('You have defined more bytes, {}, than the message contains, {}\nYou might get some type of runtime error!\nOr just rubbish output'.format(self.defnLen, devLen))
+            raise ValueError('You have defined more bytes, {}, than the message contains, {}'.format(self.defnLen, devLen))
         elif self.defnLen < devLen :
             # By default, convert any remaining undefined bytes to their representation as a hexadecimal string.
             self._defn.append([devLen - self.defnLen, 'hex', "Undeciphered_data", self.hexData, True, "Unknown as yet" ])
