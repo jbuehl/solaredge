@@ -1,6 +1,9 @@
 #!/bin/bash
 
-BACKUPSERVER=192.168.1.14
-rsync -rutv /root/data/* ${BACKUPSERVER}:/backups/solaredge/data
-rsync -rutv /root/pcap/* ${BACKUPSERVER}:/backups/solaredge/pcap
+PCAPDIR=/data/pcap/
+DATADIR=/data/data/
+BACKUPSERVER=`avahi-browse -atp|grep _backup|cut -d";" -f4`.local
+
+rsync -a ${PCAPDIR}* ${BACKUPSERVER}:/backups/solaredge/pcap
+rsync -a ${DATADIR}* ${BACKUPSERVER}:/backups/solaredge/data
 
