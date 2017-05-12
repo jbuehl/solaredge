@@ -337,8 +337,13 @@ between each transmission.
 When running "in production" this delay
 usually seems to be adequate, but when a large json file with many metrics
 which graphite hasn't seen before is sent to graphite, the server may be
-swamped, and some metrics may be dropped. Either rerun se2graphite again,
-or temporarily adjust the delay to say 5.0 secs, to allow the graphite server
+swamped, and some metrics may be dropped. Either
+
+* just rerun pickle2graphite.py again, or
+* temporarily adjust the delay to say 5.0 secs, or
+* even use se2graphite.py once,
+
+any of which should allow the graphite server
 enough time to create new whisper files, before the next batch of metrics
 from the next line in the json file arrives.
 
