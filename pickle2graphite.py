@@ -90,8 +90,8 @@ class Pickle2Graphite(list):
                 (year, month, day) = devAttrs["Date"].split("-")
                 (hour, minute, second) = devAttrs["Time"].split(":")
             except KeyError:
-                raise ValueError("Date or Time is missing or incorrrectly formatted for this set of metrics")
-                raise
+                log("Date or Time is missing or incorrectly formatted for this set of metrics")
+                (year, month, day, hour, minute, second) = (1970, 01, 01, 00, 01, 01)
             # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
             # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
             timeStamp = time.mktime((int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, -1))

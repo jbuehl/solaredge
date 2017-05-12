@@ -33,7 +33,7 @@ class TimedRotatingFileHandlerUmasked(logging.handlers.TimedRotatingFileHandler)
             return rtv
         except:
             os.umask(prevUmask)
-            raise
+
 
 
 my_logger = logging.getLogger('syslog')

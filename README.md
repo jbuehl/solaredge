@@ -19,8 +19,13 @@ file that contains data captured from the network.
 **se2state.py** follows a file containing JSON performance data and outputs a JSON file
 that contains the current state of the inverter and optimizer values.
 
-**se2csv.py** reads a file containing JSON performance data and outputs two separate comma delimited
-files that contain inverter and optimizer data that is suitable for input to a spreadsheet.
+**se2csv.py** reads a file containing JSON performance data and outputs a separate comma delimited
+file for each device type (eg inverter, optimizer, battery) encountered that is suitable for input to a spreadsheet.
+
+**se2graphite.py** and **pickle2graphite.py** both read a file containing JSON performance data
+and send it to a graphite server.  se2graphite.py sends it to the graphite server's "text listener" port
+one metric at a time, while pickle2graphite.py sends it to the graphite server's "pickle listener" port,
+with multiple metrics per transmission.
 
 semonitor.py
 ------------
@@ -261,16 +266,91 @@ Convert SolarEdge inverter performance monitoring data from JSON to CSV.
 
 ### Options
     -a              append to inverter and optimizer files
-    -d delim        inverter and optimizer file delimiter (default: ",")
-    -h              write column headers to inverter and optimizer files
-    -i invFile      file to write inverter data to
-    -o optFile      file to write optimizer data to
+    -d delim        csv file delimiter (default: ",")
+    -h              write column headers to csv files
+    -p csvPrefix    prefix for all csv filenames
+    -i invFile      deprecated - use -p instead
+    -o optFile      deprecated - use -p instead
     
 ### Examples
-    python se2csv.py -i yyyymmdd-inv.csv -o yyyymmdd-opt.csv -h yyyymmdd.json
+    python se2csv.py -p yyyymmdd -h yyyymmdd.json
 
-Read from SE data file yyyymmdd.json and write inverter and optimizer data to the CSV files
-yyyymmdd-inv.csv and yyyymmdd-opt.csv with headers.
+Read from SE data file yyyymmdd.json and write CSV data  with headers,
+for each device type encountered (eg optimizers, inverters, batteries),
+to files called yyyymmdd."deviceType".csv
 
+se2graphite.py
+-----------------
+Send SolarEdge performance monitoring data from JSON to a graphite text port.
+
+### Usage
+    python se2graphite.py options [inFile]
+
+### Arguments
+    inFile          File containing performance data in JSON format. (default:
+                    stdin)
+
+### Options
+    -b base         base prefix for the names of the metrics sent to graphite
+    -h host         the host url or IP address of the graphite server (default: "localhost")
+    -p port         the port number of the graphite / carbon text listener port (default: 2003)
+
+### Examples
+    python se2graphite.py -b "semonitor" yyyymmdd.json
+
+Send all numeric metric data for each device encountered in yyymmdd.json
+to the graphite server whose "text" port is listening on "localhost:2003".
+
+Metrics are sent one value at a time, with a short delay (default 0.1 sec)
+between each transmission.
+
+In graphite / whisper all metric names will begin with "semonitor."
+
+
+pickle2graphite.py
+--------------------
+Send SolarEdge performance monitoring data from JSON to a graphite pickle listener port.
+
+### Usage
+    python pickle2graphite.py options [inFile]
+
+### Arguments
+    inFile          File containing performance data in JSON format. (default:
+                    stdin)
+
+### Options
+    -b base         base prefix for the names of the metrics sent to graphite
+    -h host         the host url or IP address of the graphite server (default: "localhost")
+    -p port         the port number of the graphite / carbon pickle listener port (default: 2004)
+    -f              follow (wait for new data to be written to) the JSON inFile
+
+### Examples
+    python pickle2graphite.py -b "semonitor" yyyymmdd.json
+
+Send all numeric metric data for each device encountered in yyyymmdd.json
+to the graphite server whose "pickle" port is listening on "localhost:2004".
+
+Each json line from the file is batched up into a pickled list of metrics,
+so many metrics may be sent at the same time. There is a short delay (default 0.2 sec)
+between each transmission.
+
+When running "in production" this delay
+usually seems to be adequate, but when a large json file with many metrics
+which graphite hasn't seen before is sent to graphite, the server may be
+swamped, and some metrics may be dropped. Either
+
+* just rerun pickle2graphite.py again, or
+* temporarily adjust the delay to say 5.0 secs, or
+* even use se2graphite.py once,
+
+any of which should allow the graphite server
+enough time to create new whisper files, before the next batch of metrics
+from the next line in the json file arrives.
+
+In graphite / whisper all metric names will begin with "semonitor."
+
+If the `-f` option had been included, pickle2graphite.py would follow (wait for new
+json lines to be written to) the inFile (yyyymmdd.json) until interrupted
+(Ctrl-C) or otherwise killed.
 
 
