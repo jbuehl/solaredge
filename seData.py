@@ -50,7 +50,7 @@ def parseData(function, data):
 def parseEnergyStats(data):
     (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
     return {"Eday": Eday, "Emon": Emon, "Eyear": Eyear, "Etot": Etot, 
-            "Time1": time.asctime(time.localtime(Time1))}
+            "Time1": formatDateTime(Time1)}
     
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
@@ -168,11 +168,11 @@ def parseDeviceData(data):
 def parseEventData(seId, eventItems, devData):
     # unpack data and map to items
     seEventData = [struct.unpack(eventInFmt, devData[:invInFmtLen])[i] for i in eventIdx]
-    seEventData[2] = time.asctime(time.localtime(seEventData[2]))
+    seEventData[2] = formatDateTime(seEventData[2])
     if seEventData[1] == 0:
-        seEventData[3] = time.asctime(time.localtime(seEventData[3]))
+        seEventData[3] = formatDateTime(seEventData[3])
     else:
-        seEventData[4] = time.asctime(time.localtime(seEventData[4]))    
+        seEventData[4] = formatDateTime(seEventData[4])    
     return devDataDict(seId, eventItems, seEventData)
 
 def parseInvData(seId, invItems, devData):
@@ -236,6 +236,14 @@ def formatDateStamp(timeStamp):
 def formatTimeStamp(timeStamp):
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
+# format a timestamp using asctime
+# return the hex value if timestamp is invalid
+def formatDateTime(timeStamp):
+    try:
+        return time.asctime(time.localtime(timeStamp))
+    except ValueError:
+        return ''.join(x.encode('hex') for x in timeStamp)
+        
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
     debug("debugData", devType, seId, "type: %04x" % seType, "len: %04x" % devLen)
