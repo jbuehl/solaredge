@@ -242,7 +242,7 @@ def formatDateTime(timeStamp):
     try:
         return time.asctime(time.localtime(timeStamp))
     except ValueError:
-        return ''.join(x.encode('hex') for x in timeStamp)
+        return ''.join(x.encode('hex') for x in struct.pack("<L", timeStamp))
         
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
