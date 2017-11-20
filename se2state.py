@@ -16,14 +16,14 @@ except:
 for opt in opts:
     if opt[0] == "-o":
         outFileName = opt[1]
-        
+
 # initialize the state from the file if it exists
 try:
     with open(outFileName) as stateFile:
         stateDict = json.load(stateFile)
 except:
     stateDict = {"inverters": {}, "optimizers": {}}
-        
+
 # read the input forever
 while True:
     jsonStr = ""

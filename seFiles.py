@@ -6,7 +6,7 @@ import socket
 from seConf import *
 from seNetwork import *
 
-#servers = [] 
+#servers = []
 
 #for port in portlist:
 #    ds = ("0.0.0.0", port)
@@ -25,7 +25,8 @@ from seNetwork import *
 #    ready_server = readable[0]
 
 #    connection, address = ready_server.accept()
-    
+
+
 # open data socket and wait for connection from inverter
 def openDataSocket():
     try:
@@ -33,24 +34,26 @@ def openDataSocket():
         dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         dataSocket.bind(("", sePort))
-        dataSocket.listen(0)        
+        dataSocket.listen(0)
         debug("debugFiles", "waiting for connection")
         (clientSocket, addr) = dataSocket.accept()
         dataSocket.close()
-        debug("debugFiles", "connection from", addr[0]+":"+str(addr[1]))
+        debug("debugFiles", "connection from", addr[0] + ":" + str(addr[1]))
         # set a timeout so lost connection can be detected
         clientSocket.settimeout(socketTimeout)
         return clientSocket.makefile("rwb")
     except:
         terminate(1, "Unable to open data socket")
 
-# open serial device    
+
+# open serial device
 def openSerial(inFileName):
     try:
         return serial.Serial(inFileName, baudrate=baudRate)
     except:
-        terminate(1, "Unable to open "+inFileName)
-        
+        terminate(1, "Unable to open " + inFileName)
+
+
 def openInFile(inFileName):
     try:
         if inFileName == "stdin":
@@ -59,7 +62,8 @@ def openInFile(inFileName):
             # Explicitly specify mode rb to keep windows happy!
             return open(inFileName, 'rb')
     except:
-        terminate(1, "Unable to open "+inFileName)
+        terminate(1, "Unable to open " + inFileName)
+
 
 # open the specified data source
 def openData(inFileName):
@@ -75,12 +79,14 @@ def openData(inFileName):
     else:
         return openInFile(inFileName)
 
+
 # close the data source
 def closeData(dataFile):
     debug("debugFiles", "closing", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
     dataFile.close()
+
 
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
@@ -89,9 +95,10 @@ def openOutFile(fileName, writeMode="w"):
             return open(fileName, writeMode)
             debug("debugFiles", "writing", fileName)
         except:
-            terminate(1, "Unable to open "+fileName)
+            terminate(1, "Unable to open " + fileName)
     else:
         return None
+
 
 # open the output files
 def openOutFiles(recFileName, outFileName):
@@ -101,8 +108,9 @@ def openOutFiles(recFileName, outFileName):
     else:
         outFile = openOutFile(outFileName, writeMode)
     return (recFile, outFile)
-    
-# close output files        
+
+
+# close output files
 def closeOutFiles(recFile, outFile):
     if recFile:
         debug("debugFiles", "closing", recFile.name)
@@ -110,4 +118,3 @@ def closeOutFiles(recFile, outFile):
     if outFile:
         debug("debugFiles", "closing", outFile.name)
         outFile.close()
-

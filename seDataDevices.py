@@ -37,15 +37,15 @@ except ImportError:
     # Allow for the fact that syslog is not (to my knowledge) available on Windows
     import seWindowsSyslog as syslog
 
+
 # log a message (used by merge_update)
 def log(*args):
-    message = args[0]+" "
+    message = args[0] + " "
     for arg in args[1:]:
-        message += arg.__str__()+" "
+        message += arg.__str__() + " "
         # todo : Make this align better with the options available elsewhere in semonitor, while retaining the ability
         # todo cont : to import merge_update into modules that need it, like se2csv
     syslog.syslog(message)
-
 
 
 # Spacer field for documenting field definitions more neatly, used for convenience
@@ -54,7 +54,7 @@ sp = "\n\t\t\t\t\t\t: "
 nan = float('nan')
 
 
-class ParseDevice(dict) :
+class ParseDevice(dict):
     """
     ParseDevice itself can only perform a very basic parse of a block of seData from a pcap file.  It's main purposes
     are :
@@ -66,7 +66,7 @@ class ParseDevice(dict) :
         course that a specialised subclass for that seType has been defined).
     """
 
-    _dev = 0xffff # dummy value, I hope.  Should be overwritten in subclasses.
+    _dev = 0xffff  # dummy value, I hope.  Should be overwritten in subclasses.
     _devName = 'Unknown_device'
     _devType = '{}_{:#06x}'.format(_devName, _dev)
 
@@ -117,7 +117,7 @@ class ParseDevice(dict) :
         # Search for a subclass which can handle this seType
         for subclass in cls.__subclasses__():
             if subclass._dev == seType:
-                return(subclass(data))
+                return (subclass(data))
 
         # Otherwise either return a ParseDevice_Explorer (explorer=True),
         # which is a special subclass which will parse almost anything,
@@ -133,9 +133,10 @@ class ParseDevice(dict) :
             # because you may have already encountered another unknown device with a *different* length and _defn,
             # and the parseDevTable method updates the *class* definition dynamically if it encounters more data than it
             # expects!.
-            newInstance._defn = [
-                [4, 'L', "dateTime", "dateTime", False, "Seconds since the epoch"]
-            ]
+            newInstance._defn = [[
+                4, 'L', "dateTime", "dateTime", False,
+                "Seconds since the epoch"
+            ]]
             return newInstance
 
     @staticmethod
@@ -162,6 +163,7 @@ class ParseDevice(dict) :
         :return: A longer string, containing a hex representation of the data bytes, formatted for easiser reading.
         """
         lineSize = 16
+
         def hexLine(data):
             return ' '.join(x.encode('hex') for x in data)
 
@@ -183,7 +185,7 @@ class ParseDevice(dict) :
         :param hexData: String, containing a (must be valid) hex representation of some bytes.
         :return: The string of bytes corresponding to hexData.
         """
-        return binascii.unhexlify(hexData.replace("|","").replace(" ",""))
+        return binascii.unhexlify(hexData.replace("|", "").replace(" ", ""))
 
     def __init__(self, data, explorer=False):
         self.parseDevTable(data)
@@ -196,7 +198,8 @@ class ParseDevice(dict) :
         dataPtr = 0
         devHdrLen = 8
         # device header
-        (seType, seId, devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr + devHdrLen])
+        (seType, seId,
+         devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr + devHdrLen])
         dataPtr += devHdrLen
 
         # For (almost) all subclasses, _devType will already have this value.
@@ -207,22 +210,28 @@ class ParseDevice(dict) :
         # a parsed instance is converted to json.
         self._seId = self.parseId(seId)
 
-        self.update({'seType': '{:#06x}'.format(seType),
-                     'seId': self._seId,
-                     'devLen': devLen,
-                     'devType' : self._devType}
-                    )
+        self.update({
+            'seType': '{:#06x}'.format(seType),
+            'seId': self._seId,
+            'devLen': devLen,
+            'devType': self._devType
+        })
 
-        if self.defnLen > devLen :
-            raise ValueError('You have defined more bytes, {}, than the message contains, {}'.format(self.defnLen, devLen))
-        elif self.defnLen < devLen :
+        if self.defnLen > devLen:
+            raise ValueError(
+                'You have defined more bytes, {}, than the message contains, {}'.
+                format(self.defnLen, devLen))
+        elif self.defnLen < devLen:
             # By default, convert any remaining undefined bytes to their representation as a hexadecimal string.
-            self._defn.append([devLen - self.defnLen, 'hex', "Undeciphered_data", self.hexData, True, "Unknown as yet" ])
+            self._defn.append([
+                devLen - self.defnLen, 'hex', "Undeciphered_data",
+                self.hexData, True, "Unknown as yet"
+            ])
 
         for paramLen, paramInFmt, paramName, outFormatFn, out, comment in self._defn:
             # Extract the field
             if paramInFmt == 'hex':
-                self[paramName] = data[dataPtr: dataPtr + paramLen]
+                self[paramName] = data[dataPtr:dataPtr + paramLen]
             # Check for a specific value which I believe should be interpreted as nan
             # In little endian format '\xff\xff\x7f\xff' unpacks -3.402...*10**38.
             # But the solaredge messages seem to use it to signify "not reported".
@@ -231,23 +240,26 @@ class ParseDevice(dict) :
             # Note that if unpacked in **big** endian format, this special value actually unpacks as nan.
             # I suspect a legacy "bug" somewhere in the solaredge messages, but in the meantime just check the bytes
             # and fix it.
-            elif paramInFmt == 'f' and (data[dataPtr: dataPtr + paramLen] == '\xff\xff\x7f\xff'):
+            elif paramInFmt == 'f' and (
+                    data[dataPtr:dataPtr + paramLen] == '\xff\xff\x7f\xff'):
                 self[paramName] = float('nan')
             else:
-                self[paramName] = struct.unpack('<' + paramInFmt, data[dataPtr: dataPtr + paramLen])[0]
-
+                self[paramName] = struct.unpack(
+                    '<' + paramInFmt, data[dataPtr:dataPtr + paramLen])[0]
 
             # Optionally format the field
             if outFormatFn == 'dateTime':
                 try:
                     self['Date'] = self.formatDateStamp(self[paramName])
                 except ValueError:
-                    log('"{} is not a valid date, changed to "1970-01-01"'.format(self[paramName]))
+                    log('"{} is not a valid date, changed to "1970-01-01"'.
+                        format(self[paramName]))
                     self['Date'] = "1970-01-01"
                 try:
                     self['Time'] = self.formatTimeStamp(self[paramName])
                 except ValueError:
-                    log('"{} is not a valid time, changed to "00:00:01"'.format(self[paramName]))
+                    log('"{} is not a valid time, changed to "00:00:01"'.
+                        format(self[paramName]))
                     self["Time"] = "00:00:01"
             elif outFormatFn is not None:
                 self[paramName] = outFormatFn(self[paramName])
@@ -265,8 +277,10 @@ class ParseDevice(dict) :
     def checkHypotheses(self):
         for hypothesis in self._hypotheses:
             if not eval(hypothesis):
-                msg = ["Failed hypothesis",  self.__class__.__name__, self["Date"], self["Time"], ":",
-                       hypothesis, "is not True"]
+                msg = [
+                    "Failed hypothesis", self.__class__.__name__, self["Date"],
+                    self["Time"], ":", hypothesis, "is not True"
+                ]
                 logging.warn(" ".join(msg))
 
     def wrap_in_ids(self):
@@ -283,20 +297,28 @@ class ParseDevice(dict) :
         :return: The (parsed) device attributes, "wrapped" in dictionary of dictionaries based on device type and device
           identifiers.
         """
-        return {self._devType: {self._seId : self}}
-
+        return {self._devType: {self._seId: self}}
 
     @classmethod
     def itemNames(cls):
-    # Extract some item name and definition length information that se2csv needs
+        # Extract some item name and definition length information that se2csv needs
 
         # devItemNames = ["seType", "seId", "devLen", "devType"] These are "uninteresting" and will not be output to csv
         # Extract a list of the names of "interesting" items, that will routinely be sent to csv and graphite.
-        devItemNames = [name for itemLen, fmt, name, outFmt, out, comment in cls._defn if out]
-        devItemNames.extend([paramName for paramName, paramDefault, out, comment in cls._derivn if out])
+        devItemNames = [
+            name for itemLen, fmt, name, outFmt, out, comment in cls._defn
+            if out
+        ]
+        devItemNames.extend([
+            paramName for paramName, paramDefault, out, comment in cls._derivn
+            if out
+        ])
         # 1 Find the dateTime output format entry (if it exists) and insert additional separate Date and Time items
         try:
-            iDateTime = [outFmt for itemLen, fmt, name, outFmt, out, comment in cls._defn].index('dateTime')# + 3
+            iDateTime = [
+                outFmt
+                for itemLen, fmt, name, outFmt, out, comment in cls._defn
+            ].index('dateTime')  # + 3
             devItemNames.insert(iDateTime, "Time")
             devItemNames.insert(iDateTime, "Date")
         except ValueError:
@@ -305,7 +327,9 @@ class ParseDevice(dict) :
 
     @property
     def defnLen(self):
-        return sum([itemLen for itemLen, fmt, name, outFmt, out, comment in self._defn])
+        return sum([
+            itemLen for itemLen, fmt, name, outFmt, out, comment in self._defn
+        ])
 
     @classmethod
     def itemDefs(cls):
@@ -314,29 +338,37 @@ class ParseDevice(dict) :
 
         :return: A formatted string, (usually) extracted from _defn and _derivn.
         """
-        msg = ["\n\n{} / {} parses data blocks with seType = {:#06x}.\n{}".format(cls.__name__, cls._devType, cls._dev, "="*80)]
+        msg = [
+            "\n\n{} / {} parses data blocks with seType = {:#06x}.\n{}".format(
+                cls.__name__, cls._devType, cls._dev, "=" * 80)
+        ]
         msg.append("Items are:")
         itemLine = "{:<4} ({:^6})   {:<6} | {:<25} \n\t\t\t\t\t\t: {:<0}\n"
-        msg.append(itemLine.format("Byte", "Length", "Word", "Item Name",  "Meaning"))
-        msg.append(itemLine.format("_"*4, "_"*6, "_"*6, "_"*25, "_"*40))
+        msg.append(
+            itemLine.format("Byte", "Length", "Word", "Item Name", "Meaning"))
+        msg.append(
+            itemLine.format("_" * 4, "_" * 6, "_" * 6, "_" * 25, "_" * 40))
         byte = 0
         word = byte / 4.0
         if len(cls._defn) > 0:
             for paramLen, paramInFmt, paramName, outFormatFn, out, comment in cls._defn:
-                msg.append(itemLine.format(byte, paramLen, word, paramName, comment))
+                msg.append(
+                    itemLine.format(byte, paramLen, word, paramName, comment))
                 byte += paramLen
                 word = byte / 4.0
         if len(cls._derivn) > 0:
             msg.append("Derived items\n")
             for paramName, paramDefault, out, comment in cls._derivn:
-                msg.append(itemLine.format('----', '------', '----', paramName, '(default={}) {}'.format(paramDefault,comment)))
+                msg.append(
+                    itemLine.format('----', '------', '----', paramName,
+                                    '(default={}) {}'.format(
+                                        paramDefault, comment)))
         for subclass in cls.__subclasses__():
             msg.append(subclass.itemDefs())
         return "\n".join(msg)
 
 
-class ParseDevice_0x0030(ParseDevice) :
-
+class ParseDevice_0x0030(ParseDevice):
     def __new__(cls, data):
         # Create a bare minimum instance of a dictionary.  ALL subclasses of ParseDevice MUST do this.
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
@@ -346,7 +378,7 @@ class ParseDevice_0x0030(ParseDevice) :
         # are trying to avoid!
         return super(ParseDevice, cls).__new__(cls)
 
-    _dev =0x0030
+    _dev = 0x0030
     _devName = 'batteries'
     _devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = [
@@ -356,22 +388,46 @@ class ParseDevice_0x0030(ParseDevice) :
         [12, '12s', "batteryId", None, True, "Identifier for this battery"],
         [4, 'f', 'Vdc', None, True, "Volts"],
         [4, 'f', 'Idc', None, True, "Amps"],
-        [4, 'f', 'BattCapacityNom', None, True,"Wh, Nameplate Energy Capacity"],
-        [4, 'f', 'BattCapacityActual', None, True, "Wh, Actual Battery Capacity now"],
+        [
+            4, 'f', 'BattCapacityNom', None, True,
+            "Wh, Nameplate Energy Capacity"
+        ],
+        [
+            4, 'f', 'BattCapacityActual', None, True,
+            "Wh, Actual Battery Capacity now"
+        ],
         [4, 'f', 'BattCharge', None, True, "Wh, Energy Stored now"],
-        [4, 'L', 'TotalEnergyIn', None, True, 'Wh, Lifetime Energy Input to Battery'],
+        [
+            4, 'L', 'TotalEnergyIn', None, True,
+            'Wh, Lifetime Energy Input to Battery'
+        ],
         [4, 'f', 'AlwaysZero_40_float', None, False, "Unused"],
-        [4, 'L', 'TotalEnergyOut', None, True, "Wh, Lifetime Energy Output by Battery"],
+        [
+            4, 'L', 'TotalEnergyOut', None, True,
+            "Wh, Lifetime Energy Output by Battery"
+        ],
         [4, 'f', 'AlwaysZero_48_float', None, False, "Unused"],
-        [4, 'hex', 'HexConst_52', ParseDevice.hexData, False, "Unknown, constant value"],
-        [4, 'hex', 'HexConst_56', ParseDevice.hexData, False, "Unknown, constant value"],
+        [
+            4, 'hex', 'HexConst_52', ParseDevice.hexData, False,
+            "Unknown, constant value"
+        ],
+        [
+            4, 'hex', 'HexConst_56', ParseDevice.hexData, False,
+            "Unknown, constant value"
+        ],
         [4, 'f', 'Temp', None, True, "degrees C, Battery Temperature"],
-        [2, 'H', 'BattChargingStatus', None, True, "3=>Charging, 4=>Discharging, 6=>Holding"],
+        [
+            2, 'H', 'BattChargingStatus', None, True,
+            "3=>Charging, 4=>Discharging, 6=>Holding"
+        ],
         [4, 'f', 'AlwaysZero_66_float', None, False, "Unused"],
         [4, 'f', 'AlwaysZero_70_float', None, False, "Unused"],
         [4, 'L', 'Interval', None, False, "Seconds, Time Interval"],
         [4, 'L', 'EIn', None, True, "Wh, Energy into battery during interval"],
-        [4, 'L', 'EOut', None, True, "Wh, Energy out of battery during interval"],
+        [
+            4, 'L', 'EOut', None, True,
+            "Wh, Energy out of battery during interval"
+        ],
     ]
 
     _hypotheses = [
@@ -398,8 +454,7 @@ class ParseDevice_0x0030(ParseDevice) :
         return {self._devType: {self._seId: {self["batteryId"]: self}}}
 
 
-class ParseDevice_0x0022(ParseDevice) :
-
+class ParseDevice_0x0022(ParseDevice):
     def __new__(cls, data):
         # Create a bare minimum instance of a dictionary.
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
@@ -407,81 +462,119 @@ class ParseDevice_0x0022(ParseDevice) :
         # the recursion limit was reached!
         return super(ParseDevice, cls).__new__(cls)
 
-    _dev =  0x0022
+    _dev = 0x0022
     _devName = 'meters'
     _devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = [
         # device specific fields
         #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
         [4, 'L', "dateTime", "dateTime", False, "Seconds since epoch"],
-        [1, 'b', "recType", None, True, "record Type, determines the interpretation of later fields" +
-             sp + "3=Consumption," +
-             sp + "5=Grid Import/Export," +
-             sp + "7=Battery," +
-             sp + "8=Unknown, almost all 0,or very very small," +
-             sp + "9=PV production"],
-        [1, 'b', "onlyIntervalData", None, True, "1=only interval data has been reported, 0=lifetime data reported as well"],
-
-        [4, 'L', 'TotalE2Grid', None, True, "Wh, Lifetime energy exported to grid (*provided* onlyIntervalData flag is not set)" +
-             sp + "Wh. Total lifetime energy exported to grid when recType=5 (matches SE LCD panel value)" +
-             sp + "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)" ],
+        [
+            1, 'b', "recType", None, True,
+            "record Type, determines the interpretation of later fields" + sp +
+            "3=Consumption," + sp + "5=Grid Import/Export," + sp +
+            "7=Battery," + sp + "8=Unknown, almost all 0,or very very small," +
+            sp + "9=PV production"
+        ],
+        [
+            1, 'b', "onlyIntervalData", None, True,
+            "1=only interval data has been reported, 0=lifetime data reported as well"
+        ],
+        [
+            4, 'L', 'TotalE2Grid', None, True,
+            "Wh, Lifetime energy exported to grid (*provided* onlyIntervalData flag is not set)"
+            + sp +
+            "Wh. Total lifetime energy exported to grid when recType=5 (matches SE LCD panel value)"
+            + sp +
+            "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"
+        ],
         [2, 'H', 'AlwaysZero_off10_int2', None, False, "Padding"],
-        [2, 'hex', 'Flag_off12_hex', ParseDevice.hexData, True, "Flag" +
-             sp + "0x0000->TotalE2Grid reported" +
-             sp + "0x0080->TotalE2Grid not reported"],
-        [4, 'L', 'TotalEfromGrid', None, True, "Wh, Lifetime energy imported from grid (*provided* onlyIntervalData flag is not set)" +
-             sp + "Wh. Total lifetime energy imported from grid when recType=5 (matches SE LCD panel value)" +
-             sp + "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"],
+        [
+            2, 'hex', 'Flag_off12_hex', ParseDevice.hexData, True,
+            "Flag" + sp + "0x0000->TotalE2Grid reported" + sp +
+            "0x0080->TotalE2Grid not reported"
+        ],
+        [
+            4, 'L', 'TotalEfromGrid', None, True,
+            "Wh, Lifetime energy imported from grid (*provided* onlyIntervalData flag is not set)"
+            + sp +
+            "Wh. Total lifetime energy imported from grid when recType=5 (matches SE LCD panel value)"
+            + sp +
+            "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"
+        ],
         [2, 'H', 'AlwaysZero_off18_int2', None, False, "Padding"],
-        [2, 'hex', 'Flag_off20_hex', ParseDevice.hexData, True, "Flag" +
-             sp + "0x0000->TotalEfromGrid reported" +
-             sp + "0x0080->TotalEfromGrid not reported"],
-        [4, 'L', 'Totaloff22_int4', None, True, "Unknown, probably an energy field  (*provided* lifetime flag is set)" +
-             sp + "Maybe a cumulative net value, it appears to decrease overnight when importing power" +
-             sp + "Wh. Unknown when recType=5 (generally increasing trend, but falls overnight)" +
-             sp + "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"],
+        [
+            2, 'hex', 'Flag_off20_hex', ParseDevice.hexData, True,
+            "Flag" + sp + "0x0000->TotalEfromGrid reported" + sp +
+            "0x0080->TotalEfromGrid not reported"
+        ],
+        [
+            4, 'L', 'Totaloff22_int4', None, True,
+            "Unknown, probably an energy field  (*provided* lifetime flag is set)"
+            + sp +
+            "Maybe a cumulative net value, it appears to decrease overnight when importing power"
+            + sp +
+            "Wh. Unknown when recType=5 (generally increasing trend, but falls overnight)"
+            + sp +
+            "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"
+        ],
         [2, 'H', 'AlwaysZero_off26_int2', None, False, "Padding"],
-        [2, 'hex', 'Flag_off28_hex', ParseDevice.hexData, True, "Flag" +
-             sp + "0x0000->Totaloff22_int4 reported" +
-             sp + "0x0080->Totaloff22_int4 not reported"],
-        [4, 'L', 'Totaloff30_int4', None, True, "Unknown total energy field (*provided* lifetime flag is set)" +
-             sp + "monotonic increasing so far including overnight." +
-             sp + "Maybe something like cum total consumption scaled by about 60%?" +
-             sp + "Wh. Unknown when recType=5 (steadily increasing trend)" +
-             sp + "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"],
+        [
+            2, 'hex', 'Flag_off28_hex', ParseDevice.hexData, True,
+            "Flag" + sp + "0x0000->Totaloff22_int4 reported" + sp +
+            "0x0080->Totaloff22_int4 not reported"
+        ],
+        [
+            4, 'L', 'Totaloff30_int4', None, True,
+            "Unknown total energy field (*provided* lifetime flag is set)" +
+            sp + "monotonic increasing so far including overnight." + sp +
+            "Maybe something like cum total consumption scaled by about 60%?" +
+            sp + "Wh. Unknown when recType=5 (steadily increasing trend)" +
+            sp +
+            "always 0, when recType=3, or 7, or 8, or 9 because onlyIntervalData=1 (True)"
+        ],
         [2, 'H', 'AlwaysZero_off34_int2', None, False, "Padding"],
-        [2, 'hex', 'Flag_off36_hex', ParseDevice.hexData, True, "Flag" +
-             sp + "0x0000->Totaloff30_int4 reported" +
-             sp + "0x0080->Totaloff30_int4 not reported"],
+        [
+            2, 'hex', 'Flag_off36_hex', ParseDevice.hexData, True,
+            "Flag" + sp + "0x0000->Totaloff30_int4 reported" + sp +
+            "0x0080->Totaloff30_int4 not reported"
+        ],
         [4, 'L', 'Interval', None, True, "Seconds, Time Interval"],
-        [4, 'L', 'E2X', None, True, "Wh, Energy to X during the interval" +
-             sp + "always 0 when recType=3" +
-             sp + "Wh. Energy exported to grid during interval when recType=5 (whenever TotalE2Grid is static, E2X=0)" +
-             sp + "Wh. Energy into battery when recType=7 (matches battery(0x0030).EIn)" +
-             sp + "Unknown, when recType=8 (almost always 0, very occasionally has small +ive value)" +
-             sp + "Wh. PV energy production during interval when recType=9"
-         ],
-        [4, 'L', 'EfromX', None, True, "Wh, Energy in from X during interval " +
-             sp + "Wh. Consumption when recType=3" +
-             sp + "Wh. Energy imported from grid during interval when recType=5 (whenever TotalEfromGrid is static, EfromX=0)" +
-             sp + "always 0 when recType=7 (I expected E from battery but it does not match battery(0x0030).EOut)" +
-             sp + "always 0 when recType=8 " +
-             sp + "always 0 when recType=9"
-         ],
-        [4, 'f', 'P2X', None, True, "W, Power output to X" +
-             sp + "always nan when recType=3" +
-             sp + "W. Power to grid at end of interval when recType=5 (whenever TotalE2Grid is static, P2X=0)" +
-             sp + "W. Power into battery when recType=7 (is nonzero when E2X is nonzero)" +
-             sp + "almost always 0 when recType=8 " +
-             sp + "W. PV power when recType=9"
-         ],
-        [4, 'f', 'PfromX', None, True, "W, Power input from X" +
-             sp + "W. Consumption when recType=3" +
-             sp + "W. Power from grid at end of interval when recType=5 (whenever TotalEfromGrid is static, PfromX=0)" +
-             sp + "always nan when recType=7" +
-             sp + "always nan when recType=8" +
-             sp + "always nan when recType=9"
-         ],
+        [
+            4, 'L', 'E2X', None, True, "Wh, Energy to X during the interval" +
+            sp + "always 0 when recType=3" + sp +
+            "Wh. Energy exported to grid during interval when recType=5 (whenever TotalE2Grid is static, E2X=0)"
+            + sp +
+            "Wh. Energy into battery when recType=7 (matches battery(0x0030).EIn)"
+            + sp +
+            "Unknown, when recType=8 (almost always 0, very occasionally has small +ive value)"
+            + sp + "Wh. PV energy production during interval when recType=9"
+        ],
+        [
+            4, 'L', 'EfromX', None, True,
+            "Wh, Energy in from X during interval " + sp +
+            "Wh. Consumption when recType=3" + sp +
+            "Wh. Energy imported from grid during interval when recType=5 (whenever TotalEfromGrid is static, EfromX=0)"
+            + sp +
+            "always 0 when recType=7 (I expected E from battery but it does not match battery(0x0030).EOut)"
+            + sp + "always 0 when recType=8 " + sp + "always 0 when recType=9"
+        ],
+        [
+            4, 'f', 'P2X', None, True,
+            "W, Power output to X" + sp + "always nan when recType=3" + sp +
+            "W. Power to grid at end of interval when recType=5 (whenever TotalE2Grid is static, P2X=0)"
+            + sp +
+            "W. Power into battery when recType=7 (is nonzero when E2X is nonzero)"
+            + sp + "almost always 0 when recType=8 " + sp +
+            "W. PV power when recType=9"
+        ],
+        [
+            4, 'f', 'PfromX', None, True, "W, Power input from X" + sp +
+            "W. Consumption when recType=3" + sp +
+            "W. Power from grid at end of interval when recType=5 (whenever TotalEfromGrid is static, PfromX=0)"
+            + sp + "always nan when recType=7" + sp +
+            "always nan when recType=8" + sp + "always nan when recType=9"
+        ],
     ]
 
     _derivn = [
@@ -503,9 +596,8 @@ class ParseDevice_0x0022(ParseDevice) :
         # of a Python nan.  Read as LITTLE endian it becomes "-3.2... 10^38" which is unlikely to be meant as a real value!
         # Most of these are filtered out later, but occasionally if the interval is short one slips through anyway.
         # Short intervals appear to happen about once a day, perhaps when the inverter is going to sleep for the night.
-        if self['P2X'] < -3*10**38:
+        if self['P2X'] < -3 * 10**38:
             self["P2X"] = nan
-
 
     def wrap_in_ids(self):
         """
@@ -526,17 +618,19 @@ class ParseDevice_0x0022(ParseDevice) :
           identifiers.
         """
         recTypeLabels = {
-            3 : "3_Consumption",
-            5 : "5_GridImportExport",
-            7 : "7_Battery",
-            8 : "8_MostlyZeroes",
-            9 : "9_PVProduction"
+            3: "3_Consumption",
+            5: "5_GridImportExport",
+            7: "7_Battery",
+            8: "8_MostlyZeroes",
+            9: "9_PVProduction"
         }
-        recTypeLabel = recTypeLabels.get(self["recType"], "{}_UnrecognisedRecType".format(self["recType"]))
-        return {self._devType: {self._seId: {recTypeLabel :self}}}
+        recTypeLabel = recTypeLabels.get(self["recType"],
+                                         "{}_UnrecognisedRecType".format(
+                                             self["recType"]))
+        return {self._devType: {self._seId: {recTypeLabel: self}}}
 
 
-class ParseDevice_Explorer(ParseDevice) :
+class ParseDevice_Explorer(ParseDevice):
     """ A special parser which tries out several different ways of interpreting each item in the data message, and
     reports *ALL* of them.
 
@@ -553,7 +647,7 @@ class ParseDevice_Explorer(ParseDevice) :
         # the recursion limit was reached!
         return super(ParseDevice, cls).__new__(cls)
 
-    _dev = 0xffff # dummy value since ParseDevice_Explorer will "parse" any seType (albeit overly enthusiastically!)
+    _dev = 0xffff  # dummy value since ParseDevice_Explorer will "parse" any seType (albeit overly enthusiastically!)
     _devName = 'explore'
     _devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = []
@@ -573,7 +667,8 @@ class ParseDevice_Explorer(ParseDevice) :
         dataPtr = 0
         devHdrLen = 8
         # device header
-        (seType, seId, devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr + devHdrLen])
+        (seType, seId,
+         devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr + devHdrLen])
 
         self._dev = seType
         self._defnLen = devLen
@@ -584,13 +679,13 @@ class ParseDevice_Explorer(ParseDevice) :
         self._devType = '{}_{:#06x}'.format(self._devName, seType)
         self._seId = seId
 
-
         dataPtr += devHdrLen
-        self.update({'seType': '{:#06x}'.format(seType),
-                     'seId': self.parseId(seId),
-                     'devLen': devLen,
-                     'devType' : self._devType}
-                    )
+        self.update({
+            'seType': '{:#06x}'.format(seType),
+            'seId': self.parseId(seId),
+            'devLen': devLen,
+            'devType': self._devType
+        })
 
         # First, dump a hex version of the whole block into one field
         self["AllAsHex"] = self.hexData(data[dataPtr:])
@@ -600,7 +695,6 @@ class ParseDevice_Explorer(ParseDevice) :
             # Parse a range of possible interpretations of the (4) bytes beginning at offset.
             self.parseAtOffset(data[dataPtr:], offset, devLen)
         return
-
 
     def parseAtOffset(self, data, offset, devlen):
         """
@@ -615,36 +709,38 @@ class ParseDevice_Explorer(ParseDevice) :
         if offset <= (devlen - 1):
             # Parse items which may be 1 byte long
             itemName = "offset{:03}_1_hex1".format(offset)
-            self[itemName] = self.hexData(data[offset: offset + 1])
+            self[itemName] = self.hexData(data[offset:offset + 1])
             self._itemNames.append(itemName)
 
         if offset <= (devlen - 2):
             # Parse items which may be 2 bytes long
             itemName = "offset{:03}_1_hex2".format(offset)
-            self[itemName] = self.hexData(data[offset: offset + 2])
+            self[itemName] = self.hexData(data[offset:offset + 2])
             self._itemNames.append(itemName)
             itemName = "offset{:03}_4_int2".format(offset)
-            self[itemName] = struct.unpack("<H", data[offset: offset + 2])[0]
+            self[itemName] = struct.unpack("<H", data[offset:offset + 2])[0]
             self._itemNames.append(itemName)
 
         if offset <= (devlen - 4):
             # Parse items which may be 4 bytes long
             itemName = "offset{:03}_1_hex4".format(offset)
-            self[itemName] = self.hexData(data[offset: offset + 4])
+            self[itemName] = self.hexData(data[offset:offset + 4])
             self._itemNames.append(itemName)
             itemName = "offset{:03}_3_float_LE".format(offset)
-            self[itemName] = struct.unpack("<f", data[offset: offset + 4])[0]
+            self[itemName] = struct.unpack("<f", data[offset:offset + 4])[0]
             self._itemNames.append(itemName)
             itemName = "offset{:03}_3_float_BE".format(offset)
-            self[itemName] = struct.unpack(">f", data[offset: offset + 4])[0]
+            self[itemName] = struct.unpack(">f", data[offset:offset + 4])[0]
             self._itemNames.append(itemName)
             itemName = "offset{:03}_4_int4".format(offset)
-            self[itemName] = struct.unpack("<L", data[offset: offset + 4])[0]
+            self[itemName] = struct.unpack("<L", data[offset:offset + 4])[0]
             self._itemNames.append(itemName)
             # Maybe it is a date?
             try:
-                self["Date_offset{:03}".format(offset)] = self.formatDateStamp(self[itemName])
-                self["Time_offset{:03}".format(offset)] = self.formatTimeStamp(self[itemName])
+                self["Date_offset{:03}".format(offset)] = self.formatDateStamp(
+                    self[itemName])
+                self["Time_offset{:03}".format(offset)] = self.formatTimeStamp(
+                    self[itemName])
                 # Other modules (eg se2graphite) become upset if Date and Time are not supplied, so take the 1st valid
                 # Date we find. Implicitly I'm guessing that offset zero will be the "real" date.
                 if "Date" not in self.keys():
@@ -652,8 +748,10 @@ class ParseDevice_Explorer(ParseDevice) :
                     self["Time"] = self.formatTimeStamp(self[itemName])
             except ValueError:
                 # Apparently it is not a date!
-                self["Date_offset{:03}".format(offset)] = '{} is not a Date'.format(self[itemName])
-                self["Time_offset{:03}".format(offset)] = '{} is not a Time'.format(self[itemName])
+                self["Date_offset{:03}".format(
+                    offset)] = '{} is not a Date'.format(self[itemName])
+                self["Time_offset{:03}".format(
+                    offset)] = '{} is not a Time'.format(self[itemName])
             self._itemNames.append("Date_offset{:03}".format(offset))
             self._itemNames.append("Time_offset{:03}".format(offset))
 
@@ -669,15 +767,15 @@ class ParseDevice_Explorer(ParseDevice) :
 
     @classmethod
     def itemDefs(cls):
-        msg = ["\n\n{} / {} parses data blocks with any unrecognised seType.\n{}".format(cls.__name__, cls._devType,
-                                                                                         "=" * 80),
-               """\
+        msg = [
+            "\n\n{} / {} parses data blocks with any unrecognised seType.\n{}".
+            format(cls.__name__, cls._devType, "=" * 80), """\
 Each pair/quadruple of bytes is parsed multiple times, using a number of different fields types.
 Item names are generated automatically, signalling the offset where the bytes began
 and the Python field type they have been parsed as.
 Inspecting the parsed fields (eg using se2csv) and identifying sensible and/or recognised values is
 a step towards deciphering a new seType block, and creating a more sensible parser for it."""
-               ]
+        ]
         return '\n'.join(msg)
 
 
@@ -695,11 +793,14 @@ def unwrap_metricsDict(mydict):
 
     :return: A graphite style structured name for the device instance, and a {name: value} dictionary of it's attributes.
     """
+
     def nice(k):
         # Remove characters which give graphite or open (a file) problems.
         # Also remove an extra level of naming (devices) that I don't really need anymore.
         # Todo tidy up and delete the removal of "devices" when testing is over.
-        return str(k).replace("\x00", '').replace(" ", "_").replace("devices", "")
+        return str(k).replace("\x00", '').replace(" ", "_").replace(
+            "devices", "")
+
     for k, v in mydict.iteritems():
         if "Date" in v.keys():
             yield nice(k), v
@@ -713,6 +814,7 @@ def unwrap_metricsDict(mydict):
                     yield nice(k2), v2
                 else:
                     yield "{}.{}".format(nice(k), nice(k2)), v2
+
 
 def merge_update(dict1, dict2):
     """
@@ -734,6 +836,7 @@ def merge_update(dict1, dict2):
         else:
             # We have reached the bottom of the dictionary of dictionaries structure and still have no NEW identifier keys
             # So it looks like the inverter has reported new attributes for an existing instance identifier in the same message
-            message = "WARNING : For {} about to overwrite {} with {}".format(k2, dict1[k2], v2)
+            message = "WARNING : For {} about to overwrite {} with {}".format(
+                k2, dict1[k2], v2)
             log(message)
             dict1[k2] = v2

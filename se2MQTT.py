@@ -44,7 +44,7 @@ for opt in opts:
         server = opt[1]
     if opt[0] == "-t":
         topic = opt[1]
-        
+
 # read the input forever
 while True:
     jsonStr = ""
@@ -69,4 +69,4 @@ while True:
         mqttc.publish(topic, json.dumps(stateDict))
         mqttc.disconnect()
     except Exception as ex:
-         print "MQTT Exception: " + str(ex)
+        print "MQTT Exception: " + str(ex)
