@@ -1,0 +1,2 @@
+**.pcap filter=lfs diff=lfs merge=lfs -text
+test/20171119000004.json filter=lfs diff=lfs merge=lfs -text
