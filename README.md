@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/jbuehl/solaredge.svg?style=svg)](https://circleci.com/gh/jbuehl/solaredge)
+
 SolarEdge Monitoring
 ====================
 This project enables monitoring the performance data of SolarEdge inverters and optimizers.
