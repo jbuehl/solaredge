@@ -24,4 +24,3 @@ for i in range(4):
     data = json.loads(inFile.readline().rstrip("\n"))
     key += struct.pack("<L", data["data"]["value"])
 outFile.write(''.join(x.encode('hex') for x in key))
-

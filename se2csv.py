@@ -20,33 +20,40 @@ writeMode = "w"
 devsSeq = {}
 devsItems = {}
 
+
 def openInFile(inFileName):
     if inFileName == "stdin":
         return sys.stdin
     else:
         return open(inFileName)
 
+
 # open the specified input file
 def openInput(inFileName):
     return openInFile(inFileName)
+
 
 # close the input file
 def closeInput(dataFile):
     dataFile.close()
 
+
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
         return open(fileName, writeMode)
-    
-# close output files        
+
+
+# close output files
 def closeOutFiles(devsFile):
     for devFile in devsFile.itervalues():
         devFile.close()
 
+
 # write output file headers
 def writeHeaders(outFile, items):
-    outFile.write(delim.join(item for item in items)+"\n")
+    outFile.write(delim.join(item for item in items) + "\n")
+
 
 # write data to output files
 def writeData(msgDict, devsFilePrefix):
@@ -69,11 +76,13 @@ def writeData(msgDict, devsFilePrefix):
 
             # Make sure __Identifer__ is actually stored in devAttrs
             devAttrs["__Identifier__"] = devId
-            devsSeq[devName] = writeDevData(devsFile[devName],
-                                            # todo Implement a more elegant way of building a generic format list
-                                            ["%s"] * len(devsItems[devName]), #optOutFmt,
-                                            devAttrs,
-                                            devsItems[devName], devsSeq[devName])
+            devsSeq[devName] = writeDevData(
+                devsFile[devName],
+                # todo Implement a more elegant way of building a generic format list
+                ["%s"] * len(devsItems[devName]),  #optOutFmt,
+                devAttrs,
+                devsItems[devName],
+                devsSeq[devName])
 
 
 def get_device_items(devAttrs):
@@ -94,8 +103,10 @@ def get_device_items(devAttrs):
     outItems.sort()
     return outItems
 
+
 def get_device_header_details(devAttrs):
-    seType = int(devAttrs["seType"], 16)  # (At the moment) I am storing seType as a hex str
+    seType = int(devAttrs["seType"],
+                 16)  # (At the moment) I am storing seType as a hex str
     devLen = devAttrs["devLen"]
     return seType, devLen
 
@@ -103,9 +114,10 @@ def get_device_header_details(devAttrs):
 # write device data to output file
 def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
     if outFile:
-        outMsg = delim.join([(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
+        outMsg = delim.join(
+            [(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
         devSeq += 1
-        outFile.write(outMsg+"\n")
+        outFile.write(outMsg + "\n")
     return devSeq
 
 
@@ -132,7 +144,8 @@ for opt in opts:
         devsFilePrefix = opt[1]
 
 if devsFilePrefix == "":
-    log('No csv file output will be produced unless the -p "a-csvFileNamePrefix" is used')
+    log('No csv file output will be produced unless the -p "a-csvFileNamePrefix" is used'
+        )
 
 if __name__ == "__main__":
 
@@ -150,5 +163,3 @@ if __name__ == "__main__":
             print jsonStr
     closeInput(inFile)
     closeOutFiles(devsFile)
-
-

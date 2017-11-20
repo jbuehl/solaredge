@@ -12,7 +12,9 @@ import logging
 import logging.handlers
 import os
 
-class TimedRotatingFileHandlerUmasked(logging.handlers.TimedRotatingFileHandler):
+
+class TimedRotatingFileHandlerUmasked(
+        logging.handlers.TimedRotatingFileHandler):
     """
     A modification of the logging.handlers.TimedRotatingFileHandler
 
@@ -25,6 +27,7 @@ class TimedRotatingFileHandlerUmasked(logging.handlers.TimedRotatingFileHandler)
     See
     http://stackoverflow.com/questions/1407474/does-python-logging-handlers-rotatingfilehandler-allow-creation-of-a-group-writa
     """
+
     def _open(self):
         prevUmask = os.umask(0o002)
         try:
@@ -33,7 +36,6 @@ class TimedRotatingFileHandlerUmasked(logging.handlers.TimedRotatingFileHandler)
             return rtv
         except:
             os.umask(prevUmask)
-
 
 
 my_logger = logging.getLogger('syslog')

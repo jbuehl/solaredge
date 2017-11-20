@@ -77,32 +77,38 @@ subnetMask = ""
 sePort = 22222
 socketTimeout = 120.0
 dhcpDnsBufferSize = 4096
-dhcpLeaseTime = 24*60*60    # 1 day
-validMacs = ["\xb8\x27\xeb",   # Raspberry Pi
-             "\x00\x27\x02",   # SolarEdge
-             ]
-dnsTtl = 24*60*60           # 1 day
+dhcpLeaseTime = 24 * 60 * 60  # 1 day
+validMacs = [
+    "\xb8\x27\xeb",  # Raspberry Pi
+    "\x00\x27\x02",  # SolarEdge
+]
+dnsTtl = 24 * 60 * 60  # 1 day
+
 
 # log a message
 def log(*args):
-    message = args[0]+" "
+    message = args[0] + " "
     for arg in args[1:]:
-        message += arg.__str__()+" "
+        message += arg.__str__() + " "
     if debugFile:
-        debugFile.write(time.strftime('%b %d %H:%M:%S',time.localtime())+" "+message+"\n")
+        debugFile.write(
+            time.strftime('%b %d %H:%M:%S', time.localtime()) + " " + message +
+            "\n")
         debugFile.flush()
     else:
         syslog.syslog(message)
 
+
 # log a debug message
 def debug(*args):
-    if debugEnable:   # global debug flag enables debugging
+    if debugEnable:  # global debug flag enables debugging
         try:
             if globals()[args[0]]:  # arg[0] is debug level name
                 log(*args[1:])
         except:
             pass
-            
+
+
 # log an incoming or outgoing data message
 def logMsg(direction, seq, msg, endPoint=""):
     if debugMsgs:
@@ -114,22 +120,26 @@ def logMsg(direction, seq, msg, endPoint=""):
         if direction == "<--" and debugData:
             log(" ")
 
+
 # program termination
 def terminate(code=0, msg=""):
     log(msg)
     sys.exit(code)
-    
+
+
 # hex dump data
 def logData(data):
     def logLine(data):
         log("data:      ", ' '.join(x.encode('hex') for x in data))
+
     if data != "":
         printPtr = 0
         while len(data) - printPtr >= lineSize:
-            logLine(data[printPtr:printPtr+lineSize])
+            logLine(data[printPtr:printPtr + lineSize])
             printPtr += lineSize
         if printPtr < len(data):
             logLine(data[printPtr:])
+
 
 # get next sequence number
 def nextSeq():
@@ -142,8 +152,9 @@ def nextSeq():
     except:
         seq = 1
     with open(seqFileName, "w") as seqFile:
-        seqFile.write(str(seq)+"\n")
+        seqFile.write(str(seq) + "\n")
     return seq
+
 
 # block while waiting for a keyboard interrupt
 def waitForEnd():
@@ -155,6 +166,7 @@ def waitForEnd():
         os.kill(os.getpid(), signal.SIGKILL)
         return False
 
+
 # parse and validate the commands specified in the -c option
 def parseCommands(opt):
     try:
@@ -162,22 +174,23 @@ def parseCommands(opt):
         for command in commands:
             try:
                 # validate the command function
-                v = int(command[0],16)
+                v = int(command[0], 16)
                 # validate command parameters
                 for p in command[1:]:
                     # validate data type
                     if p[0] not in "bhlBHL":
                         log(" ".join(c for c in command))
-                        terminate(1, "Invalid data type "+p[0])
+                        terminate(1, "Invalid data type " + p[0])
                     # validate parameter value
-                    v = int(p[1:],16)
+                    v = int(p[1:], 16)
             except ValueError:
                 log(" ".join(c for c in command))
                 terminate(1, "Invalid numeric value")
     except:
         terminate(1, "Error parsing commands")
     return commands
-                        
+
+
 # figure out the list of valid serial ports on this server
 try:
     serialPortNames = []
@@ -186,7 +199,8 @@ try:
     if isinstance(serialPorts[0], tuple):
         for serialPort in serialPorts:
             serialPortNames.append(serialPort[0])
-    elif isinstance(serialPorts[0], serial.tools.list_ports_common.ListPortInfo):
+    elif isinstance(serialPorts[0],
+                    serial.tools.list_ports_common.ListPortInfo):
         for serialPort in serialPorts:
             serialPortNames.append(serialPort.device)
 except:
@@ -200,16 +214,16 @@ try:
     if inFileName == "-":
         inFileName = "stdin"
     elif inFileName in serialPortNames:
-        serialDevice = True      
+        serialDevice = True
 except:
-        inFileName = "stdin"
-        following = True
+    inFileName = "stdin"
+    following = True
 # options
 for opt in opts:
     if opt[0] == "-a":
         writeMode = "a"
     elif opt[0] == "-b":
-        baudRate = opt[1] 
+        baudRate = opt[1]
     elif opt[0] == "-c":
         commandStr = opt[1]
     elif opt[0] == "-d":
@@ -237,17 +251,17 @@ for opt in opts:
     elif opt[0] == "-v":
         if debugEnable:
             if not debugFiles:
-                debugFiles = True   # -v
+                debugFiles = True  # -v
             elif not debugMsgs:
-                debugMsgs = True    # -vv
+                debugMsgs = True  # -vv
             elif not debugData:
-                debugData = True    # -vvv
+                debugData = True  # -vvv
             elif not debugRaw:
-                debugRaw = True     # -vvvv
+                debugRaw = True  # -vvvv
     elif opt[0] == "-x":
         haltOnException = True
     else:
-        terminate(1, "Unknown option "+opt[0])
+        terminate(1, "Unknown option " + opt[0])
 
 # open debug file
 if debugFileName != "syslog":
@@ -259,15 +273,16 @@ if debugFileName != "syslog":
 # validate input type
 if inputType in ["2", "4"]:
     if not serialDevice:
-        terminate(1, "Input device types 2 and 4 are only valid for a serial device")
+        terminate(
+            1, "Input device types 2 and 4 are only valid for a serial device")
 elif inputType == "n":
     if inFileName != "stdin":
         terminate(1, "Input file cannot be specified for network mode")
     networkDevice = True
     inFileName = "network"
 elif inputType != "":
-    terminate(1, "Invalid input type "+inputType)
-    
+    terminate(1, "Invalid input type " + inputType)
+
 # get network interface parameters
 if netInterface != "":
     networkDevice = True
@@ -289,7 +304,8 @@ if serialDevice:
     if inputType == "2":
         passiveMode = False
     elif inputType != "4":
-        terminate(1, "Input device type 2 or 4 must be specified for serial device")
+        terminate(
+            1, "Input device type 2 or 4 must be specified for serial device")
 
 # master mode validation
 if masterMode:
@@ -297,26 +313,28 @@ if masterMode:
     if inputType != "4":
         terminate(1, "Master mode only allowed with RS485 serial device")
     if len(slaveAddrs) < 1:
-        terminate(1, "At least one slave address must be specified for master mode")
+        terminate(
+            1, "At least one slave address must be specified for master mode")
 
 # command mode validation
 if commandStr != "":
     commands = parseCommands(commandStr)
     commandAction = True
-    passiveMode = False 
+    passiveMode = False
     if len(slaveAddrs) != 1:
-        terminate(1, "Exactly one slave address must be specified for command mode")
+        terminate(
+            1, "Exactly one slave address must be specified for command mode")
 
 # get encryption key
 if keyFileName != "":
     with open(keyFileName) as keyFile:
         keyStr = keyFile.read().rstrip("\n")
-    
-# print out the arguments and options       
+
+# print out the arguments and options
 if debugFiles:
-    # debug parameters 
-    log("debugEnable:", debugEnable)  
-    log("debugFiles:", debugFiles)  
+    # debug parameters
+    log("debugEnable:", debugEnable)
+    log("debugFiles:", debugFiles)
     log("debugMsgs:", debugMsgs)
     log("debugData:", debugData)
     log("debugRaw:", debugRaw)
@@ -357,4 +375,3 @@ if debugFiles:
         log("key:", keyStr)
     if updateFileName != "":
         log("updateFileName:", updateFileName)
-

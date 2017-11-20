@@ -32,11 +32,12 @@ except ImportError:
     # Allow for the fact that syslog is not (to my knowledge) available on Windows
     import seWindowsSyslog as syslog
 
+
 # log a message to syslog
 def log(*args):
-    message = args[0]+" "
+    message = args[0] + " "
     for arg in args[1:]:
-        message += arg.__str__()+" "
+        message += arg.__str__() + " "
     # todo : Make this align better with the multiple logging options available elsewhere in semonitor
     syslog.syslog(message)
 
@@ -50,7 +51,7 @@ port = 2004
 devices = ["inverters", "optimizers"]
 delay = .2
 following = False
-        
+
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "b:fh:p:")
 try:
@@ -77,6 +78,7 @@ def getJsonStr(inFile, following):
             jsonStr = inFile.readline()
     return jsonStr
 
+
 class Pickle2Graphite(list):
     """
     Convert a (json) nested dictionary of dictionaries of metrics into the list of tuples format expected by the
@@ -90,11 +92,15 @@ class Pickle2Graphite(list):
                 (year, month, day) = devAttrs["Date"].split("-")
                 (hour, minute, second) = devAttrs["Time"].split(":")
             except KeyError:
-                log("Date or Time is missing or incorrectly formatted for this set of metrics")
-                (year, month, day, hour, minute, second) = (1970, 01, 01, 00, 01, 01)
+                log("Date or Time is missing or incorrectly formatted for this set of metrics"
+                    )
+                (year, month, day, hour, minute, second) = (1970, 01, 01, 00,
+                                                            01, 01)
             # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
             # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
-            timeStamp = time.mktime((int(year), int(month), int(day), int(hour), int(minute), int(second), 0, 0, -1))
+            timeStamp = time.mktime((int(year), int(month),
+                                     int(day), int(hour), int(minute),
+                                     int(second), 0, 0, -1))
             # Treat every attribute as a metric - except for non-numeric ones!
             for devAttr in devAttrs.keys():
                 if devAttr != "Date" and devAttr != "Time" and devAttr != 'Undeciphered_data':
@@ -105,9 +111,11 @@ class Pickle2Graphite(list):
                             # It's a nan!
                             pass
                         else:
-                            fullName = "{}{}.{}".format(base, baseName, devAttr)
+                            fullName = "{}{}.{}".format(
+                                base, baseName, devAttr)
                             # A nested tuple as per the expectations of the pickle graphite interface
-                            self.append( (fullName, (timeStamp, str(devAttrs[devAttr]))) )
+                            self.append((fullName, (timeStamp,
+                                                    str(devAttrs[devAttr]))))
                     except ValueError:
                         # It is not a numeric metric
                         pass
@@ -135,7 +143,7 @@ if __name__ == "__main__":
             pickle2graphite = Pickle2Graphite(inDict, base=base)
             pickle2graphite.send(graphiteSocket)
         except ValueError:
-            log('WARNING json.loads had a problem with the following jsonStr\n', jsonStr, "\n", "="*80, "\n")
+            log('WARNING json.loads had a problem with the following jsonStr\n',
+                jsonStr, "\n", "=" * 80, "\n")
         jsonStr = getJsonStr(inFile, following)
     graphiteSocket.close()
-
