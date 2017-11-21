@@ -87,9 +87,7 @@ dnsTtl = 24 * 60 * 60  # 1 day
 
 # log a message
 def log(*args):
-    message = args[0] + " "
-    for arg in args[1:]:
-        message += arg.__str__() + " "
+    message = " ".join(map(str,args))
     if debugFile:
         debugFile.write(
             time.strftime('%b %d %H:%M:%S', time.localtime()) + " " + message +
