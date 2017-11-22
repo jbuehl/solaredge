@@ -7,6 +7,7 @@ from seConf import *
 import seNetwork
 
 logger = logging.getLogger(__name__)
+socketTimeout = 120.0
 
 #servers = []
 
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 # open data socket and wait for connection from inverter
-def openDataSocket():
+def openDataSocket(sePort):
     try:
         # open a socket and wait for a connection
         dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -68,14 +69,14 @@ def openInFile(inFileName):
 
 
 # open the specified data source
-def openData(inFileName, networkDevice, serialDevice, baudRate):
+def openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr, networkSvcs):
     logger.info("opening %s", inFileName)
     if networkDevice:
         if networkSvcs:
             # start network services
-            seNetwork.startDhcp()
-            seNetwork.startDns()
-        return openDataSocket()
+            seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
+            seNetwork.startDns(ipAddr)
+        return openDataSocket(sePort)
     elif serialDevice:
         return openSerial(inFileName, baudRate)
     else:

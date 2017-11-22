@@ -8,6 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+sleepInterval = .1
+
 class SEDecrypt:
     def __init__(self, key, msg0503):
         """
@@ -116,7 +118,7 @@ def readBytes(inFile, length, following):
 
 
 # parse a message
-def parseMsg(msg):
+def parseMsg(msg, keyStr):
     global decrypt
     if len(
             msg

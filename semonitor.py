@@ -6,6 +6,7 @@ import time
 import threading
 import getopt
 import sys
+import struct
 from seConf import *
 import seFiles
 import seMsg
@@ -23,7 +24,14 @@ serialDevice = False
 baudRate = 115200
 networkDevice = False
 
-# operating mode paramaters
+# network parameters
+sePort = 22222
+netInterface = ""
+ipAddr = ""
+broadcastAddr = ""
+subnetMask = ""
+
+# operating mode parameters
 passiveMode = True
 masterMode = False
 slaveAddrs = []
@@ -49,7 +57,6 @@ keyStr = ""
 # global constants
 bufSize = 1024
 parsing = True
-sleepInterval = .1
 lineSize = 16
 readThreadName = "read thread"
 masterThreadName = "master thread"
@@ -58,21 +65,7 @@ masterMsgTimeout = 10
 masterAddr = 0xfffffffe
 seqFileName = "seseq.txt"
 updateSize = 0x80000
-
-# network constants
-netInterface = ""
-ipAddr = ""
-broadcastAddr = ""
-subnetMask = ""
-sePort = 22222
-socketTimeout = 120.0
-dhcpDnsBufferSize = 4096
-dhcpLeaseTime = 24 * 60 * 60  # 1 day
-validMacs = [
-    "\xb8\x27\xeb",  # Raspberry Pi
-    "\x00\x27\x02",  # SolarEdge
-]
-dnsTtl = 24 * 60 * 60  # 1 day
+updateBuf = []
 
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
@@ -93,11 +86,11 @@ def readData(dataFile, recFile, outFile):
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if networkDevice:
-                closeData(dataFile)
-                dataFile = openDataSocket()
+                seFiles.closeData(dataFile, networkDevice)
+                dataFile = seFiles.openDataSocket(sePort)
             else:  # all finished
                 if updateFileName != "":  # write the firmware update file
-                    writeUpdate()
+                    writeUpdate(updateBuf)
                 return
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
             logger.message(msg)
@@ -116,7 +109,7 @@ def readData(dataFile, recFile, outFile):
 # process a received message
 def processMsg(msg, dataFile, recFile, outFile):
     # parse the message
-    (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg)
+    (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg, keyStr)
     if function == 0:
         # message could not be processed
         logger.message("Ignoring this message")
@@ -145,20 +138,20 @@ def processMsg(msg, dataFile, recFile, outFile):
             elif function == PROT_CMD_SERVER_GET_GMT:  # time request
                 # set time
                 replyFunction = PROT_RESP_SERVER_GMT
-                replyData = formatTime(
+                replyData = seData.formatTime(
                     int(time.time()),
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 *
                     60)
             elif function == PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
             if replyFunction != "":
-                msg = formatMsg(msgSeq, toAddr, fromAddr, replyFunction,
+                msg = seMsg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction,
                                 replyData)
                 seMsg.sendMsg(dataFile, msg, recFile)
 
 
 # write firmware image to file
-def writeUpdate():
+def writeUpdate(updateBuf):
     updateBuf = "".join(updateBuf)
     logger.debug("writing %s", updateFileName)
     with open(updateFileName, "w") as updateFile:
@@ -172,7 +165,7 @@ def masterCommands(dataFile, recFile):
             with threadLock:
                 # grant control of the bus to the slave
                 seMsg.sendMsg(dataFile,
-                        formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
+                        seMsg.formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
                                   PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
@@ -196,7 +189,7 @@ def doCommands(dataFile, commands, recFile):
     if masterMode:  # send RS485 master command
         # grant control of the bus to the slave
         seMsg.sendMsg(dataFile,
-                formatMsg(nextSeq(), masterAddr, slaveAddr,
+                seMsg.formatMsg(nextSeq(), masterAddr, slaveAddr,
                           PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
         # format the command parameters
@@ -206,11 +199,11 @@ def doCommands(dataFile, commands, recFile):
         seq = nextSeq()
         # send the command
         seMsg.sendMsg(dataFile,
-                formatMsg(seq, masterAddr, slaveAddr, function,
+                seMsg.formatMsg(seq, masterAddr, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
-        (msgSeq, fromAddr, toAddr, response, data) = seMsg.parseMsg(msg)
+        (msgSeq, fromAddr, toAddr, response, data) = seMsg.parseMsg(msg, keyStr)
         msgData = seData.parseData(response, data)
         # write response to output file
         seData.writeData({
@@ -269,13 +262,11 @@ def parseCommands(opt):
                 for p in command[1:]:
                     # validate data type
                     if p[0] not in "bhlBHL":
-                        log(" ".join(c for c in command))
-                        terminate(1, "Invalid data type " + p[0])
+                        terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
                     # validate parameter value
                     v = int(p[1:], 16)
             except ValueError:
-                log(" ".join(c for c in command))
-                terminate(1, "Invalid numeric value")
+                terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
     except:
         terminate(1, "Error parsing commands")
     return commands
@@ -474,7 +465,7 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
-    dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate)
+    dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr,networkSvcs)
     (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
