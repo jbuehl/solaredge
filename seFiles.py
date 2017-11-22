@@ -68,7 +68,7 @@ def openInFile(inFileName):
 
 
 # open the specified data source
-def openData(inFileName):
+def openData(inFileName, networkDevice, serialDevice):
     logger.info("opening %s", inFileName)
     if networkDevice:
         if networkSvcs:

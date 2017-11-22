@@ -415,7 +415,7 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
-    dataFile = openData(inFileName)
+    dataFile = openData(inFileName, networkDevice, serialDevice)
     (recFile, outFile) = openOutFiles(recFileName, outFileName)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
