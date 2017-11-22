@@ -7,9 +7,9 @@ import threading
 import getopt
 import sys
 from seConf import *
-from seFiles import *
-from seMsg import *
-from seData import *
+import seFiles
+import seMsg
+import seData
 from seCommands import *
 import logging
 
@@ -85,11 +85,11 @@ def readData(dataFile, recFile, outFile):
     if updateFileName != "":  # create an array of zeros for the firmware update file
         updateBuf = list('\x00' * updateSize)
     if passiveMode:
-        msg = readMsg(
+        msg = seMsg.readMsg(
             dataFile,
             recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
     while running:
-        msg = readMsg(dataFile, recFile, passiveMode, inputType, following)
+        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if networkDevice:
@@ -123,7 +123,7 @@ def processMsg(msg, dataFile, recFile, outFile):
         for l in format_data(data):
             logger.message(l)
     else:
-        msgData = parseData(function, data)
+        msgData = seData.parseData(function, data)
         if (function == PROT_CMD_SERVER_POST_DATA) and (
                 data != ""):  # performance data
             # write performance data to output file
@@ -154,7 +154,7 @@ def processMsg(msg, dataFile, recFile, outFile):
             if replyFunction != "":
                 msg = formatMsg(msgSeq, toAddr, fromAddr, replyFunction,
                                 replyData)
-                sendMsg(dataFile, msg, recFile)
+                seMsg.sendMsg(dataFile, msg, recFile)
 
 
 # write firmware image to file
@@ -171,7 +171,7 @@ def masterCommands(dataFile, recFile):
         for slaveAddr in slaveAddrs:
             with threadLock:
                 # grant control of the bus to the slave
-                sendMsg(dataFile,
+                seMsg.sendMsg(dataFile,
                         formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
                                   PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
@@ -195,7 +195,7 @@ def doCommands(dataFile, commands, recFile):
     slaveAddr = int(slaveAddrs[0], 16)
     if masterMode:  # send RS485 master command
         # grant control of the bus to the slave
-        sendMsg(dataFile,
+        seMsg.sendMsg(dataFile,
                 formatMsg(nextSeq(), masterAddr, slaveAddr,
                           PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
@@ -205,13 +205,13 @@ def doCommands(dataFile, commands, recFile):
         params = [int(p[1:], 16) for p in command[1:]]
         seq = nextSeq()
         # send the command
-        sendMsg(dataFile,
+        seMsg.sendMsg(dataFile,
                 formatMsg(seq, masterAddr, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        msg = readMsg(dataFile, recFile, passiveMode, inputType, following)
+        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
         (msgSeq, fromAddr, toAddr, response, data) = parseMsg(msg)
-        msgData = parseData(response, data)
+        msgData = seData.parseData(response, data)
         # write response to output file
         writeData({
             "command": function,
@@ -474,8 +474,8 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
-    dataFile = openData(inFileName, networkDevice, serialDevice, baudRate)
-    (recFile, outFile) = openOutFiles(recFileName, outFileName, writeMode)
+    dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate)
+    (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
         readData(dataFile, recFile, outFile)
@@ -496,5 +496,5 @@ if __name__ == "__main__":
             # wait for termination
             running = waitForEnd()
     # cleanup
-    closeData(dataFile, networkDevice)
-    closeOutFiles(recFile, outFile)
+    seFiles.closeData(dataFile, networkDevice)
+    seFiles.closeOutFiles(recFile, outFile)

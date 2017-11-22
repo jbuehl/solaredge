@@ -4,7 +4,7 @@ import serial
 import sys
 import socket
 from seConf import *
-from seNetwork import *
+import seNetwork
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +73,8 @@ def openData(inFileName, networkDevice, serialDevice, baudRate):
     if networkDevice:
         if networkSvcs:
             # start network services
-            startDhcp()
-            startDns()
+            seNetwork.startDhcp()
+            seNetwork.startDns()
         return openDataSocket()
     elif serialDevice:
         return openSerial(inFileName, baudRate)
