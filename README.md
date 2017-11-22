@@ -13,9 +13,6 @@ used to parse the performance data that has been previously captured to a file, 
 interact directly with a SolarEdge inverter over the RS232, RS485, or ethernet interface.
 Performance data is output to a file in JSON format.
 
-**seextract.py** is a program that can extract the SolarEdge protocol messages from a PCAP
-file that contains data captured from the network.
-
 **sekey.py** is used to extract the unique encryption key from an inverter.
 
 **se2state.py** follows a file containing JSON performance data and outputs a JSON file
@@ -69,9 +66,11 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
     -x                   halt on data exception
 
 ### Notes
-Data may be read from a file containing messages in the SolarEdge protocol that was previously created by 
-seextract.py from a pcap file, or the output from a previous run of semonitor.py.  It may also be
+Data may be read from a file containing messages in the raw SolarEdge protocol such as the parsed output of a packet capture or the output from a previous run of semonitor.py.  It may also be
 read in real time from one of the RS232, RS485, or ethernet interfaces on a SolarEdge inverter.
+
+If you wish to pipe data from a pcap file, you may find the following tshark command useful:
+`tshark -r infile.pcap -T fields -e data | ./unhexlify.py | ./semonitor.py -`
 
 Debug messages are sent to the system log, unless the -d option is specified.  If an error occurs
 while processing data, the program will log a message and continue unless the -x option is
@@ -159,56 +158,6 @@ from inverters and function as a SolarEdge monitoring server.  Use the inverter
 encryption key contained in the file 7f101234.key.  Write performance
 data to the file yyyymmdd.json.  Because the -n option is specified, the -t n option
 is implied.
-
-seextract.py
-------------
-
-Read a PCAP file that is a capture of the traffic between a inverter and the SolarEdge 
-monitoring server.  Filter out the TCP stream between the inverter to the server.
-
-### Usage 
-    python seextract.py [options] pcapFile
-    
-### Arguments
-    pcapFile        pcap file or directory to read
-                    If a file is specified, the program processes the data in 
-                    that file and terminates, unless the -f option is specified, 
-                    in which case it waits for further data to be written to the 
-                    pcap file.
-                    If a directory is specified, all files in the directory are 
-                    processed.
-                    If a directory is specified and the -f option is specified, 
-                    only the file in the directory with the newest modified date 
-                    is processed and the program waits for further data in that 
-                    file.  If a new file is subsequently created in the 
-                    directory, the current file is closed and the new file 
-                    is opened. 
-### Options
-    -a              append to output files
-    -f              output appended data as the pcap file grows (as in tail -f)
-    -o outfile      output file to write
-    -s server       SolarEdge server hostname or IP address (default: 
-                    prod.solaredge.com)
-    -v              verbose output
-
-### Examples
-    python seextract.py -o yyyymmdd.dat yyyymmdd.pcap
-
-Convert the data in file yyyymmdd.pcap and write the output to file yyyymmdd.dat
-    
-    python seextract.py -o yyyymmdd.dat -f pcap/
-
-Monitor PCAP files in directory pcap/ and write the output to the file yyyymmdd.dat.
-    
-    python seextract.py -o allfiles.pcap pcap/
-
-Convert all the pcap files found in directory pcap/ and write the output to files
-allfiles.pcap.
-
-    python seextract.py yyyymmdd.pcap | python semonitor.py -o yyyymmdd.json
-
-Extract SolarEdge data from the file yyyymmdd.pcap using seextract.py, process
-it with semonitor.py, and write data to the json file yyyymmdd.json.
 
 se2state.py
 -----------
