@@ -241,7 +241,7 @@ def nextSeq():
         seq += 1
         if seq > 65535:
             seq = 1
-    except:
+    except IOError:
         seq = 1
     with open(seqFileName, "w") as seqFile:
         seqFile.write(str(seq) + "\n")
@@ -276,8 +276,8 @@ def parseCommands(opt):
                     v = int(p[1:], 16)
             except ValueError:
                 terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
-    except:
-        terminate(1, "Error parsing commands")
+    except Exception as ex:
+        terminate(1, "Error parsing commands "+ex)
     return commands
 
 
@@ -397,7 +397,7 @@ if __name__ == "__main__":
             broadcastAddr = netInterfaceParams["broadcast"]
             subnetMask = netInterfaceParams["netmask"]
             networkSvcs = True
-        except:
+        except ValueError:
             raise
             terminate(1, "network interface is not available")
 
@@ -477,9 +477,8 @@ if __name__ == "__main__":
     try:
         dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr,networkSvcs)
         (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
-    except:
-        raise
-        terminate(1)
+    except Exception as ex:
+        terminate(1, ex)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
         readData(dataFile, recFile, outFile)
