@@ -4,11 +4,16 @@
 
 import time
 import threading
+import getopt
+import sys
 from seConf import *
 from seFiles import *
 from seMsg import *
 from seData import *
 from seCommands import *
+import logging
+
+logger = logging.getLogger(__name__)
 
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
@@ -36,15 +41,16 @@ def readData(dataFile, recFile, outFile):
                     writeUpdate()
                 return
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
-            if debugData: logData(msg)
+            logger.log(LOG_LEVEL_MSG, msg)
         else:
             with threadLock:
                 try:
                     processMsg(msg, dataFile, recFile, outFile)
                 except Exception as ex:
-                    debug("debugEnable", "Exception:", ex.args[0])
+                    logger.info("Exception", exc_info=ex)
                     if haltOnException:
-                        logData(msg)
+                        for l in format_data(msg):
+                            logger.log(LOG_LEVEL_MSG, l)
                         raise
 
 
@@ -54,8 +60,9 @@ def processMsg(msg, dataFile, recFile, outFile):
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
     if function == 0:
         # message could not be processed
-        debug("debugData", "Ignoring this message")
-        logData(data)
+        logger.log(LOG_LEVEL_MSG, "Ignoring this message")
+        for l in format_data(data):
+            logger.log(LOG_LEVEL_MSG, l)
     else:
         msgData = parseData(function, data)
         if (function == PROT_CMD_SERVER_POST_DATA) and (
@@ -94,7 +101,7 @@ def processMsg(msg, dataFile, recFile, outFile):
 # write firmware image to file
 def writeUpdate():
     updateBuf = "".join(updateBuf)
-    debug("debugFiles", "writing", updateFileName)
+    logger.debug("writing %s", updateFileName)
     with open(updateFileName, "w") as updateFile:
         updateFile.write(updateBuf)
 
@@ -110,7 +117,7 @@ def masterCommands(dataFile, recFile):
                                   PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
-                debug("debugMsgs", "RS485 master ack timeout")
+                logger.debug("RS485 master ack timeout")
                 masterEvent.set()
 
             # start a timeout to release the bus if the slave doesn't respond
@@ -163,7 +170,7 @@ def startMaster(args):
     masterThread = threading.Thread(
         name=masterThreadName, target=masterCommands, args=args)
     masterThread.start()
-    debug("debugFiles", "starting", masterThreadName)
+    logger.debug("starting %s", masterThreadName)
 
 # get next sequence number
 def nextSeq():
@@ -234,15 +241,18 @@ if __name__ == "__main__":
     # get program arguments and options
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
     # arguments
-    try:
-        inFileName = args[0]
-        if inFileName == "-":
-            inFileName = "stdin"
-        elif inFileName in serialPortNames:
-            serialDevice = True
-    except:
+
+    inFileName = args[0]
+    if inFileName == "-":
+        inFileName = "stdin"
+    elif inFileName in serialPortNames:
+        serialDevice = True
+    else:
         inFileName = "stdin"
         following = True
+
+    v_level = 0
+
     # options
     for opt in opts:
         if opt[0] == "-a":
@@ -274,26 +284,35 @@ if __name__ == "__main__":
         elif opt[0] == "-u":
             updateFileName = opt[1]
         elif opt[0] == "-v":
-            if debugEnable:
-                if not debugFiles:
-                    debugFiles = True  # -v
-                elif not debugMsgs:
-                    debugMsgs = True  # -vv
-                elif not debugData:
-                    debugData = True  # -vvv
-                elif not debugRaw:
-                    debugRaw = True  # -vvvv
+            v_level += 1
         elif opt[0] == "-x":
             haltOnException = True
         else:
             terminate(1, "Unknown option " + opt[0])
 
-    # open debug file
-    if debugFileName != "syslog":
-        if debugFileName == "stdout":
-            debugFile = sys.stdout
-        else:
-            debugFile = open(debugFileName, writeMode)
+    # configure logging
+    
+    if debugFileName == "syslog":
+        handler = logging.SysLogHandler()
+    elif debugFileName == "stderr":
+        handler = logging.StreamHandler(stream=sys.stderr)
+    elif debugFileName == "stdout":
+        handler = logging.StreamHandler(stream=sys.stdout)
+    elif debugFileName:
+        handler = logging.FileHandler(debugFileName, mode=writeMode)
+
+    level = {
+            1: logging.DEBUG,
+            2: LOG_LEVEL_MSG,
+            3: LOG_LEVEL_RAW,
+            }.get(min(v_level, 3), logging.INFO)
+
+    handler.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"))
+
+    # configure the root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    root_logger.addHandler(handler)
 
     # validate input type
     if inputType in ["2", "4"]:
@@ -356,50 +375,44 @@ if __name__ == "__main__":
             keyStr = keyFile.read().rstrip("\n")
 
     # print out the arguments and options
-    if debugFiles:
-        # debug parameters
-        log("debugEnable:", debugEnable)
-        log("debugFiles:", debugFiles)
-        log("debugMsgs:", debugMsgs)
-        log("debugData:", debugData)
-        log("debugRaw:", debugRaw)
-        log("debugFileName:", debugFileName)
-        log("haltOnException:", haltOnException)
-        # input parameters
-        log("inFileName:", inFileName)
-        if inputType != "":
-            log("inputType:", inputType)
-        log("serialDevice:", serialDevice)
-        if serialDevice:
-            log("    baudRate:", baudRate)
-        log("networkDevice:", networkDevice)
-        log("sePort:", sePort)
-        log("networkSvcs:", networkSvcs)
-        if networkSvcs:
-            log("netInterface", netInterface)
-            log("    ipAddr", ipAddr)
-            log("    subnetMask", subnetMask)
-            log("    broadcastAddr", broadcastAddr)
-        log("following:", following)
-        # action parameters
-        log("passiveMode:", passiveMode)
-        log("commandAction:", commandAction)
-        if commandAction:
-            for command in commands:
-                log("    command:", " ".join(c for c in command))
-        log("masterMode:", masterMode)
-        if masterMode or commandAction:
-            log("slaveAddrs:", ",".join(slaveAddr for slaveAddr in slaveAddrs))
-        # output parameters
-        log("outFileName:", outFileName)
-        if recFileName != "":
-            log("recFileName:", recFileName)
-        log("append:", writeMode)
-        if keyFileName != "":
-            log("keyFileName:", keyFileName)
-            log("key:", keyStr)
-        if updateFileName != "":
-            log("updateFileName:", updateFileName)
+    # debug parameters
+    logger.info("debugFileName: %s", debugFileName)
+    logger.info("haltOnException: %s", haltOnException)
+    # input parameters
+    logger.info("inFileName: %s", inFileName)
+    if inputType != "":
+        logger.info("inputType: %s", inputType)
+    logger.info("serialDevice: %s", serialDevice)
+    if serialDevice:
+        logger.info("    baudRate: %s", baudRate)
+    logger.info("networkDevice: %s", networkDevice)
+    logger.info("sePort: %s", sePort)
+    logger.info("networkSvcs: %s", networkSvcs)
+    if networkSvcs:
+        logger.info("netInterface %s", netInterface)
+        logger.info("    ipAddr %s", ipAddr)
+        logger.info("    subnetMask %s", subnetMask)
+        logger.info("    broadcastAddr %s", broadcastAddr)
+    logger.info("following: %s", following)
+    # action parameters
+    logger.info("passiveMode: %s", passiveMode)
+    logger.info("commandAction: %s", commandAction)
+    if commandAction:
+        for command in commands:
+            logger.info("    command: %s", " ".join(c for c in command))
+    logger.info("masterMode: %s", masterMode)
+    if masterMode or commandAction:
+        logger.info("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
+    # output parameters
+    logger.info("outFileName: %s", outFileName)
+    if recFileName != "":
+        logger.info("recFileName: %s", recFileName)
+    logger.info("append: %s", writeMode)
+    if keyFileName != "":
+        logger.info("keyFileName: %s", keyFileName)
+        logger.info("key: %s", keyStr)
+    if updateFileName != "":
+        logger.info("updateFileName: %s", updateFileName)
 
     # initialization
     dataFile = openData(inFileName)
@@ -418,7 +431,7 @@ if __name__ == "__main__":
                 target=readData,
                 args=(dataFile, recFile, outFile))
             readThread.start()
-            debug("debugFiles", "starting", readThreadName)
+            logger.debug("starting %s", readThreadName)
             if masterMode:  # send RS485 master commands
                 startMaster(args=(dataFile, recFile))
             # wait for termination

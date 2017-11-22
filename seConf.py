@@ -1,28 +1,17 @@
 # SolarEdge configuration, logging, and debugging
 
-try:
-    import syslog
-except ImportError:
-    # Allow for the fact that syslog is not (to my knowledge) available on Windows
-    import seWindowsSyslog as syslog
 import sys
 import time
-import getopt
 import sys
 import socket
 import netifaces
 import os
 import signal
 import serial.tools.list_ports
+import logging
 
 # debug flags
-debugEnable = True
-debugFiles = False
-debugMsgs = False
-debugData = False
-debugRaw = False
-debugFileName = "syslog"
-debugFile = None
+debugFileName = "stderr"
 haltOnException = False
 
 # data source parameters
@@ -84,57 +73,32 @@ validMacs = [
 ]
 dnsTtl = 24 * 60 * 60  # 1 day
 
+logger = logging.getLogger(__name__)
 
-# log a message
-def log(*args):
-    message = " ".join(map(str,args))
-    if debugFile:
-        debugFile.write(
-            time.strftime('%b %d %H:%M:%S', time.localtime()) + " " + message +
-            "\n")
-        debugFile.flush()
-    else:
-        syslog.syslog(message)
-
-
-# log a debug message
-def debug(*args):
-    if debugEnable:  # global debug flag enables debugging
-        try:
-            if globals()[args[0]]:  # arg[0] is debug level name
-                log(*args[1:])
-        except:
-            pass
-
+LOG_LEVEL_MSG = 9
+LOG_LEVEL_RAW = 8
 
 # log an incoming or outgoing data message
 def logMsg(direction, seq, msg, endPoint=""):
-    if debugMsgs:
-        if direction == "-->" and debugData:
-            log(" ")
-        log(endPoint, direction, "message:", seq, "length:", len(msg))
-        if debugRaw:
-            logData(msg)
-        if direction == "<--" and debugData:
-            log(" ")
+    if direction == "-->":
+        logger.log(LOG_LEVEL_MSG, " ")
+    logger.log(LOG_LEVEL_MSG, "%s %s message: %s length: %s", endPoint, direction, seq, len(msg))
+    for l in format_data(msg):
+        logger.log(LOG_LEVEL_RAW, l)
+    if direction == "<--":
+        logger.log(LOG_LEVEL_MSG, " ")
 
 
 # program termination
 def terminate(code=0, msg=""):
-    log(msg)
+    logger.exception(msg)
     sys.exit(code)
 
 
 # hex dump data
-def logData(data):
-    def logLine(data):
-        log("data:      ", ' '.join(x.encode('hex') for x in data))
+def format_data(data):
+    line_width = 16
 
-    if data != "":
-        printPtr = 0
-        while len(data) - printPtr >= lineSize:
-            logLine(data[printPtr:printPtr + lineSize])
-            printPtr += lineSize
-        if printPtr < len(data):
-            logLine(data[printPtr:])
+    for i in range(0, len(data), line_width):
+        yield "data:       " + ' '.join(x.encode('hex') for x in data[i:i+line_width])
 

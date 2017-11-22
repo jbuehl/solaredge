@@ -1,11 +1,15 @@
 # SolarEdge data interpretation
 
+import time
 import struct
 import json
 from seConf import *
 from seCommands import *
 from seDataParams import *
 from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
+import logging
+
+logger = logging.getLogger(__name__)
 
 # message debugging sequence numbers
 outSeq = 0
@@ -47,7 +51,7 @@ def parseData(function, data):
         return {}
     else:
         # unknown function type
-        log("Unknown function 0x%04x" % function)
+        logger.info("Unknown function 0x%04x", function)
     return ''.join(x.encode('hex') for x in data)
 
 
@@ -64,13 +68,13 @@ def parseEnergyStats(data):
 
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
-    debug("debugData", "param:     ", "%04x" % param)
+    logger.log(LOG_LEVEL_MSG, "param:     %04x", param)
     return {"param": param}
 
 
 def parseVersion(data):
     version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
-    debug("debugData", "version:    " + version)
+    logger.log(LOG_LEVEL_MSG, "version:    %s", version)
     return {"version": version}
 
 
@@ -80,14 +84,14 @@ def formatParam(param):
 
 def parseOffsetLength(data):
     (offset, length) = struct.unpack("<LL", data[0:8])
-    debug("debugData", "offset:   ", "%08x" % (offset))
-    debug("debugData", "length:   ", "%08x" % (length))
+    logger.log(LOG_LEVEL_MSG, "offset:   %08x", offset)
+    logger.log(LOG_LEVEL_MSG, "length:   %08x", length)
     return {"offset": offset, "length": length, "data": data[8:]}
 
 
 def parseLong(data):
     param = struct.unpack("<L", data)[0]
-    debug("debugData", "param:     ", "%08x" % param)
+    logger.log(LOG_LEVEL_MSG, "param:     %08x", param)
     return {"param": param}
 
 
@@ -97,8 +101,8 @@ def formatLong(param):
 
 def parseValueType(data):
     (value, dataType) = struct.unpack("<LH", data)
-    debug("debugData", "value:     ", "%08x" % value)
-    debug("debugData", "type:      ", "%04x" % dataType)
+    logger.log(LOG_LEVEL_MSG, "value:     %08x", value)
+    logger.log(LOG_LEVEL_MSG, "type:      %04x", dataType)
     return {"value": value, "type": dataType}
 
 
@@ -108,8 +112,8 @@ def formatValueType(value, dataType):
 
 def parseParamValue(data):
     (param, value) = struct.unpack("<HL", data)
-    debug("debugData", "param:     ", "%04x" % param)
-    debug("debugData", "value:     ", "%08x" % value)
+    logger.log(LOG_LEVEL_MSG, "param:     %04x", param)
+    logger.log(LOG_LEVEL_MSG, "value:     %08x", value)
     return {"param": param, "value": value}
 
 
@@ -119,8 +123,8 @@ def formatParamValue(param, value):
 
 def parseTime(data):
     (timeValue, tzOffset) = struct.unpack("<Ll", data)
-    debug("debugData", "time:      ", time.asctime(time.gmtime(timeValue)))
-    debug("debugData", "tz:        ", "UTC%+d" % (tzOffset / 60 / 60))
+    logger.log(LOG_LEVEL_MSG, "time:      %s", time.asctime(time.gmtime(timeValue)))
+    logger.log(LOG_LEVEL_MSG, "tz:        UTC%+d", tzOffset / 60 / 60)
     return {"time": timeValue, "tz": tzOffset}
 
 
@@ -132,7 +136,7 @@ def formatTime(timeValue, tzOffset):
 def parseStatus(data):
     #    if len(data) > 0:
     #        status = struct.unpack("<HHHHHHH", data)
-    #        debug("debugData", "status", "%d "*len(status) % status)
+    #        logger.log(LOG_LEVEL_MSG, "status", "%d "*len(status) % status)
     #    return {"status": status}
     logData(data)
     return {"status": 0}
@@ -268,7 +272,7 @@ def writeData(msgDict, outFile):
         outSeq += 1
         msg = json.dumps(msgDict)
         logMsg("<--", outSeq, msg, outFile.name)
-        debug("debugData", msg)
+        logger.log(LOG_LEVEL_MSG, msg)
         outFile.write(msg + "\n")
         outFile.flush()
 
@@ -299,7 +303,6 @@ def formatDateTime(timeStamp):
 
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
-    debug("debugData", devType, seId, "type: %04x" % seType,
-          "len: %04x" % devLen)
-    for item in devData.keys():
-        debug("debugData", "   ", item, ":", devData[item])
+    logger.log(LOG_LEVEL_MSG, "%s %s type: %04x len: %04x", devType, seId, seType, devLen)
+    for k,v in devData.iteritems():
+        logger.log(LOG_LEVEL_MSG, "    %s : %s", k, v)

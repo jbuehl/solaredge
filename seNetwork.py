@@ -6,7 +6,7 @@ import socket
 import threading
 import struct
 
-from seConf import *
+import seConf
 
 dnsPort = 53
 dhcpServerPort = 67

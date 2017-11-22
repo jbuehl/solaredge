@@ -6,6 +6,8 @@ import socket
 from seConf import *
 from seNetwork import *
 
+logger = logging.getLogger(__name__)
+
 #servers = []
 
 #for port in portlist:
@@ -35,10 +37,10 @@ def openDataSocket():
         dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         dataSocket.bind(("", sePort))
         dataSocket.listen(0)
-        debug("debugFiles", "waiting for connection")
+        logger.info("waiting for connection")
         (clientSocket, addr) = dataSocket.accept()
         dataSocket.close()
-        debug("debugFiles", "connection from", addr[0] + ":" + str(addr[1]))
+        logger.info("connection from %s:%s", addr[0], addr[1])
         # set a timeout so lost connection can be detected
         clientSocket.settimeout(socketTimeout)
         return clientSocket.makefile("rwb")
@@ -67,7 +69,7 @@ def openInFile(inFileName):
 
 # open the specified data source
 def openData(inFileName):
-    if debugFiles: log("opening", inFileName)
+    logger.info("opening %s", inFileName)
     if networkDevice:
         if networkSvcs:
             # start network services
@@ -82,7 +84,7 @@ def openData(inFileName):
 
 # close the data source
 def closeData(dataFile):
-    debug("debugFiles", "closing", dataFile.name)
+    logger.info("closing %s", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
     dataFile.close()
@@ -93,7 +95,6 @@ def openOutFile(fileName, writeMode="w"):
     if fileName != "":
         try:
             return open(fileName, writeMode)
-            debug("debugFiles", "writing", fileName)
         except:
             terminate(1, "Unable to open " + fileName)
     else:
@@ -113,8 +114,8 @@ def openOutFiles(recFileName, outFileName):
 # close output files
 def closeOutFiles(recFile, outFile):
     if recFile:
-        debug("debugFiles", "closing", recFile.name)
+        logger.info("closing %s", recFile.name)
         recFile.close()
     if outFile:
-        debug("debugFiles", "closing", outFile.name)
+        logger.info("closing %s", outFile.name)
         outFile.close()
