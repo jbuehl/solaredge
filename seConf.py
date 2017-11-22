@@ -14,66 +14,6 @@ import logging
 debugFileName = "stderr"
 haltOnException = False
 
-# data source parameters
-inFileName = ""
-following = False
-inputType = ""
-serialDevice = False
-baudRate = 115200
-networkDevice = False
-
-# operating mode paramaters
-passiveMode = True
-masterMode = False
-slaveAddrs = []
-
-# action parameters
-commandAction = False
-commandStr = ""
-commands = []
-commandDelay = 2
-networkInterface = ""
-networkSvcs = False
-
-# output file parameters
-outFileName = "stdout"
-recFileName = ""
-writeMode = "w"
-updateFileName = ""
-
-# encryption key
-keyFileName = ""
-keyStr = ""
-
-# global constants
-bufSize = 1024
-parsing = True
-sleepInterval = .1
-lineSize = 16
-readThreadName = "read thread"
-masterThreadName = "master thread"
-masterMsgInterval = 5
-masterMsgTimeout = 10
-masterAddr = 0xfffffffe
-seqFileName = "seseq.txt"
-updateSize = 0x80000
-
-# network constants
-netInterface = ""
-ipAddr = ""
-broadcastAddr = ""
-subnetMask = ""
-sePort = 22222
-socketTimeout = 120.0
-dhcpDnsBufferSize = 4096
-dhcpLeaseTime = 24 * 60 * 60  # 1 day
-validMacs = [
-    "\xb8\x27\xeb",  # Raspberry Pi
-    "\x00\x27\x02",  # SolarEdge
-]
-dnsTtl = 24 * 60 * 60  # 1 day
-
-
 LOG_LEVEL_MSG = 9
 LOG_LEVEL_RAW = 8
 

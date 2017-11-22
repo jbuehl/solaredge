@@ -64,7 +64,7 @@ recSeq = 0
 
 
 # return the next message
-def readMsg(inFile, recFile):
+def readMsg(inFile, recFile, passiveMode, inputType):
     global dataInSeq, recSeq
     dataInSeq += 1
     msg = ""

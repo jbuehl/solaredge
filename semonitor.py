@@ -15,6 +15,65 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# data source parameters
+inFileName = ""
+following = False
+inputType = ""
+serialDevice = False
+baudRate = 115200
+networkDevice = False
+
+# operating mode paramaters
+passiveMode = True
+masterMode = False
+slaveAddrs = []
+
+# action parameters
+commandAction = False
+commandStr = ""
+commands = []
+commandDelay = 2
+networkInterface = ""
+networkSvcs = False
+
+# output file parameters
+outFileName = "stdout"
+recFileName = ""
+writeMode = "w"
+updateFileName = ""
+
+# encryption key
+keyFileName = ""
+keyStr = ""
+
+# global constants
+bufSize = 1024
+parsing = True
+sleepInterval = .1
+lineSize = 16
+readThreadName = "read thread"
+masterThreadName = "master thread"
+masterMsgInterval = 5
+masterMsgTimeout = 10
+masterAddr = 0xfffffffe
+seqFileName = "seseq.txt"
+updateSize = 0x80000
+
+# network constants
+netInterface = ""
+ipAddr = ""
+broadcastAddr = ""
+subnetMask = ""
+sePort = 22222
+socketTimeout = 120.0
+dhcpDnsBufferSize = 4096
+dhcpLeaseTime = 24 * 60 * 60  # 1 day
+validMacs = [
+    "\xb8\x27\xeb",  # Raspberry Pi
+    "\x00\x27\x02",  # SolarEdge
+]
+dnsTtl = 24 * 60 * 60  # 1 day
+
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
 masterEvent = threading.Event()  # event to signal RS485 master release
@@ -28,9 +87,9 @@ def readData(dataFile, recFile, outFile):
     if passiveMode:
         msg = readMsg(
             dataFile,
-            recFile)  # skip data until the start of the first complete message
+            recFile, passiveMode, inputType)  # skip data until the start of the first complete message
     while running:
-        msg = readMsg(dataFile, recFile)
+        msg = readMsg(dataFile, recFile, passiveMode, inputType)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if networkDevice:
@@ -150,7 +209,7 @@ def doCommands(dataFile, commands, recFile):
                 formatMsg(seq, masterAddr, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        msg = readMsg(dataFile, recFile)
+        msg = readMsg(dataFile, recFile, passiveMode, inputType)
         (msgSeq, fromAddr, toAddr, response, data) = parseMsg(msg)
         msgData = parseData(response, data)
         # write response to output file
@@ -415,8 +474,8 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
-    dataFile = openData(inFileName, networkDevice, serialDevice)
-    (recFile, outFile) = openOutFiles(recFileName, outFileName)
+    dataFile = openData(inFileName, networkDevice, serialDevice, baudRate)
+    (recFile, outFile) = openOutFiles(recFileName, outFileName, writeMode)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
         readData(dataFile, recFile, outFile)
@@ -437,5 +496,5 @@ if __name__ == "__main__":
             # wait for termination
             running = waitForEnd()
     # cleanup
-    closeData(dataFile)
+    closeData(dataFile, networkDevice)
     closeOutFiles(recFile, outFile)

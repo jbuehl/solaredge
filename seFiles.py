@@ -49,7 +49,7 @@ def openDataSocket():
 
 
 # open serial device
-def openSerial(inFileName):
+def openSerial(inFileName, baudRate):
     try:
         return serial.Serial(inFileName, baudrate=baudRate)
     except:
@@ -68,7 +68,7 @@ def openInFile(inFileName):
 
 
 # open the specified data source
-def openData(inFileName, networkDevice, serialDevice):
+def openData(inFileName, networkDevice, serialDevice, baudRate):
     logger.info("opening %s", inFileName)
     if networkDevice:
         if networkSvcs:
@@ -77,13 +77,13 @@ def openData(inFileName, networkDevice, serialDevice):
             startDns()
         return openDataSocket()
     elif serialDevice:
-        return openSerial(inFileName)
+        return openSerial(inFileName, baudRate)
     else:
         return openInFile(inFileName)
 
 
 # close the data source
-def closeData(dataFile):
+def closeData(dataFile, networkDevice):
     logger.info("closing %s", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
@@ -102,7 +102,7 @@ def openOutFile(fileName, writeMode="w"):
 
 
 # open the output files
-def openOutFiles(recFileName, outFileName):
+def openOutFiles(recFileName, outFileName, writeMode):
     recFile = openOutFile(recFileName, writeMode)
     if outFileName == "stdout":
         outFile = sys.stdout
