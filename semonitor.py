@@ -87,9 +87,9 @@ def readData(dataFile, recFile, outFile):
     if passiveMode:
         msg = readMsg(
             dataFile,
-            recFile, passiveMode, inputType)  # skip data until the start of the first complete message
+            recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
     while running:
-        msg = readMsg(dataFile, recFile, passiveMode, inputType)
+        msg = readMsg(dataFile, recFile, passiveMode, inputType, following)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if networkDevice:
@@ -209,7 +209,7 @@ def doCommands(dataFile, commands, recFile):
                 formatMsg(seq, masterAddr, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        msg = readMsg(dataFile, recFile, passiveMode, inputType)
+        msg = readMsg(dataFile, recFile, passiveMode, inputType, following)
         (msgSeq, fromAddr, toAddr, response, data) = parseMsg(msg)
         msgData = parseData(response, data)
         # write response to output file

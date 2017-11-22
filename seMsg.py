@@ -64,25 +64,25 @@ recSeq = 0
 
 
 # return the next message
-def readMsg(inFile, recFile, passiveMode, inputType):
+def readMsg(inFile, recFile, passiveMode, inputType, following):
     global dataInSeq, recSeq
     dataInSeq += 1
     msg = ""
     if not (passiveMode or (inputType == 4)):
         # read the magic number and header
-        msg = readBytes(inFile, magicLen + msgHdrLen)
+        msg = readBytes(inFile, magicLen + msgHdrLen, following)
         if msg == "":
             logger.info("end of file")
             return msg
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr,
          function) = struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
-        msg += readBytes(inFile, dataLen + checksumLen)
+        msg += readBytes(inFile, dataLen + checksumLen, following)
         msg = msg[magicLen:]
     else:
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            nextByte = readBytes(inFile, 1)
+            nextByte = readBytes(inFile, 1, following)
             if nextByte == "":  # end of file
                 msg += magic  # pretend there was a magic number
             else:
@@ -99,7 +99,7 @@ def readMsg(inFile, recFile, passiveMode, inputType):
 
 
 # return the specified number of bytes
-def readBytes(inFile, length):
+def readBytes(inFile, length, following):
     try:
         inBuf = inFile.read(length)
         if inBuf == "":  # end of file
