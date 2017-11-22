@@ -32,31 +32,40 @@ socketTimeout = 120.0
 
 # open data socket and wait for connection from inverter
 def openDataSocket(sePort):
-    # open a socket and wait for a connection
-    dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    dataSocket.bind(("", sePort))
-    dataSocket.listen(0)
-    logger.info("waiting for connection")
-    (clientSocket, addr) = dataSocket.accept()
-    dataSocket.close()
-    logger.info("connection from %s:%s", addr[0], addr[1])
-    # set a timeout so lost connection can be detected
-    clientSocket.settimeout(socketTimeout)
-    return clientSocket.makefile("rwb")
+    try:
+        # open a socket and wait for a connection
+        dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        dataSocket.bind(("", sePort))
+        dataSocket.listen(0)
+        logger.info("waiting for connection")
+        (clientSocket, addr) = dataSocket.accept()
+        dataSocket.close()
+        logger.info("connection from %s:%s", addr[0], addr[1])
+        # set a timeout so lost connection can be detected
+        clientSocket.settimeout(socketTimeout)
+        return clientSocket.makefile("rwb")
+    except socket.error as ex:
+        raise Exception("Error opening socket "+ex)
 
 
 # open serial device
 def openSerial(inFileName, baudRate):
-    return serial.Serial(inFileName, baudrate=baudRate)
+    try:
+        return serial.Serial(inFileName, baudrate=baudRate)
+    except serial.serialutil.SerialException as ex:
+        raise Exception("Error opening serial port "+ex)
 
 
 def openInFile(inFileName):
     if inFileName == "stdin":
         return sys.stdin
     else:
-        # Explicitly specify mode rb to keep windows happy!
-        return open(inFileName, 'rb')
+        try:
+            # Explicitly specify mode rb to keep windows happy!
+            return open(inFileName, 'rb')
+        except IOError:
+            raise Exception("Error opening input file "+inFileName)
 
 # open the specified data source
 def openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr, networkSvcs):
@@ -84,7 +93,10 @@ def closeData(dataFile, networkDevice):
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
-        return open(fileName, writeMode)
+        try:
+            return open(fileName, writeMode)
+        except IOError:
+            raise Exception("Error opening "+fileName)
     else:
         return None
 
