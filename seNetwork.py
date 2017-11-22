@@ -7,6 +7,18 @@ import threading
 import struct
 
 from seConf import *
+import logging
+
+logger = logging.getLogger(__name__)
+
+# network constants
+dhcpDnsBufferSize = 4096
+dhcpLeaseTime = 24 * 60 * 60  # 1 day
+validMacs = [
+    "\xb8\x27\xeb",  # Raspberry Pi
+    "\x00\x27\x02",  # SolarEdge
+]
+dnsTtl = 24 * 60 * 60  # 1 day
 
 dnsPort = 53
 dhcpServerPort = 67
@@ -132,30 +144,30 @@ class DhcpMsg(object):
                 msgPtr = len(msg)
 
     def log(self):
-        debug("debugData", "op: %d" % self.op)
-        debug("debugData", "htype: %x" % self.htype)
-        debug("debugData", "hlen: %d" % self.hlen)
-        debug("debugData", "hops: %d" % self.hops)
-        debug("debugData", "xid: 0x%08x" % self.xid)
-        debug("debugData", "secs: %d" % self.secs)
-        debug("debugData", "flags: 0x%04x" % self.flags)
-        debug("debugData", "ciaddr:", socket.inet_ntoa(self.ciaddr))
-        debug("debugData", "yiaddr:", socket.inet_ntoa(self.yiaddr))
-        debug("debugData", "siaddr:", socket.inet_ntoa(self.siaddr))
-        debug("debugData", "giaddr:", socket.inet_ntoa(self.giaddr))
-        debug("debugData", "chaddr:", ':'.join(
+        logger.message("op: %d" % self.op)
+        logger.message("htype: %x" % self.htype)
+        logger.message("hlen: %d" % self.hlen)
+        logger.message("hops: %d" % self.hops)
+        logger.message("xid: 0x%08x" % self.xid)
+        logger.message("secs: %d" % self.secs)
+        logger.message("flags: 0x%04x" % self.flags)
+        logger.message("ciaddr:", socket.inet_ntoa(self.ciaddr))
+        logger.message("yiaddr:", socket.inet_ntoa(self.yiaddr))
+        logger.message("siaddr:", socket.inet_ntoa(self.siaddr))
+        logger.message("giaddr:", socket.inet_ntoa(self.giaddr))
+        logger.message("chaddr:", ':'.join(
             s.encode('hex') for s in self.chaddr[0:self.hlen]))
-        debug("debugData", "sname:", ''.join(
+        logger.message("sname:", ''.join(
             x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
-        debug("debugData", "filename:", ''.join(
+        logger.message("filename:", ''.join(
             x.encode('hex')
             for x in self.filename[0:self.filename.find("\x00")]))
-        debug("debugData", "cookie:",
+        logger.message("cookie:",
               "0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
-            debug("debugData", "option: %d" % opt[0],
+            logger.message("option: %d" % opt[0],
                   "0x" + ''.join(x.encode('hex') for x in opt[1]))
-        debug("debugData", " ")
+        logger.message(" ")
 
 
 # dns message class
@@ -225,24 +237,24 @@ class DnsMsg(object):
         return msg + "\x00"
 
     def log(self):
-        debug("debugData", "id: %x" % self.ident)
-        debug("debugData", "flags: %04x" % self.flags)
+        logger.message("id: %x" % self.ident)
+        logger.message("flags: %04x" % self.flags)
         for question in self.questions:
-            debug("debugData", "question")
-            debug("debugData", "    name: " + question[0])
-            debug("debugData", "    type: %04x" % question[1])
-            debug("debugData", "    class: %04x" % question[2])
+            logger.message("question")
+            logger.message("    name: " + question[0])
+            logger.message("    type: %04x" % question[1])
+            logger.message("    class: %04x" % question[2])
         for answer in self.answers:
-            debug("debugData", "answer")
-            debug("debugData", "    name: " + answer[0])
-            debug("debugData", "    type: %04x" % answer[1])
-            debug("debugData", "    class: %04x" % answer[2])
-            debug("debugData", "    TTL: %d" % answer[3])
-            debug("debugData", "    resource: " + socket.inet_ntoa(answer[4]))
+            logger.message("answer")
+            logger.message("    name: " + answer[0])
+            logger.message("    type: %04x" % answer[1])
+            logger.message("    class: %04x" % answer[2])
+            logger.message("    TTL: %d" % answer[3])
+            logger.message("    resource: " + socket.inet_ntoa(answer[4]))
 
 
 # start thread to handle dhcp requests
-def startDhcp():
+def startDhcp(ipAddr, subnetMask, broadcastAddr):
     # handle dhcp requests
     def dhcp():
         ipAddrNum = socket.inet_aton(ipAddr)
@@ -254,7 +266,7 @@ def startDhcp():
         dhcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         seq = 0
         while True:
-            debug("debugMsgs", "waiting for dhcp message")
+            logger.debug("waiting for dhcp message")
             (msg, addr) = dhcpSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
             logMsg("-->", seq, msg, addr[0] + ":" + str(addr[1]))
@@ -319,23 +331,23 @@ def startDhcp():
                                           (broadcastAddr, dhcpClientPort))
                         del dhcpReply
                 else:
-                    log("first option is not message type")
+                    logger.info("first option is not message type")
             del dhcpRequest
 
     dhcpThread = threading.Thread(name=dhcpThreadName, target=dhcp)
     dhcpThread.start()
-    if debugFiles: log("starting", dhcpThreadName)
+    logger.debug("starting" + dhcpThreadName)
 
 
 # start thread to handle dns requests
-def startDns():
+def startDns(ipAddr):
     # handle dns requests
     def dns():
         dnsSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         dnsSocket.bind(("", dnsPort))
         seq = 0
         while True:
-            debug("debugMsgs", "waiting for dns message")
+            logger.debug("waiting for dns message")
             (msg, addr) = dnsSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
             logMsg("-->", seq, msg, addr[0] + ":" + str(addr[1]))
@@ -361,4 +373,5 @@ def startDns():
 
     dnsThread = threading.Thread(name=dnsThreadName, target=dns)
     dnsThread.start()
-    if debugFiles: log("starting", dnsThreadName)
+    logger.debug("starting" + dnsThreadName)
+    

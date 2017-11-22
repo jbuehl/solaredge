@@ -1,11 +1,15 @@
 # SolarEdge data interpretation
 
+import time
 import struct
 import json
 from seConf import *
-from seCommands import *
+import seCommands
 from seDataParams import *
 from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
+import logging
+
+logger = logging.getLogger(__name__)
 
 # message debugging sequence numbers
 outSeq = 0
@@ -14,40 +18,40 @@ outSeq = 0
 # parse the message data
 def parseData(function, data):
     if function in [
-            PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER,
-            PROT_CMD_MISC_GET_TYPE, PROT_CMD_SERVER_GET_GMT,
-            PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS,
-            PROT_CMD_POLESTAR_MASTER_GRANT, PROT_RESP_POLESTAR_MASTER_GRANT_ACK
+            seCommands.PROT_RESP_ACK, seCommands.PROT_RESP_NACK, seCommands.PROT_CMD_MISC_GET_VER,
+            seCommands.PROT_CMD_MISC_GET_TYPE, seCommands.PROT_CMD_SERVER_GET_GMT,
+            seCommands.PROT_CMD_SERVER_GET_NAME, seCommands.PROT_CMD_POLESTAR_GET_STATUS,
+            seCommands.PROT_CMD_POLESTAR_MASTER_GRANT, seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK
     ]:
         # functions with no arguments
         return ''.join(x.encode('hex') for x in data)
-    elif function == PROT_CMD_SERVER_POST_DATA:
+    elif function == seCommands.PROT_CMD_SERVER_POST_DATA:
         return parseDeviceData(data)
-    elif function == PROT_RESP_POLESTAR_GET_STATUS:
+    elif function == seCommands.PROT_RESP_POLESTAR_GET_STATUS:
         return parseStatus(data)
-    elif function in [PROT_CMD_PARAMS_GET_SINGLE, PROT_CMD_UPGRADE_START]:
+    elif function in [seCommands.PROT_CMD_PARAMS_GET_SINGLE, seCommands.PROT_CMD_UPGRADE_START]:
         return parseParam(data)
-    elif function in [PROT_CMD_MISC_RESET, PROT_RESP_PARAMS_SINGLE]:
+    elif function in [seCommands.PROT_CMD_MISC_RESET, seCommands.PROT_RESP_PARAMS_SINGLE]:
         return parseValueType(data)
-    elif function == PROT_RESP_MISC_GET_VER:
+    elif function == seCommands.PROT_RESP_MISC_GET_VER:
         return parseVersion(data)
-    elif function == PROT_CMD_PARAMS_SET_SINGLE:
+    elif function == seCommands.PROT_CMD_PARAMS_SET_SINGLE:
         return parseParamValue(data)
-    elif function == PROT_CMD_UPGRADE_WRITE:
+    elif function == seCommands.PROT_CMD_UPGRADE_WRITE:
         return parseOffsetLength(data)
-    elif function == PROT_RESP_UPGRADE_SIZE:
+    elif function == seCommands.PROT_RESP_UPGRADE_SIZE:
         return parseLong(data)
-    elif function in [PROT_RESP_MISC_GET_TYPE]:
+    elif function in [seCommands.PROT_RESP_MISC_GET_TYPE]:
         return parseParam(data)
-    elif function == PROT_RESP_SERVER_GMT:
+    elif function == seCommands.PROT_RESP_SERVER_GMT:
         return parseTime(data)
-    elif function == PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
+    elif function == seCommands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
         return parseEnergyStats(data)
     elif function == 0x0503:
         return {}
     else:
         # unknown function type
-        log("Unknown function 0x%04x" % function)
+        logger.info("Unknown function 0x%04x", function)
     return ''.join(x.encode('hex') for x in data)
 
 
@@ -64,13 +68,13 @@ def parseEnergyStats(data):
 
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
-    debug("debugData", "param:     ", "%04x" % param)
+    logger.message("param:     %04x", param)
     return {"param": param}
 
 
 def parseVersion(data):
     version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
-    debug("debugData", "version:    " + version)
+    logger.message("version:    %s", version)
     return {"version": version}
 
 
@@ -80,14 +84,14 @@ def formatParam(param):
 
 def parseOffsetLength(data):
     (offset, length) = struct.unpack("<LL", data[0:8])
-    debug("debugData", "offset:   ", "%08x" % (offset))
-    debug("debugData", "length:   ", "%08x" % (length))
+    logger.message("offset:   %08x", offset)
+    logger.message("length:   %08x", length)
     return {"offset": offset, "length": length, "data": data[8:]}
 
 
 def parseLong(data):
     param = struct.unpack("<L", data)[0]
-    debug("debugData", "param:     ", "%08x" % param)
+    logger.message("param:     %08x", param)
     return {"param": param}
 
 
@@ -97,8 +101,8 @@ def formatLong(param):
 
 def parseValueType(data):
     (value, dataType) = struct.unpack("<LH", data)
-    debug("debugData", "value:     ", "%08x" % value)
-    debug("debugData", "type:      ", "%04x" % dataType)
+    logger.message("value:     %08x", value)
+    logger.message("type:      %04x", dataType)
     return {"value": value, "type": dataType}
 
 
@@ -108,8 +112,8 @@ def formatValueType(value, dataType):
 
 def parseParamValue(data):
     (param, value) = struct.unpack("<HL", data)
-    debug("debugData", "param:     ", "%04x" % param)
-    debug("debugData", "value:     ", "%08x" % value)
+    logger.message("param:     %04x", param)
+    logger.message("value:     %08x", value)
     return {"param": param, "value": value}
 
 
@@ -119,8 +123,8 @@ def formatParamValue(param, value):
 
 def parseTime(data):
     (timeValue, tzOffset) = struct.unpack("<Ll", data)
-    debug("debugData", "time:      ", time.asctime(time.gmtime(timeValue)))
-    debug("debugData", "tz:        ", "UTC%+d" % (tzOffset / 60 / 60))
+    logger.message("time:      %s", time.asctime(time.gmtime(timeValue)))
+    logger.message("tz:        UTC%+d", tzOffset / 60 / 60)
     return {"time": timeValue, "tz": tzOffset}
 
 
@@ -132,9 +136,10 @@ def formatTime(timeValue, tzOffset):
 def parseStatus(data):
     #    if len(data) > 0:
     #        status = struct.unpack("<HHHHHHH", data)
-    #        debug("debugData", "status", "%d "*len(status) % status)
+    #        logger.message("status", "%d "*len(status) % status)
     #    return {"status": status}
-    logData(data)
+    for l in format_data(data):
+        logger.message(l)
     return {"status": 0}
 
 
@@ -268,7 +273,7 @@ def writeData(msgDict, outFile):
         outSeq += 1
         msg = json.dumps(msgDict)
         logMsg("<--", outSeq, msg, outFile.name)
-        debug("debugData", msg)
+        logger.message(msg)
         outFile.write(msg + "\n")
         outFile.flush()
 
@@ -299,7 +304,6 @@ def formatDateTime(timeStamp):
 
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
-    debug("debugData", devType, seId, "type: %04x" % seType,
-          "len: %04x" % devLen)
-    for item in devData.keys():
-        debug("debugData", "   ", item, ":", devData[item])
+    logger.message("%s %s type: %04x len: %04x", devType, seId, seType, devLen)
+    for k,v in devData.iteritems():
+        logger.message("    %s : %s", k, v)

@@ -4,7 +4,11 @@ import struct
 import time
 from seConf import *
 from Crypto.Cipher import AES
+import logging
 
+logger = logging.getLogger(__name__)
+
+sleepInterval = .1
 
 class SEDecrypt:
     def __init__(self, key, msg0503):
@@ -62,25 +66,25 @@ recSeq = 0
 
 
 # return the next message
-def readMsg(inFile, recFile):
+def readMsg(inFile, recFile, passiveMode, inputType, following):
     global dataInSeq, recSeq
     dataInSeq += 1
     msg = ""
     if not (passiveMode or (inputType == 4)):
         # read the magic number and header
-        msg = readBytes(inFile, magicLen + msgHdrLen)
+        msg = readBytes(inFile, magicLen + msgHdrLen, following)
         if msg == "":
-            debug("debugFiles", "end of file")
+            logger.info("end of file")
             return msg
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr,
          function) = struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
-        msg += readBytes(inFile, dataLen + checksumLen)
+        msg += readBytes(inFile, dataLen + checksumLen, following)
         msg = msg[magicLen:]
     else:
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            nextByte = readBytes(inFile, 1)
+            nextByte = readBytes(inFile, 1, following)
             if nextByte == "":  # end of file
                 msg += magic  # pretend there was a magic number
             else:
@@ -97,7 +101,7 @@ def readMsg(inFile, recFile):
 
 
 # return the specified number of bytes
-def readBytes(inFile, length):
+def readBytes(inFile, length, following):
     try:
         inBuf = inFile.read(length)
         if inBuf == "":  # end of file
@@ -109,12 +113,12 @@ def readBytes(inFile, length):
         return inBuf
     # treat exceptions as end of file
     except Exception as ex:
-        debug("debugEnable", "Exception:", ex.args[0])
+        logger.info("Exception:", exc_info=ex)
         return ""
 
 
 # parse a message
-def parseMsg(msg):
+def parseMsg(msg, keyStr):
     global decrypt
     if len(
             msg
@@ -125,7 +129,7 @@ def parseMsg(msg):
         # encryption key
         if function == 0x0503:
             if keyStr != "":
-                debug("debugData", "Creating decryption object with key",
+                logger.message("Creating decryption object with key",
                       keyStr)
                 decrypt = SEDecrypt(keyStr.decode("hex"), data)
             return (msgSeq, fromAddr, toAddr, function, "")
@@ -133,12 +137,12 @@ def parseMsg(msg):
         elif function == 0x003d:
             if decrypt:
                 # decrypt the data and validate that as a message
-                debug("debugData", "Decrypting message")
+                logger.message("Decrypting message")
                 (seq, dataMsg) = decrypt.decrypt(data)
                 (msgSeq, fromAddr, toAddr, function, data) = validateMsg(
                     dataMsg[4:])
             else:  # don't have a key yet
-                debug("debugData", "Decryption key not yet available")
+                logger.message("Decryption key not yet available")
                 return (0, 0, 0, 0, "")
         return (msgSeq, fromAddr, toAddr, function, data)
 
@@ -147,8 +151,9 @@ def parseMsg(msg):
 def validateMsg(msg):
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
-        log("Message too short")
-        logData(msg)
+        logger.info("Message too short")
+        for l in format_data(msg):
+            logger.message(l)
         return (0, 0, 0, 0, "")
     # parse the message header
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack(
@@ -156,30 +161,33 @@ def validateMsg(msg):
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
-        log("Data length is too big for the message")
-        logData(msg)
+        logger.info("Data length is too big for the message")
+        for l in format_data(msg):
+            logger.message(l)
         return (0, 0, 0, 0, "")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xffff:
-        log("Data length doesn't match inverse length")
-        logData(msg)
+        logger.info("Data length doesn't match inverse length")
+        for l in format_data(msg):
+            logger.message(l)
         return (0, 0, 0, 0, "")
     data = msg[msgHdrLen:msgHdrLen + dataLen]
     # discard extra bytes after the message
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
     if extraLen != 0:
-        debug("debugData", "Discarding", extraLen, "extra bytes")
-        if debugData:
-            logData(msg[-extraLen:])
+        logger.message("Discarding %s extra bytes", extraLen)
+        for l in format_data(msg[-extraLen:]):
+            logger.message(l)
     # validate the checksum
     checksum = struct.unpack(
         "<H", msg[msgHdrLen + dataLen:msgHdrLen + dataLen + checksumLen])[0]
     calcsum = calcCrc(
         struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     if calcsum != checksum:
-        log("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum,
+        logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum,
                                                              calcsum))
-        logData(msg)
+        for l in format_data(msg):
+            logger.message(l)
         return (0, 0, 0, 0, "")
     return (msgSeq, fromAddr, toAddr, function, data)
 
@@ -258,9 +266,9 @@ def calcCrc(data):
 
 # formatted print a message header
 def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):
-    debug("debugData", "dataLen:   ", "%04x" % dataLen)
-    debug("debugData", "dataLenInv:", "%04x" % dataLenInv)
-    debug("debugData", "sequence:  ", "%04x" % msgSeq)
-    debug("debugData", "source:    ", "%08x" % fromAddr)
-    debug("debugData", "dest:      ", "%08x" % toAddr)
-    debug("debugData", "function:  ", "%04x" % function)
+    logger.message("dataLen:    %04x", dataLen)
+    logger.message("dataLenInv: %04x", dataLenInv)
+    logger.message("sequence:   %04x", msgSeq)
+    logger.message("source:     %08x", fromAddr)
+    logger.message("dest:       %08x", toAddr)
+    logger.message("function:   %04x", function)
