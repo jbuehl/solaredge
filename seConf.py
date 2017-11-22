@@ -1,13 +1,6 @@
 # SolarEdge configuration, logging, and debugging
 
 import sys
-import time
-import sys
-import socket
-import netifaces
-import os
-import signal
-import serial.tools.list_ports
 import logging
 
 # debug flags
@@ -36,16 +29,9 @@ def logMsg(direction, seq, msg, endPoint=""):
         logger.message(" ")
 
 
-# program termination
-def terminate(code=0, msg=""):
-    logger.exception(msg)
-    sys.exit(code)
-
-
 # hex dump data
 def format_data(data):
     line_width = 16
-
     for i in range(0, len(data), line_width):
         yield "data:       " + ' '.join(x.encode('hex') for x in data[i:i+line_width])
 

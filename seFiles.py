@@ -32,41 +32,31 @@ socketTimeout = 120.0
 
 # open data socket and wait for connection from inverter
 def openDataSocket(sePort):
-    try:
-        # open a socket and wait for a connection
-        dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        dataSocket.bind(("", sePort))
-        dataSocket.listen(0)
-        logger.info("waiting for connection")
-        (clientSocket, addr) = dataSocket.accept()
-        dataSocket.close()
-        logger.info("connection from %s:%s", addr[0], addr[1])
-        # set a timeout so lost connection can be detected
-        clientSocket.settimeout(socketTimeout)
-        return clientSocket.makefile("rwb")
-    except:
-        terminate(1, "Unable to open data socket")
+    # open a socket and wait for a connection
+    dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    dataSocket.bind(("", sePort))
+    dataSocket.listen(0)
+    logger.info("waiting for connection")
+    (clientSocket, addr) = dataSocket.accept()
+    dataSocket.close()
+    logger.info("connection from %s:%s", addr[0], addr[1])
+    # set a timeout so lost connection can be detected
+    clientSocket.settimeout(socketTimeout)
+    return clientSocket.makefile("rwb")
 
 
 # open serial device
 def openSerial(inFileName, baudRate):
-    try:
-        return serial.Serial(inFileName, baudrate=baudRate)
-    except:
-        terminate(1, "Unable to open " + inFileName)
+    return serial.Serial(inFileName, baudrate=baudRate)
 
 
 def openInFile(inFileName):
-    try:
-        if inFileName == "stdin":
-            return sys.stdin
-        else:
-            # Explicitly specify mode rb to keep windows happy!
-            return open(inFileName, 'rb')
-    except:
-        terminate(1, "Unable to open " + inFileName)
-
+    if inFileName == "stdin":
+        return sys.stdin
+    else:
+        # Explicitly specify mode rb to keep windows happy!
+        return open(inFileName, 'rb')
 
 # open the specified data source
 def openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr, networkSvcs):
@@ -94,10 +84,7 @@ def closeData(dataFile, networkDevice):
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
-        try:
-            return open(fileName, writeMode)
-        except:
-            terminate(1, "Unable to open " + fileName)
+        return open(fileName, writeMode)
     else:
         return None
 

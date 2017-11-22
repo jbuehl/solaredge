@@ -7,11 +7,15 @@ import threading
 import getopt
 import sys
 import struct
+import netifaces
+import os
+import signal
+import serial
 from seConf import *
 import seFiles
 import seMsg
 import seData
-from seCommands import *
+import seCommands
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,6 +76,11 @@ threadLock = threading.Lock()  # lock to synchronize reads and writes
 masterEvent = threading.Event()  # event to signal RS485 master release
 running = True
 
+# program termination
+def terminate(code=0, msg=""):
+    logger.exception(msg)
+    sys.exit(code)
+
 
 # process the input data
 def readData(dataFile, recFile, outFile):
@@ -117,32 +126,32 @@ def processMsg(msg, dataFile, recFile, outFile):
             logger.message(l)
     else:
         msgData = seData.parseData(function, data)
-        if (function == PROT_CMD_SERVER_POST_DATA) and (
+        if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (
                 data != ""):  # performance data
             # write performance data to output file
             seData.writeData(msgData, outFile)
         elif (updateFileName != ""
-              ) and function == PROT_CMD_UPGRADE_WRITE:  # firmware update data
+              ) and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:
                       msgData["offset"] + msgData["length"]] = msgData["data"]
         if (networkDevice or masterMode):  # send reply
             replyFunction = ""
-            if function == PROT_CMD_SERVER_POST_DATA:  # performance data
+            if function == seCommands.PROT_CMD_SERVER_POST_DATA:  # performance data
                 # send ack
-                replyFunction = PROT_RESP_ACK
+                replyFunction = seCommands.PROT_RESP_ACK
                 replyData = ""
             elif function == 0x0503:  # encryption key
                 # send ack
-                replyFunction = PROT_RESP_ACK
+                replyFunction = seCommands.PROT_RESP_ACK
                 replyData = ""
-            elif function == PROT_CMD_SERVER_GET_GMT:  # time request
+            elif function == seCommands.PROT_CMD_SERVER_GET_GMT:  # time request
                 # set time
-                replyFunction = PROT_RESP_SERVER_GMT
+                replyFunction = seCommands.PROT_RESP_SERVER_GMT
                 replyData = seData.formatTime(
                     int(time.time()),
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 *
                     60)
-            elif function == PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
+            elif function == seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
             if replyFunction != "":
                 msg = seMsg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction,
@@ -166,7 +175,7 @@ def masterCommands(dataFile, recFile):
                 # grant control of the bus to the slave
                 seMsg.sendMsg(dataFile,
                         seMsg.formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
-                                  PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+                                  seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
                 logger.debug("RS485 master ack timeout")
@@ -190,7 +199,7 @@ def doCommands(dataFile, commands, recFile):
         # grant control of the bus to the slave
         seMsg.sendMsg(dataFile,
                 seMsg.formatMsg(nextSeq(), masterAddr, slaveAddr,
-                          PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+                          seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
         # format the command parameters
         function = int(command[0], 16)
@@ -465,8 +474,12 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
-    dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr,networkSvcs)
-    (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
+    try:
+        dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr,networkSvcs)
+        (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
+    except:
+        raise
+        terminate(1)
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
         readData(dataFile, recFile, outFile)

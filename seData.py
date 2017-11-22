@@ -4,7 +4,7 @@ import time
 import struct
 import json
 from seConf import *
-from seCommands import *
+import seCommands
 from seDataParams import *
 from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
 import logging
@@ -18,34 +18,34 @@ outSeq = 0
 # parse the message data
 def parseData(function, data):
     if function in [
-            PROT_RESP_ACK, PROT_RESP_NACK, PROT_CMD_MISC_GET_VER,
-            PROT_CMD_MISC_GET_TYPE, PROT_CMD_SERVER_GET_GMT,
-            PROT_CMD_SERVER_GET_NAME, PROT_CMD_POLESTAR_GET_STATUS,
-            PROT_CMD_POLESTAR_MASTER_GRANT, PROT_RESP_POLESTAR_MASTER_GRANT_ACK
+            seCommands.PROT_RESP_ACK, seCommands.PROT_RESP_NACK, seCommands.PROT_CMD_MISC_GET_VER,
+            seCommands.PROT_CMD_MISC_GET_TYPE, seCommands.PROT_CMD_SERVER_GET_GMT,
+            seCommands.PROT_CMD_SERVER_GET_NAME, seCommands.PROT_CMD_POLESTAR_GET_STATUS,
+            seCommands.PROT_CMD_POLESTAR_MASTER_GRANT, seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK
     ]:
         # functions with no arguments
         return ''.join(x.encode('hex') for x in data)
-    elif function == PROT_CMD_SERVER_POST_DATA:
+    elif function == seCommands.PROT_CMD_SERVER_POST_DATA:
         return parseDeviceData(data)
-    elif function == PROT_RESP_POLESTAR_GET_STATUS:
+    elif function == seCommands.PROT_RESP_POLESTAR_GET_STATUS:
         return parseStatus(data)
-    elif function in [PROT_CMD_PARAMS_GET_SINGLE, PROT_CMD_UPGRADE_START]:
+    elif function in [seCommands.PROT_CMD_PARAMS_GET_SINGLE, seCommands.PROT_CMD_UPGRADE_START]:
         return parseParam(data)
-    elif function in [PROT_CMD_MISC_RESET, PROT_RESP_PARAMS_SINGLE]:
+    elif function in [seCommands.PROT_CMD_MISC_RESET, seCommands.PROT_RESP_PARAMS_SINGLE]:
         return parseValueType(data)
-    elif function == PROT_RESP_MISC_GET_VER:
+    elif function == seCommands.PROT_RESP_MISC_GET_VER:
         return parseVersion(data)
-    elif function == PROT_CMD_PARAMS_SET_SINGLE:
+    elif function == seCommands.PROT_CMD_PARAMS_SET_SINGLE:
         return parseParamValue(data)
-    elif function == PROT_CMD_UPGRADE_WRITE:
+    elif function == seCommands.PROT_CMD_UPGRADE_WRITE:
         return parseOffsetLength(data)
-    elif function == PROT_RESP_UPGRADE_SIZE:
+    elif function == seCommands.PROT_RESP_UPGRADE_SIZE:
         return parseLong(data)
-    elif function in [PROT_RESP_MISC_GET_TYPE]:
+    elif function in [seCommands.PROT_RESP_MISC_GET_TYPE]:
         return parseParam(data)
-    elif function == PROT_RESP_SERVER_GMT:
+    elif function == seCommands.PROT_RESP_SERVER_GMT:
         return parseTime(data)
-    elif function == PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
+    elif function == seCommands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
         return parseEnergyStats(data)
     elif function == 0x0503:
         return {}
