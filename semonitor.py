@@ -116,7 +116,7 @@ def readData(dataFile, recFile, outFile):
 # process a received message
 def processMsg(msg, dataFile, recFile, outFile):
     # parse the message
-    (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
+    (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg)
     if function == 0:
         # message could not be processed
         logger.message("Ignoring this message")
@@ -127,7 +127,7 @@ def processMsg(msg, dataFile, recFile, outFile):
         if (function == PROT_CMD_SERVER_POST_DATA) and (
                 data != ""):  # performance data
             # write performance data to output file
-            writeData(msgData, outFile)
+            seData.writeData(msgData, outFile)
         elif (updateFileName != ""
               ) and function == PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:
@@ -210,10 +210,10 @@ def doCommands(dataFile, commands, recFile):
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
-        (msgSeq, fromAddr, toAddr, response, data) = parseMsg(msg)
+        (msgSeq, fromAddr, toAddr, response, data) = seMsg.parseMsg(msg)
         msgData = seData.parseData(response, data)
         # write response to output file
-        writeData({
+        seData.writeData({
             "command": function,
             "response": response,
             "sequence": seq,
