@@ -41,7 +41,7 @@ def readData(dataFile, recFile, outFile):
                     writeUpdate()
                 return
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
-            logger.log(LOG_LEVEL_MSG, msg)
+            logger.message(msg)
         else:
             with threadLock:
                 try:
@@ -50,7 +50,7 @@ def readData(dataFile, recFile, outFile):
                     logger.info("Exception", exc_info=ex)
                     if haltOnException:
                         for l in format_data(msg):
-                            logger.log(LOG_LEVEL_MSG, l)
+                            logger.message(l)
                         raise
 
 
@@ -60,9 +60,9 @@ def processMsg(msg, dataFile, recFile, outFile):
     (msgSeq, fromAddr, toAddr, function, data) = parseMsg(msg)
     if function == 0:
         # message could not be processed
-        logger.log(LOG_LEVEL_MSG, "Ignoring this message")
+        logger.message("Ignoring this message")
         for l in format_data(data):
-            logger.log(LOG_LEVEL_MSG, l)
+            logger.message(l)
     else:
         msgData = parseData(function, data)
         if (function == PROT_CMD_SERVER_POST_DATA) and (

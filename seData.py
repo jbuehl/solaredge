@@ -68,13 +68,13 @@ def parseEnergyStats(data):
 
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
-    logger.log(LOG_LEVEL_MSG, "param:     %04x", param)
+    logger.message("param:     %04x", param)
     return {"param": param}
 
 
 def parseVersion(data):
     version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
-    logger.log(LOG_LEVEL_MSG, "version:    %s", version)
+    logger.message("version:    %s", version)
     return {"version": version}
 
 
@@ -84,14 +84,14 @@ def formatParam(param):
 
 def parseOffsetLength(data):
     (offset, length) = struct.unpack("<LL", data[0:8])
-    logger.log(LOG_LEVEL_MSG, "offset:   %08x", offset)
-    logger.log(LOG_LEVEL_MSG, "length:   %08x", length)
+    logger.message("offset:   %08x", offset)
+    logger.message("length:   %08x", length)
     return {"offset": offset, "length": length, "data": data[8:]}
 
 
 def parseLong(data):
     param = struct.unpack("<L", data)[0]
-    logger.log(LOG_LEVEL_MSG, "param:     %08x", param)
+    logger.message("param:     %08x", param)
     return {"param": param}
 
 
@@ -101,8 +101,8 @@ def formatLong(param):
 
 def parseValueType(data):
     (value, dataType) = struct.unpack("<LH", data)
-    logger.log(LOG_LEVEL_MSG, "value:     %08x", value)
-    logger.log(LOG_LEVEL_MSG, "type:      %04x", dataType)
+    logger.message("value:     %08x", value)
+    logger.message("type:      %04x", dataType)
     return {"value": value, "type": dataType}
 
 
@@ -112,8 +112,8 @@ def formatValueType(value, dataType):
 
 def parseParamValue(data):
     (param, value) = struct.unpack("<HL", data)
-    logger.log(LOG_LEVEL_MSG, "param:     %04x", param)
-    logger.log(LOG_LEVEL_MSG, "value:     %08x", value)
+    logger.message("param:     %04x", param)
+    logger.message("value:     %08x", value)
     return {"param": param, "value": value}
 
 
@@ -123,8 +123,8 @@ def formatParamValue(param, value):
 
 def parseTime(data):
     (timeValue, tzOffset) = struct.unpack("<Ll", data)
-    logger.log(LOG_LEVEL_MSG, "time:      %s", time.asctime(time.gmtime(timeValue)))
-    logger.log(LOG_LEVEL_MSG, "tz:        UTC%+d", tzOffset / 60 / 60)
+    logger.message("time:      %s", time.asctime(time.gmtime(timeValue)))
+    logger.message("tz:        UTC%+d", tzOffset / 60 / 60)
     return {"time": timeValue, "tz": tzOffset}
 
 
@@ -136,7 +136,7 @@ def formatTime(timeValue, tzOffset):
 def parseStatus(data):
     #    if len(data) > 0:
     #        status = struct.unpack("<HHHHHHH", data)
-    #        logger.log(LOG_LEVEL_MSG, "status", "%d "*len(status) % status)
+    #        logger.message("status", "%d "*len(status) % status)
     #    return {"status": status}
     logData(data)
     return {"status": 0}
@@ -272,7 +272,7 @@ def writeData(msgDict, outFile):
         outSeq += 1
         msg = json.dumps(msgDict)
         logMsg("<--", outSeq, msg, outFile.name)
-        logger.log(LOG_LEVEL_MSG, msg)
+        logger.message(msg)
         outFile.write(msg + "\n")
         outFile.flush()
 
@@ -303,6 +303,6 @@ def formatDateTime(timeStamp):
 
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
-    logger.log(LOG_LEVEL_MSG, "%s %s type: %04x len: %04x", devType, seId, seType, devLen)
+    logger.message("%s %s type: %04x len: %04x", devType, seId, seType, devLen)
     for k,v in devData.iteritems():
-        logger.log(LOG_LEVEL_MSG, "    %s : %s", k, v)
+        logger.message("    %s : %s", k, v)

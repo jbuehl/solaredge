@@ -73,20 +73,27 @@ validMacs = [
 ]
 dnsTtl = 24 * 60 * 60  # 1 day
 
-logger = logging.getLogger(__name__)
 
 LOG_LEVEL_MSG = 9
 LOG_LEVEL_RAW = 8
 
+logging.addLevelName(LOG_LEVEL_MSG, 'MESSAGE')
+logging.addLevelName(LOG_LEVEL_RAW, 'RAW')
+
+logging.Logger.message = lambda self, message, *args, **kws: self.log(LOG_LEVEL_MSG, message, *args, **kws) 
+logging.Logger.raw = lambda self, message, *args, **kws: self.log(LOG_LEVEL_RAW, message, *args, **kws) 
+
+logger = logging.getLogger(__name__)
+
 # log an incoming or outgoing data message
 def logMsg(direction, seq, msg, endPoint=""):
     if direction == "-->":
-        logger.log(LOG_LEVEL_MSG, " ")
-    logger.log(LOG_LEVEL_MSG, "%s %s message: %s length: %s", endPoint, direction, seq, len(msg))
+        logger.message(" ")
+    logger.message("%s %s message: %s length: %s", endPoint, direction, seq, len(msg))
     for l in format_data(msg):
-        logger.log(LOG_LEVEL_RAW, l)
+        logger.raw(l)
     if direction == "<--":
-        logger.log(LOG_LEVEL_MSG, " ")
+        logger.message(" ")
 
 
 # program termination
