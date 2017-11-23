@@ -31,22 +31,9 @@ using a hex editor.
 import struct
 import time
 import binascii
-try:
-    import syslog
-except ImportError:
-    # Allow for the fact that syslog is not (to my knowledge) available on Windows
-    import seWindowsSyslog as syslog
+import logging
 
-
-# log a message (used by merge_update)
-def log(*args):
-    message = args[0] + " "
-    for arg in args[1:]:
-        message += arg.__str__() + " "
-        # todo : Make this align better with the options available elsewhere in semonitor, while retaining the ability
-        # todo cont : to import merge_update into modules that need it, like se2csv
-    syslog.syslog(message)
-
+logger = logging.getLogger(__name__)
 
 # Spacer field for documenting field definitions more neatly, used for convenience
 sp = "\n\t\t\t\t\t\t: "
@@ -252,13 +239,13 @@ class ParseDevice(dict):
                 try:
                     self['Date'] = self.formatDateStamp(self[paramName])
                 except ValueError:
-                    log('"{} is not a valid date, changed to "1970-01-01"'.
+                    logger.debug('"%s is not a valid date, changed to "1970-01-01"',
                         format(self[paramName]))
                     self['Date'] = "1970-01-01"
                 try:
                     self['Time'] = self.formatTimeStamp(self[paramName])
                 except ValueError:
-                    log('"{} is not a valid time, changed to "00:00:01"'.
+                    logger.debug('"%s is not a valid time, changed to "00:00:01"',
                         format(self[paramName]))
                     self["Time"] = "00:00:01"
             elif outFormatFn is not None:
@@ -838,5 +825,5 @@ def merge_update(dict1, dict2):
             # So it looks like the inverter has reported new attributes for an existing instance identifier in the same message
             message = "WARNING : For {} about to overwrite {} with {}".format(
                 k2, dict1[k2], v2)
-            log(message)
+            logger.debug(message)
             dict1[k2] = v2
