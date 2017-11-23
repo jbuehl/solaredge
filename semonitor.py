@@ -264,12 +264,8 @@ def waitForEnd():
 
 # parse and validate the commands specified in the -c option
 def parseCommands(opt):
-    try:
-        commands = [command.split(",") for command in opt.split("/")]
-    except Exception as ex:
-        terminate(1, "Error parsing commands "+ex)
 
-    for command in commands:
+    for command in [command.split(",") for command in opt.split("/")]:
         try:
             # validate the command function
             v = int(command[0], 16)
