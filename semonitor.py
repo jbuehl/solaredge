@@ -478,11 +478,31 @@ if __name__ == "__main__":
         logger.info("updateFileName: %s", updateFileName)
 
     # initialization
+    # open the specified data source
+    logger.info("opening %s", inFileName)
     try:
-        dataFile = seFiles.openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr,networkSvcs)
-        (recFile, outFile) = seFiles.openOutFiles(recFileName, outFileName, writeMode)
+        if networkDevice:
+            if networkSvcs:
+                # start network services
+                seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
+                seNetwork.startDns(ipAddr)
+            dataFile =  seFiles.openDataSocket(sePort)
+        elif serialDevice:
+            dataFile =  seFiles.openSerial(inFileName, baudRate)
+        else:
+            dataFile =  seFiles.openInFile(inFileName)
+
+        # open the output files
+        recFile = seFiles.openOutFile(recFileName, writeMode)
+        if outFileName == "stdout":
+            outFile = sys.stdout
+        else:
+            outFile = seFiles.openOutFile(outFileName, writeMode)
     except Exception as ex:
-        terminate(1, ex)
+        logger.error(ex)
+        sys.exit(1)
+
+
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
         readData(dataFile, recFile, outFile)
