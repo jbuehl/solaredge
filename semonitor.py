@@ -342,23 +342,27 @@ if __name__ == "__main__":
             terminate(1, "Unknown option " + opt[0])
 
     # configure logging
+
+    stream_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
     
     if debugFileName == "syslog":
         handler = logging.handlers.SysLogHandler()
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
+        handler.setFormatter(stream_formatter)
     elif debugFileName == "stdout":
         handler = logging.StreamHandler(stream=sys.stdout)
+        handler.setFormatter(stream_formatter)
     elif debugFileName:
         handler = logging.FileHandler(debugFileName, mode=writeMode)
+        handler.setFormatter(stream_formatter)
 
     level = {
-            1: logging.DEBUG,
-            2: LOG_LEVEL_MSG,
-            3: LOG_LEVEL_RAW,
-            }.get(min(v_level, 3), logging.INFO)
-
-    handler.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"))
+            1: logging.INFO,
+            2: logging.DEBUG,
+            3: LOG_LEVEL_MSG,
+            4: LOG_LEVEL_RAW,
+            }.get(min(v_level, 4), logging.ERROR)
 
     # configure the root logger
     root_logger = logging.getLogger()
