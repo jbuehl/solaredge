@@ -287,16 +287,9 @@ def parseCommands(opt):
 
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
-    serialPortNames = []
-    serialPorts = serial.tools.list_ports.comports()
     # this is either a list of tuples or ListPortInfo objects
-    if isinstance(serialPorts[0], tuple):
-        for serialPort in serialPorts:
-            serialPortNames.append(serialPort[0])
-    elif isinstance(serialPorts[0],
-                    serial.tools.list_ports_common.ListPortInfo):
-        for serialPort in serialPorts:
-            serialPortNames.append(serialPort.device)
+    serial_ports = serial.tools.list_ports.comports()
+    serial_port_names = map(lambda p: p.device if isinstance(p, serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
 
     # get program arguments and options
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
@@ -306,7 +299,7 @@ if __name__ == "__main__":
         inFileName = args[0]
         if inFileName == "-":
             inFileName = "stdin"
-        elif inFileName in serialPortNames:
+        elif inFileName in serial_port_names:
             serialDevice = True
     else:
         inFileName = "stdin"
