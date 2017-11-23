@@ -151,23 +151,22 @@ class DhcpMsg(object):
         logger.message("xid: 0x%08x" % self.xid)
         logger.message("secs: %d" % self.secs)
         logger.message("flags: 0x%04x" % self.flags)
-        logger.message("ciaddr:", socket.inet_ntoa(self.ciaddr))
-        logger.message("yiaddr:", socket.inet_ntoa(self.yiaddr))
-        logger.message("siaddr:", socket.inet_ntoa(self.siaddr))
-        logger.message("giaddr:", socket.inet_ntoa(self.giaddr))
-        logger.message("chaddr:", ':'.join(
+        logger.message("ciaddr: %s", socket.inet_ntoa(self.ciaddr))
+        logger.message("yiaddr: %s", socket.inet_ntoa(self.yiaddr))
+        logger.message("siaddr: %s", socket.inet_ntoa(self.siaddr))
+        logger.message("giaddr: %s", socket.inet_ntoa(self.giaddr))
+        logger.message("chaddr: %s", ':'.join(
             s.encode('hex') for s in self.chaddr[0:self.hlen]))
-        logger.message("sname:", ''.join(
+        logger.message("sname: %s", ''.join(
             x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
-        logger.message("filename:", ''.join(
+        logger.message("filename: %s", ''.join(
             x.encode('hex')
             for x in self.filename[0:self.filename.find("\x00")]))
-        logger.message("cookie:",
+        logger.message("cookie: %s",
               "0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
             logger.message("option: %d" % opt[0],
                   "0x" + ''.join(x.encode('hex') for x in opt[1]))
-        logger.message(" ")
 
 
 # dns message class
