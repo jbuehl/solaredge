@@ -348,7 +348,7 @@ if __name__ == "__main__":
     syslog_formatter = logging.Formatter("%(message)s")
     
     if debugFileName == "syslog":
-        handler = logging.handlers.SysLogHandler()
+        handler = logging.handlers.SysLogHandler(address="/dev/log")
         handler.setFormatter(syslog_formatter)
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
