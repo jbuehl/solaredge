@@ -5,7 +5,7 @@ import logging
 
 # debug flags
 debugFileName = "stderr"
-haltOnException = False
+haltOnDataParsingException = False
 
 LOG_LEVEL_MSG = 9
 LOG_LEVEL_RAW = 8

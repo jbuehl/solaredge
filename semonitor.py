@@ -110,11 +110,11 @@ def readData(dataFile, recFile, outFile):
             with threadLock:
                 try:
                     processMsg(msg, dataFile, recFile, outFile)
-                except Exception as ex:
-                    logger.info("Exception", exc_info=ex)
-                    if haltOnException:
-                        for l in format_data(msg):
-                            logger.message(l)
+                except:
+                    logger.info("Filed to parse message")
+                    for l in format_data(msg):
+                        logger.message(l)
+                    if haltOnDataParsingException:
                         raise
 
 
@@ -264,53 +264,40 @@ def waitForEnd():
 
 # parse and validate the commands specified in the -c option
 def parseCommands(opt):
-    try:
-        commands = [command.split(",") for command in opt.split("/")]
-        for command in commands:
-            try:
-                # validate the command function
-                v = int(command[0], 16)
-                # validate command parameters
-                for p in command[1:]:
-                    # validate data type
-                    if p[0] not in "bhlBHL":
-                        terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
-                    # validate parameter value
-                    v = int(p[1:], 16)
-            except ValueError:
-                terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
-    except Exception as ex:
-        terminate(1, "Error parsing commands "+ex)
+
+    for command in [command.split(",") for command in opt.split("/")]:
+        try:
+            # validate the command function
+            v = int(command[0], 16)
+        except ValueError:
+            terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
+        # validate command parameters
+        for p in command[1:]:
+            # validate data type
+            if p[0] not in "bhlBHL":
+                terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
+            # validate parameter value
+            v = int(p[1:], 16)
     return commands
 
 
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
-    try:
-        serialPortNames = []
-        serialPorts = serial.tools.list_ports.comports()
-        # this is either a list of tuples or ListPortInfo objects
-        if isinstance(serialPorts[0], tuple):
-            for serialPort in serialPorts:
-                serialPortNames.append(serialPort[0])
-        elif isinstance(serialPorts[0],
-                        serial.tools.list_ports_common.ListPortInfo):
-            for serialPort in serialPorts:
-                serialPortNames.append(serialPort.device)
-    except:
-        pass
+    # this is either a list of tuples or ListPortInfo objects
+    serial_ports = serial.tools.list_ports.comports()
+    serial_port_names = map(lambda p: p.device if isinstance(p, serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
 
     # get program arguments and options
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
     # arguments
 
-    try:
+    if len(args) >= 1:
         inFileName = args[0]
         if inFileName == "-":
             inFileName = "stdin"
-        elif inFileName in serialPortNames:
+        elif inFileName in serial_port_names:
             serialDevice = True
-    except IndexError:  # no input specified
+    else:
         inFileName = "stdin"
         following = True
 
@@ -349,14 +336,14 @@ if __name__ == "__main__":
         elif opt[0] == "-v":
             v_level += 1
         elif opt[0] == "-x":
-            haltOnException = True
+            haltOnDataParsingException = True
         else:
             terminate(1, "Unknown option " + opt[0])
 
     # configure logging
     
     if debugFileName == "syslog":
-        handler = logging.SysLogHandler()
+        handler = logging.handlers.SysLogHandler()
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
     elif debugFileName == "stdout":
@@ -440,7 +427,7 @@ if __name__ == "__main__":
     # print out the arguments and options
     # debug parameters
     logger.debug("debugFileName: %s", debugFileName)
-    logger.debug("haltOnException: %s", haltOnException)
+    logger.debug("haltOnDataParsingException: %s", haltOnDataParsingException)
     # input parameters
     logger.debug("inFileName: %s", inFileName)
     if inputType != "":
