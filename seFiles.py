@@ -4,7 +4,6 @@ import serial
 import sys
 import socket
 from seConf import *
-import seNetwork
 
 logger = logging.getLogger(__name__)
 socketTimeout = 120.0

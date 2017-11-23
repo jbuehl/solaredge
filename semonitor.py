@@ -16,6 +16,7 @@ import seFiles
 import seMsg
 import seData
 import seCommands
+import seNetwork
 import logging
 
 logger = logging.getLogger(__name__)
