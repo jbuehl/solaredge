@@ -344,12 +344,12 @@ if __name__ == "__main__":
 
     # configure logging
 
-    stream_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
-    syslog_formatter = logging.Formatter("%(message)s")
+    stream_formatter = logging.Formatter("%(message)s")
+    file_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
     
     if debugFileName == "syslog":
         handler = logging.handlers.SysLogHandler(address="/dev/log")
-        handler.setFormatter(syslog_formatter)
+        handler.setFormatter(stream_formatter)
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
         handler.setFormatter(stream_formatter)
@@ -358,7 +358,7 @@ if __name__ == "__main__":
         handler.setFormatter(stream_formatter)
     elif debugFileName:
         handler = logging.FileHandler(debugFileName, mode=writeMode)
-        handler.setFormatter(stream_formatter)
+        handler.setFormatter(file_formatter)
 
     level = {
             1: logging.INFO,
