@@ -427,7 +427,7 @@ if __name__ == "__main__":
     # print out the arguments and options
     # debug parameters
     logger.debug("debugFileName: %s", debugFileName)
-    logger.debug("haltOnDataParsingException: %s", haltOnException)
+    logger.debug("haltOnDataParsingException: %s", haltOnDataParsingException)
     # input parameters
     logger.debug("inFileName: %s", inFileName)
     if inputType != "":
