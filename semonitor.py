@@ -439,47 +439,47 @@ if __name__ == "__main__":
 
     # print out the arguments and options
     # debug parameters
-    logger.info("debugFileName: %s", debugFileName)
-    logger.info("haltOnException: %s", haltOnException)
+    logger.debug("debugFileName: %s", debugFileName)
+    logger.debug("haltOnException: %s", haltOnException)
     # input parameters
-    logger.info("inFileName: %s", inFileName)
+    logger.debug("inFileName: %s", inFileName)
     if inputType != "":
-        logger.info("inputType: %s", inputType)
-    logger.info("serialDevice: %s", serialDevice)
+        logger.debug("inputType: %s", inputType)
+    logger.debug("serialDevice: %s", serialDevice)
     if serialDevice:
-        logger.info("    baudRate: %s", baudRate)
-    logger.info("networkDevice: %s", networkDevice)
-    logger.info("sePort: %s", sePort)
-    logger.info("networkSvcs: %s", networkSvcs)
+        logger.debug("    baudRate: %s", baudRate)
+    logger.debug("networkDevice: %s", networkDevice)
+    logger.debug("sePort: %s", sePort)
+    logger.debug("networkSvcs: %s", networkSvcs)
     if networkSvcs:
-        logger.info("netInterface %s", netInterface)
-        logger.info("    ipAddr %s", ipAddr)
-        logger.info("    subnetMask %s", subnetMask)
-        logger.info("    broadcastAddr %s", broadcastAddr)
-    logger.info("following: %s", following)
+        logger.debug("netInterface %s", netInterface)
+        logger.debug("    ipAddr %s", ipAddr)
+        logger.debug("    subnetMask %s", subnetMask)
+        logger.debug("    broadcastAddr %s", broadcastAddr)
+    logger.debug("following: %s", following)
     # action parameters
-    logger.info("passiveMode: %s", passiveMode)
-    logger.info("commandAction: %s", commandAction)
+    logger.debug("passiveMode: %s", passiveMode)
+    logger.debug("commandAction: %s", commandAction)
     if commandAction:
         for command in commands:
-            logger.info("    command: %s", " ".join(c for c in command))
-    logger.info("masterMode: %s", masterMode)
+            logger.debug("    command: %s", " ".join(c for c in command))
+    logger.debug("masterMode: %s", masterMode)
     if masterMode or commandAction:
-        logger.info("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
+        logger.debug("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
     # output parameters
-    logger.info("outFileName: %s", outFileName)
+    logger.debug("outFileName: %s", outFileName)
     if recFileName != "":
-        logger.info("recFileName: %s", recFileName)
-    logger.info("append: %s", writeMode)
+        logger.debug("recFileName: %s", recFileName)
+    logger.debug("append: %s", writeMode)
     if keyFileName != "":
-        logger.info("keyFileName: %s", keyFileName)
-        logger.info("key: %s", keyStr)
+        logger.debug("keyFileName: %s", keyFileName)
+        logger.debug("key: %s", keyStr)
     if updateFileName != "":
-        logger.info("updateFileName: %s", updateFileName)
+        logger.debug("updateFileName: %s", updateFileName)
 
     # initialization
     # open the specified data source
-    logger.info("opening %s", inFileName)
+    logger.debug("opening %s", inFileName)
     try:
         if networkDevice:
             if networkSvcs:
