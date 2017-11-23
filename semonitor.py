@@ -304,13 +304,13 @@ if __name__ == "__main__":
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
     # arguments
 
-    try:
+    if len(args) >= 1:
         inFileName = args[0]
         if inFileName == "-":
             inFileName = "stdin"
         elif inFileName in serialPortNames:
             serialDevice = True
-    except IndexError:  # no input specified
+    else:
         inFileName = "stdin"
         following = True
 
@@ -356,7 +356,7 @@ if __name__ == "__main__":
     # configure logging
     
     if debugFileName == "syslog":
-        handler = logging.SysLogHandler()
+        handler = logging.handlers.SysLogHandler()
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
     elif debugFileName == "stdout":
