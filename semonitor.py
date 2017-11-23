@@ -78,7 +78,10 @@ running = True
 
 # program termination
 def terminate(code=0, msg=""):
-    logger.exception(msg)
+    if code == 0:
+        logger.info(msg)
+    else:
+        logger.error(msg)
     sys.exit(code)
 
 
