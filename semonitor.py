@@ -110,11 +110,11 @@ def readData(dataFile, recFile, outFile):
             with threadLock:
                 try:
                     processMsg(msg, dataFile, recFile, outFile)
-                except Exception as ex:
-                    logger.info("Exception", exc_info=ex)
-                    if haltOnException:
-                        for l in format_data(msg):
-                            logger.message(l)
+                except:
+                    logger.info("Filed to parse message")
+                    for l in format_data(msg):
+                        logger.message(l)
+                    if haltOnDataParsingException:
                         raise
 
 
@@ -349,7 +349,7 @@ if __name__ == "__main__":
         elif opt[0] == "-v":
             v_level += 1
         elif opt[0] == "-x":
-            haltOnException = True
+            haltOnDataParsingException = True
         else:
             terminate(1, "Unknown option " + opt[0])
 
@@ -440,7 +440,7 @@ if __name__ == "__main__":
     # print out the arguments and options
     # debug parameters
     logger.info("debugFileName: %s", debugFileName)
-    logger.info("haltOnException: %s", haltOnException)
+    logger.info("haltOnDataParsingException: %s", haltOnDataParsingException)
     # input parameters
     logger.info("inFileName: %s", inFileName)
     if inputType != "":
