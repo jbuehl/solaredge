@@ -165,7 +165,7 @@ class DhcpMsg(object):
         logger.message("cookie: %s",
               "0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
-            logger.message("option: %d" % opt[0],
+            logger.message("option: %d %s", opt[0],
                   "0x" + ''.join(x.encode('hex') for x in opt[1]))
 
 
