@@ -1,9 +1,0 @@
-#!/bin/bash
-
-PCAPDIR=/data/pcap/
-DATADIR=/data/data/
-BACKUPSERVER=`avahi-browse -atp|grep _backup|cut -d";" -f4`.local
-
-rsync -a ${PCAPDIR}* ${BACKUPSERVER}:/backups/solaredge/pcap
-rsync -a ${DATADIR}* ${BACKUPSERVER}:/backups/solaredge/data
-
