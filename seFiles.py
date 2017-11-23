@@ -36,10 +36,10 @@ def openDataSocket(sePort):
     dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     dataSocket.bind(("", sePort))
     dataSocket.listen(0)
-    logger.debug("waiting for connection")
+    logger.info("waiting for connection")
     (clientSocket, addr) = dataSocket.accept()
     dataSocket.close()
-    logger.debug("connection from %s:%s", addr[0], addr[1])
+    logger.info("connection from %s:%s", addr[0], addr[1])
     # set a timeout so lost connection can be detected
     clientSocket.settimeout(socketTimeout)
     return clientSocket.makefile("rwb")
@@ -60,7 +60,7 @@ def openInFile(inFileName):
 
 # close the data source
 def closeData(dataFile, networkDevice):
-    logger.debug("closing %s", dataFile.name)
+    logger.info("closing %s", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
     dataFile.close()
@@ -77,8 +77,8 @@ def openOutFile(fileName, writeMode="w"):
 # close output files
 def closeOutFiles(recFile, outFile):
     if recFile:
-        logger.debug("closing %s", recFile.name)
+        logger.info("closing %s", recFile.name)
         recFile.close()
     if outFile:
-        logger.debug("closing %s", outFile.name)
+        logger.info("closing %s", outFile.name)
         outFile.close()
