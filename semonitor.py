@@ -344,9 +344,11 @@ if __name__ == "__main__":
     # configure logging
 
     stream_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
+    syslog_formatter = logging.Formatter("%(message)s")
     
     if debugFileName == "syslog":
         handler = logging.handlers.SysLogHandler()
+        handler.setFormatter(syslog_formatter)
     elif debugFileName == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
         handler.setFormatter(stream_formatter)
