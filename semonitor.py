@@ -266,39 +266,37 @@ def waitForEnd():
 def parseCommands(opt):
     try:
         commands = [command.split(",") for command in opt.split("/")]
-        for command in commands:
-            try:
-                # validate the command function
-                v = int(command[0], 16)
-                # validate command parameters
-                for p in command[1:]:
-                    # validate data type
-                    if p[0] not in "bhlBHL":
-                        terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
-                    # validate parameter value
-                    v = int(p[1:], 16)
-            except ValueError:
-                terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
     except Exception as ex:
         terminate(1, "Error parsing commands "+ex)
+
+    for command in commands:
+        try:
+            # validate the command function
+            v = int(command[0], 16)
+        except ValueError:
+            terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
+        # validate command parameters
+        for p in command[1:]:
+            # validate data type
+            if p[0] not in "bhlBHL":
+                terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
+            # validate parameter value
+            v = int(p[1:], 16)
     return commands
 
 
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
-    try:
-        serialPortNames = []
-        serialPorts = serial.tools.list_ports.comports()
-        # this is either a list of tuples or ListPortInfo objects
-        if isinstance(serialPorts[0], tuple):
-            for serialPort in serialPorts:
-                serialPortNames.append(serialPort[0])
-        elif isinstance(serialPorts[0],
-                        serial.tools.list_ports_common.ListPortInfo):
-            for serialPort in serialPorts:
-                serialPortNames.append(serialPort.device)
-    except:
-        pass
+    serialPortNames = []
+    serialPorts = serial.tools.list_ports.comports()
+    # this is either a list of tuples or ListPortInfo objects
+    if isinstance(serialPorts[0], tuple):
+        for serialPort in serialPorts:
+            serialPortNames.append(serialPort[0])
+    elif isinstance(serialPorts[0],
+                    serial.tools.list_ports_common.ListPortInfo):
+        for serialPort in serialPorts:
+            serialPortNames.append(serialPort.device)
 
     # get program arguments and options
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
