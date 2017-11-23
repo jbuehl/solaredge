@@ -10,7 +10,7 @@ import struct
 import netifaces
 import os
 import signal
-import serial
+import serial.tools.list_ports
 from seConf import *
 import seFiles
 import seMsg
@@ -301,12 +301,13 @@ if __name__ == "__main__":
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
     # arguments
 
-    inFileName = args[0]
-    if inFileName == "-":
-        inFileName = "stdin"
-    elif inFileName in serialPortNames:
-        serialDevice = True
-    else:
+    try:
+        inFileName = args[0]
+        if inFileName == "-":
+            inFileName = "stdin"
+        elif inFileName in serialPortNames:
+            serialDevice = True
+    except IndexError:  # no input specified
         inFileName = "stdin"
         following = True
 
