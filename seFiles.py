@@ -32,59 +32,36 @@ socketTimeout = 120.0
 
 # open data socket and wait for connection from inverter
 def openDataSocket(sePort):
-    try:
-        # open a socket and wait for a connection
-        dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        dataSocket.bind(("", sePort))
-        dataSocket.listen(0)
-        logger.info("waiting for connection")
-        (clientSocket, addr) = dataSocket.accept()
-        dataSocket.close()
-        logger.info("connection from %s:%s", addr[0], addr[1])
-        # set a timeout so lost connection can be detected
-        clientSocket.settimeout(socketTimeout)
-        return clientSocket.makefile("rwb")
-    except socket.error as ex:
-        raise Exception("Error opening socket "+ex)
+    # open a socket and wait for a connection
+    dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    dataSocket.bind(("", sePort))
+    dataSocket.listen(0)
+    logger.debug("waiting for connection")
+    (clientSocket, addr) = dataSocket.accept()
+    dataSocket.close()
+    logger.debug("connection from %s:%s", addr[0], addr[1])
+    # set a timeout so lost connection can be detected
+    clientSocket.settimeout(socketTimeout)
+    return clientSocket.makefile("rwb")
 
 
 # open serial device
 def openSerial(inFileName, baudRate):
-    try:
-        return serial.Serial(inFileName, baudrate=baudRate)
-    except serial.serialutil.SerialException as ex:
-        raise Exception("Error opening serial port "+ex)
+    return serial.Serial(inFileName, baudrate=baudRate)
 
 
 def openInFile(inFileName):
     if inFileName == "stdin":
         return sys.stdin
     else:
-        try:
-            # Explicitly specify mode rb to keep windows happy!
-            return open(inFileName, 'rb')
-        except IOError:
-            raise Exception("Error opening input file "+inFileName)
-
-# open the specified data source
-def openData(inFileName, networkDevice, serialDevice, baudRate, ipAddr, sePort, subnetMask, broadcastAddr, networkSvcs):
-    logger.info("opening %s", inFileName)
-    if networkDevice:
-        if networkSvcs:
-            # start network services
-            seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
-            seNetwork.startDns(ipAddr)
-        return openDataSocket(sePort)
-    elif serialDevice:
-        return openSerial(inFileName, baudRate)
-    else:
-        return openInFile(inFileName)
+        # Explicitly specify mode rb to keep windows happy!
+        return open(inFileName, 'rb')
 
 
 # close the data source
 def closeData(dataFile, networkDevice):
-    logger.info("closing %s", dataFile.name)
+    logger.debug("closing %s", dataFile.name)
     if networkDevice:
         dataFile._sock.close()
     dataFile.close()
@@ -93,29 +70,16 @@ def closeData(dataFile, networkDevice):
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
-        try:
-            return open(fileName, writeMode)
-        except IOError:
-            raise Exception("Error opening "+fileName)
+        return open(fileName, writeMode)
     else:
         return None
-
-
-# open the output files
-def openOutFiles(recFileName, outFileName, writeMode):
-    recFile = openOutFile(recFileName, writeMode)
-    if outFileName == "stdout":
-        outFile = sys.stdout
-    else:
-        outFile = openOutFile(outFileName, writeMode)
-    return (recFile, outFile)
 
 
 # close output files
 def closeOutFiles(recFile, outFile):
     if recFile:
-        logger.info("closing %s", recFile.name)
+        logger.debug("closing %s", recFile.name)
         recFile.close()
     if outFile:
-        logger.info("closing %s", outFile.name)
+        logger.debug("closing %s", outFile.name)
         outFile.close()
