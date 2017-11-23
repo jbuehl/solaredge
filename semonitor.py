@@ -19,6 +19,7 @@ import seCommands
 import seNetwork
 import logging
 import logging.handlers
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ slaveAddrs = []
 # action parameters
 commandAction = False
 commandStr = ""
-commands = []
 commandDelay = 2
 networkInterface = ""
 networkSvcs = False
@@ -264,25 +264,6 @@ def waitForEnd():
         return False
 
 
-# parse and validate the commands specified in the -c option
-def parseCommands(opt):
-
-    for command in [command.split(",") for command in opt.split("/")]:
-        try:
-            # validate the command function
-            v = int(command[0], 16)
-        except ValueError:
-            terminate(1, "Invalid numeric value" + " in " + " ".join(c for c in command))
-        # validate command parameters
-        for p in command[1:]:
-            # validate data type
-            if p[0] not in "bhlBHL":
-                terminate(1, "Invalid data type " + p[0] + " in " + " ".join(c for c in command))
-            # validate parameter value
-            v = int(p[1:], 16)
-    return commands
-
-
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
     # this is either a list of tuples or ListPortInfo objects
@@ -420,7 +401,12 @@ if __name__ == "__main__":
 
     # command mode validation
     if commandStr != "":
-        commands = parseCommands(commandStr)
+        commands = []
+        for c in commandStr.split("/"):
+            if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
+                terminate(1, "Invalid command: {}".format(c))
+            commands.append(c.split(","))
+
         commandAction = True
         passiveMode = False
         if len(slaveAddrs) != 1:
