@@ -166,7 +166,7 @@ def processMsg(msg, dataFile, recFile, outFile):
 # write firmware image to file
 def writeUpdate(updateBuf):
     updateBuf = "".join(updateBuf)
-    logger.debug("writing %s", updateFileName)
+    logger.info("writing %s", updateFileName)
     with open(updateFileName, "w") as updateFile:
         updateFile.write(updateBuf)
 
@@ -182,7 +182,7 @@ def masterCommands(dataFile, recFile):
                                   seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
-                logger.debug("RS485 master ack timeout")
+                logger.info("RS485 master ack timeout")
                 masterEvent.set()
 
             # start a timeout to release the bus if the slave doesn't respond
@@ -235,7 +235,7 @@ def startMaster(args):
     masterThread = threading.Thread(
         name=masterThreadName, target=masterCommands, args=args)
     masterThread.start()
-    logger.debug("starting %s", masterThreadName)
+    logger.info("starting %s", masterThreadName)
 
 # get next sequence number
 def nextSeq():
@@ -431,47 +431,47 @@ if __name__ == "__main__":
 
     # print out the arguments and options
     # debug parameters
-    logger.debug("debugFileName: %s", debugFileName)
-    logger.debug("haltOnDataParsingException: %s", haltOnDataParsingException)
+    logger.info("debugFileName: %s", debugFileName)
+    logger.info("haltOnDataParsingException: %s", haltOnDataParsingException)
     # input parameters
-    logger.debug("inFileName: %s", inFileName)
+    logger.info("inFileName: %s", inFileName)
     if inputType != "":
-        logger.debug("inputType: %s", inputType)
-    logger.debug("serialDevice: %s", serialDevice)
+        logger.info("inputType: %s", inputType)
+    logger.info("serialDevice: %s", serialDevice)
     if serialDevice:
-        logger.debug("    baudRate: %s", baudRate)
-    logger.debug("networkDevice: %s", networkDevice)
-    logger.debug("sePort: %s", sePort)
-    logger.debug("networkSvcs: %s", networkSvcs)
+        logger.info("    baudRate: %s", baudRate)
+    logger.info("networkDevice: %s", networkDevice)
+    logger.info("sePort: %s", sePort)
+    logger.info("networkSvcs: %s", networkSvcs)
     if networkSvcs:
-        logger.debug("netInterface %s", netInterface)
-        logger.debug("    ipAddr %s", ipAddr)
-        logger.debug("    subnetMask %s", subnetMask)
-        logger.debug("    broadcastAddr %s", broadcastAddr)
-    logger.debug("following: %s", following)
+        logger.info("netInterface %s", netInterface)
+        logger.info("    ipAddr %s", ipAddr)
+        logger.info("    subnetMask %s", subnetMask)
+        logger.info("    broadcastAddr %s", broadcastAddr)
+    logger.info("following: %s", following)
     # action parameters
-    logger.debug("passiveMode: %s", passiveMode)
-    logger.debug("commandAction: %s", commandAction)
+    logger.info("passiveMode: %s", passiveMode)
+    logger.info("commandAction: %s", commandAction)
     if commandAction:
         for command in commands:
-            logger.debug("    command: %s", " ".join(c for c in command))
-    logger.debug("masterMode: %s", masterMode)
+            logger.info("    command: %s", " ".join(c for c in command))
+    logger.info("masterMode: %s", masterMode)
     if masterMode or commandAction:
-        logger.debug("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
+        logger.info("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
     # output parameters
-    logger.debug("outFileName: %s", outFileName)
+    logger.info("outFileName: %s", outFileName)
     if recFileName != "":
-        logger.debug("recFileName: %s", recFileName)
-    logger.debug("append: %s", writeMode)
+        logger.info("recFileName: %s", recFileName)
+    logger.info("append: %s", writeMode)
     if keyFileName != "":
-        logger.debug("keyFileName: %s", keyFileName)
-        logger.debug("key: %s", keyStr)
+        logger.info("keyFileName: %s", keyFileName)
+        logger.info("key: %s", keyStr)
     if updateFileName != "":
-        logger.debug("updateFileName: %s", updateFileName)
+        logger.info("updateFileName: %s", updateFileName)
 
     # initialization
     # open the specified data source
-    logger.debug("opening %s", inFileName)
+    logger.info("opening %s", inFileName)
     try:
         if networkDevice:
             if networkSvcs:
@@ -509,7 +509,7 @@ if __name__ == "__main__":
                 target=readData,
                 args=(dataFile, recFile, outFile))
             readThread.start()
-            logger.debug("starting %s", readThreadName)
+            logger.info("starting %s", readThreadName)
             if masterMode:  # send RS485 master commands
                 startMaster(args=(dataFile, recFile))
             # wait for termination
