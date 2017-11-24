@@ -4,7 +4,6 @@
 
 import time
 import threading
-import getopt
 import sys
 import struct
 import netifaces
@@ -49,8 +48,7 @@ def terminate(code=0, msg=""):
 
 # process the input data
 def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, inputType, port, passiveMode, updateFileName, keyStr, masterMode):
-    if updateFileName != "":  # create an array of zeros for the firmware update file
-        updateBuf = list('\x00' * UPDATE_SIZE)
+    updateBuf = list('\x00' * UPDATE_SIZE) if updateFileName else []
     if passiveMode:
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
     while running:
@@ -91,7 +89,7 @@ def processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, ma
         if function == seCommands.PROT_CMD_SERVER_POST_DATA and data:  # performance data
             # write performance data to output file
             seData.writeData(msgData, outFile)
-        elif updateFileName and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
+        elif updateBuf and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if inputType == "n" or masterMode:  # send reply
             replyFunction = ""
@@ -122,7 +120,7 @@ def writeUpdate(updateBuf, updateFileName):
         updateFile.write(updateBuf)
 
 # RS485 master commands thread
-def masterCommands(dataFile, recFile):
+def masterCommands(dataFile, recFile, slaveAddrs):
     while running:
         for slaveAddr in slaveAddrs:
             with threadLock:
@@ -146,7 +144,7 @@ def masterCommands(dataFile, recFile):
         time.sleep(MASTER_MSG_INTERVAL)
 
 # perform the specified commands
-def doCommands(dataFile, commands, recFile, inputType, slaveAddr, passiveMode, keyStr, masterMode):
+def doCommands(dataFile, commands, recFile, inputType, slaveAddr, passiveMode, keyStr, masterMode, following):
     if masterMode:  # send RS485 master command
         # grant control of the bus to the slave
         seMsg.sendMsg(dataFile,
@@ -310,7 +308,7 @@ if __name__ == "__main__":
         passiveMode = False
         if args.type != "4":
             terminate(1, "Master mode only allowed with RS485 serial device")
-        if len(slaveAddrs) < 1:
+        if len(args.slaves) < 1:
             terminate(1, "At least one slave address must be specified for master mode")
 
     # command mode validation
@@ -353,7 +351,7 @@ if __name__ == "__main__":
     else:  # reading and writing to network or serial device
         if args.commands:  # commands were specified
             # perform commands then terminate
-            doCommands(dataFile, commands, recFile, args.type, args.slaves[0], passiveMode)
+            doCommands(dataFile, args.commands, recFile, args.type, args.slaves[0], passiveMode, keyStr, args.master, args.follow)
         else:  # network or RS485
             # start a thread for reading
             readThread = threading.Thread(
@@ -363,7 +361,7 @@ if __name__ == "__main__":
             readThread.start()
             logger.info("starting %s", READ_THREAD_NAME)
             if args.master:  # send RS485 master commands
-                startMaster(args=(dataFile, recFile))
+                startMaster(args=(dataFile, recFile, args.slaves))
             # wait for termination
             running = waitForEnd()
     # cleanup
