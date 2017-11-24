@@ -7,13 +7,13 @@ import logging
 debugFileName = "stderr"
 haltOnDataParsingException = False
 
-LOG_LEVEL_MSG = 9
+LOG_LEVEL_DATA = 9
 LOG_LEVEL_RAW = 8
 
-logging.addLevelName(LOG_LEVEL_MSG, 'MESSAGE')
+logging.addLevelName(LOG_LEVEL_DATA, 'DATA')
 logging.addLevelName(LOG_LEVEL_RAW, 'RAW')
 
-logging.Logger.message = lambda self, message, *args, **kws: self.log(LOG_LEVEL_MSG, message, *args, **kws) 
+logging.Logger.data = lambda self, message, *args, **kws: self.log(LOG_LEVEL_DATA, message, *args, **kws) 
 logging.Logger.raw = lambda self, message, *args, **kws: self.log(LOG_LEVEL_RAW, message, *args, **kws) 
 
 logger = logging.getLogger(__name__)

@@ -106,7 +106,7 @@ def readData(dataFile, recFile, outFile):
                     writeUpdate(updateBuf)
                 return
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
-            logger.message(msg)
+            logger.data(msg)
         else:
             with threadLock:
                 try:
@@ -114,7 +114,7 @@ def readData(dataFile, recFile, outFile):
                 except:
                     logger.info("Filed to parse message")
                     for l in format_data(msg):
-                        logger.message(l)
+                        logger.data(l)
                     if haltOnDataParsingException:
                         raise
 
@@ -124,9 +124,9 @@ def processMsg(msg, dataFile, recFile, outFile):
     (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg, keyStr)
     if function == 0:
         # message could not be processed
-        logger.message("Ignoring this message")
+        logger.data("Ignoring this message")
         for l in format_data(data):
-            logger.message(l)
+            logger.data(l)
     else:
         msgData = seData.parseData(function, data)
         if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (data != ""):  # performance data
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     level = {                   # previously:
             1: logging.INFO,    # -v    debugFiles
             2: logging.DEBUG,   # -vv   debugMsgs
-            3: LOG_LEVEL_MSG,   # -vvv  debugData
+            3: LOG_LEVEL_DATA,  # -vvv  debugData
             4: LOG_LEVEL_RAW,   # -vvvv debugRaw
             }.get(min(v_level, 4), logging.ERROR)
 

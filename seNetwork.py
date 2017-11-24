@@ -143,28 +143,28 @@ class DhcpMsg(object):
                 msgPtr = len(msg)
 
     def log(self):
-        logger.message("op: %d" % self.op)
-        logger.message("htype: %x" % self.htype)
-        logger.message("hlen: %d" % self.hlen)
-        logger.message("hops: %d" % self.hops)
-        logger.message("xid: 0x%08x" % self.xid)
-        logger.message("secs: %d" % self.secs)
-        logger.message("flags: 0x%04x" % self.flags)
-        logger.message("ciaddr: %s", socket.inet_ntoa(self.ciaddr))
-        logger.message("yiaddr: %s", socket.inet_ntoa(self.yiaddr))
-        logger.message("siaddr: %s", socket.inet_ntoa(self.siaddr))
-        logger.message("giaddr: %s", socket.inet_ntoa(self.giaddr))
-        logger.message("chaddr: %s", ':'.join(
+        logger.data("op: %d" % self.op)
+        logger.data("htype: %x" % self.htype)
+        logger.data("hlen: %d" % self.hlen)
+        logger.data("hops: %d" % self.hops)
+        logger.data("xid: 0x%08x" % self.xid)
+        logger.data("secs: %d" % self.secs)
+        logger.data("flags: 0x%04x" % self.flags)
+        logger.data("ciaddr: %s", socket.inet_ntoa(self.ciaddr))
+        logger.data("yiaddr: %s", socket.inet_ntoa(self.yiaddr))
+        logger.data("siaddr: %s", socket.inet_ntoa(self.siaddr))
+        logger.data("giaddr: %s", socket.inet_ntoa(self.giaddr))
+        logger.data("chaddr: %s", ':'.join(
             s.encode('hex') for s in self.chaddr[0:self.hlen]))
-        logger.message("sname: %s", ''.join(
+        logger.data("sname: %s", ''.join(
             x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
-        logger.message("filename: %s", ''.join(
+        logger.data("filename: %s", ''.join(
             x.encode('hex')
             for x in self.filename[0:self.filename.find("\x00")]))
-        logger.message("cookie: %s",
+        logger.data("cookie: %s",
               "0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
-            logger.message("option: %d %s", opt[0],
+            logger.data("option: %d %s", opt[0],
                   "0x" + ''.join(x.encode('hex') for x in opt[1]))
 
 # dns message class
@@ -234,20 +234,20 @@ class DnsMsg(object):
         return msg + "\x00"
 
     def log(self):
-        logger.message("id: %x" % self.ident)
-        logger.message("flags: %04x" % self.flags)
+        logger.data("id: %x" % self.ident)
+        logger.data("flags: %04x" % self.flags)
         for question in self.questions:
-            logger.message("question")
-            logger.message("    name: " + question[0])
-            logger.message("    type: %04x" % question[1])
-            logger.message("    class: %04x" % question[2])
+            logger.data("question")
+            logger.data("    name: " + question[0])
+            logger.data("    type: %04x" % question[1])
+            logger.data("    class: %04x" % question[2])
         for answer in self.answers:
-            logger.message("answer")
-            logger.message("    name: " + answer[0])
-            logger.message("    type: %04x" % answer[1])
-            logger.message("    class: %04x" % answer[2])
-            logger.message("    TTL: %d" % answer[3])
-            logger.message("    resource: " + socket.inet_ntoa(answer[4]))
+            logger.data("answer")
+            logger.data("    name: " + answer[0])
+            logger.data("    type: %04x" % answer[1])
+            logger.data("    class: %04x" % answer[2])
+            logger.data("    TTL: %d" % answer[3])
+            logger.data("    resource: " + socket.inet_ntoa(answer[4]))
 
 # start thread to handle dhcp requests
 def startDhcp(ipAddr, subnetMask, broadcastAddr):
