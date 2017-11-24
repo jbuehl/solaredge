@@ -20,62 +20,19 @@ import seNetwork
 import logging
 import logging.handlers
 import re
+import argparse
 
 logger = logging.getLogger(__name__)
 
-# debug flags
-debugFileName = "stderr"
-haltOnDataParsingException = False
-
-# data source parameters
-inFileName = ""
-following = False
-inputType = ""
-serialDevice = False
-baudRate = 115200
-networkDevice = False
-
-# network parameters
-sePort = 22222
-netInterface = ""
-ipAddr = ""
-broadcastAddr = ""
-subnetMask = ""
-
-# operating mode parameters
-passiveMode = True
-masterMode = False
-slaveAddrs = []
-
 # action parameters
-commandAction = False
-commandStr = ""
-commandDelay = 2
-networkInterface = ""
-networkSvcs = False
-
-# output file parameters
-outFileName = "stdout"
-recFileName = ""
-writeMode = "w"
-updateFileName = ""
-
-# encryption key
-keyFileName = ""
-keyStr = ""
-
-# global constants
-bufSize = 1024
-parsing = True
-lineSize = 16
-readThreadName = "read thread"
-masterThreadName = "master thread"
-masterMsgInterval = 5
-masterMsgTimeout = 10
-masterAddr = 0xfffffffe
-seqFileName = "seseq.txt"
-updateSize = 0x80000
-updateBuf = []
+COMMAND_DELAY = 2
+READ_THREAD_NAME = "read thread"
+MASTER_THREAD_NAME = "master thread"
+MASTER_MSG_INTERVAL = 5
+MASTER_MSG_TIMEOUT = 10
+MASTER_ADDR = 0xfffffffe
+SEQ_FILE_NAME = "seseq.txt"
+UPDATE_SIZE = 0x80000
 
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
@@ -91,30 +48,28 @@ def terminate(code=0, msg=""):
     sys.exit(code)
 
 # process the input data
-def readData(dataFile, recFile, outFile):
+def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, inputType, port, passiveMode, updateFileName, keyStr, masterMode):
     if updateFileName != "":  # create an array of zeros for the firmware update file
-        updateBuf = list('\x00' * updateSize)
+        updateBuf = list('\x00' * UPDATE_SIZE)
     if passiveMode:
-        msg = seMsg.readMsg(
-            dataFile,
-            recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
+        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
     while running:
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
-            if networkDevice:
-                seFiles.closeData(dataFile, networkDevice)
-                dataFile = seFiles.openDataSocket(sePort)
+            if inputType == "n":
+                seFiles.closeData(dataFile, True)
+                dataFile = seFiles.openDataSocket(port)
             else:  # all finished
-                if updateFileName != "":  # write the firmware update file
-                    writeUpdate(updateBuf)
+                if updateFileName:  # write the firmware update file
+                    writeUpdate(updateBuf, updateFileName)
                 return
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
             logger.data(msg)
         else:
             with threadLock:
                 try:
-                    processMsg(msg, dataFile, recFile, outFile)
+                    processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, masterMode)
                 except:
                     logger.info("Filed to parse message")
                     for l in seLogging.format_data(msg):
@@ -123,7 +78,7 @@ def readData(dataFile, recFile, outFile):
                         raise
 
 # process a received message
-def processMsg(msg, dataFile, recFile, outFile):
+def processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, masterMode):
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg, keyStr)
     if function == 0:
@@ -133,12 +88,12 @@ def processMsg(msg, dataFile, recFile, outFile):
             logger.data(l)
     else:
         msgData = seData.parseData(function, data)
-        if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (data != ""):  # performance data
+        if function == seCommands.PROT_CMD_SERVER_POST_DATA and data:  # performance data
             # write performance data to output file
             seData.writeData(msgData, outFile)
-        elif (updateFileName != "") and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
+        elif updateFileName and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
-        if (networkDevice or masterMode):  # send reply
+        if inputType == "n" or masterMode:  # send reply
             replyFunction = ""
             if function == seCommands.PROT_CMD_SERVER_POST_DATA:  # performance data
                 # send ack
@@ -160,7 +115,7 @@ def processMsg(msg, dataFile, recFile, outFile):
                 seMsg.sendMsg(dataFile, msg, recFile)
 
 # write firmware image to file
-def writeUpdate(updateBuf):
+def writeUpdate(updateBuf, updateFileName):
     updateBuf = "".join(updateBuf)
     logger.info("writing %s", updateFileName)
     with open(updateFileName, "w") as updateFile:
@@ -173,7 +128,7 @@ def masterCommands(dataFile, recFile):
             with threadLock:
                 # grant control of the bus to the slave
                 seMsg.sendMsg(dataFile,
-                            seMsg.formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
+                            seMsg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
                                   seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
@@ -181,22 +136,21 @@ def masterCommands(dataFile, recFile):
                 masterEvent.set()
 
             # start a timeout to release the bus if the slave doesn't respond
-            masterTimer = threading.Timer(masterMsgTimeout, masterTimerExpire)
+            masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
             masterTimer.start()
             # wait for slave to release the bus
             masterEvent.clear()
             masterEvent.wait()
             # cancel the timeout
             masterTimer.cancel()
-        time.sleep(masterMsgInterval)
+        time.sleep(MASTER_MSG_INTERVAL)
 
 # perform the specified commands
-def doCommands(dataFile, commands, recFile):
-    slaveAddr = int(slaveAddrs[0], 16)
+def doCommands(dataFile, commands, recFile, inputType, slaveAddr, passiveMode, keyStr, masterMode):
     if masterMode:  # send RS485 master command
         # grant control of the bus to the slave
         seMsg.sendMsg(dataFile,
-                seMsg.formatMsg(nextSeq(), masterAddr, slaveAddr,
+                seMsg.formatMsg(nextSeq(), MASTER_ADDR, slaveAddr,
                           seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
         # format the command parameters
@@ -206,7 +160,7 @@ def doCommands(dataFile, commands, recFile):
         seq = nextSeq()
         # send the command
         seMsg.sendMsg(dataFile,
-                seMsg.formatMsg(seq, masterAddr, slaveAddr, function,
+                seMsg.formatMsg(seq, MASTER_ADDR, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
@@ -220,27 +174,27 @@ def doCommands(dataFile, commands, recFile):
             "data": msgData
         }, outFile)
         # wait a bit before sending the next one
-        time.sleep(commandDelay)
+        time.sleep(COMMAND_DELAY)
 
 # start RS485 master thread
 def startMaster(args):
     # start a thread to poll for data
     masterThread = threading.Thread(
-        name=masterThreadName, target=masterCommands, args=args)
+        name=MASTER_THREAD_NAME, target=masterCommands, args=args)
     masterThread.start()
-    logger.info("starting %s", masterThreadName)
+    logger.info("starting %s", MASTER_THREAD_NAME)
 
 # get next sequence number
 def nextSeq():
     try:
-        with open(seqFileName) as seqFile:
+        with open(SEQ_FILE_NAME) as seqFile:
             seq = int(seqFile.read().rstrip("\n"))
         seq += 1
         if seq > 65535:
             seq = 1
     except IOError:
         seq = 1
-    with open(seqFileName, "w") as seqFile:
+    with open(SEQ_FILE_NAME, "w") as seqFile:
         seqFile.write(str(seq) + "\n")
     return seq
 
@@ -254,6 +208,7 @@ def waitForEnd():
         os.kill(os.getpid(), signal.SIGKILL)
         return False
 
+
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
     # this is either a list of tuples or ListPortInfo objects
@@ -261,74 +216,56 @@ if __name__ == "__main__":
     serial_port_names = map(lambda p: p.device if isinstance(p, 
                             serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
 
-    # get program arguments and options
-    (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
-    # arguments
+    def validated_commands(command_str):
+        commands = command_str.split("/")
+        for c in commands:
+            if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
+                raise argparse.ArgumentTypeError("Invalid command: {}".format(c))
+        return commands
 
-    if len(args) >= 1:
-        inFileName = args[0]
-        if inFileName == "-":
-            inFileName = "stdin"
-        elif inFileName in serial_port_names:
-            serialDevice = True
-    else:
-        inFileName = "stdin"
-        following = True
 
-    v_level = 0
+    parser = argparse.ArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
+    parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
+    parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
+    parser.add_argument("-d", dest="logfile", default="stderr", help="where to write log messages.  either a file name or one of ['stderr', 'syslog']")
+    parser.add_argument("-f", dest="follow", action="store_true", default=False, help="wait for appended data as the input file grows (as in tail -f)")
+    parser.add_argument("-k", dest="keyfile", type=argparse.FileType('r'), help="file containing a hex encoded encryption key")
+    parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
+    parser.add_argument("-n", dest="interface", type=netifaces.ifaddresses, help="run DHCP and DNS network services on the specified interface")
+    parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
+    parser.add_argument("-p", dest="port", type=int, default=22222, help="port to listen on in network mode")
+    parser.add_argument("-r", dest="record", type=argparse.FileType('w'), help="file to record all incoming and outgoing messages to")
+    parser.add_argument("-s", dest="slaves", type=lambda s: [int(x.strip(), 16) for x in s.split(",")], default=[], help="comma delimited list of SolarEdge slave inverter IDs")
+    parser.add_argument("-t", dest="type", choices=["2","4","n"], help="serial data source type (2=RS232, 4=RS485, n=network)")
+    parser.add_argument("-u", dest="update_file", type=argparse.FileType('w'), help="file to write firmwate update to (experimental)")
+    parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
+    parser.add_argument("-x", dest="xerror", action="store_true", default=False, help="halt on data exception")
+    parser.add_argument("datasource", default="stdin", nargs='?', help="Input filename or serial port")
 
-    # options
-    for opt in opts:
-        if opt[0] == "-a":
-            writeMode = "a"
-        elif opt[0] == "-b":
-            baudRate = opt[1]
-        elif opt[0] == "-c":
-            commandStr = opt[1]
-        elif opt[0] == "-d":
-            debugFileName = opt[1]
-        elif opt[0] == "-f":
-            following = True
-        elif opt[0] == "-k":
-            keyFileName = opt[1]
-        elif opt[0] == "-m":
-            masterMode = True
-        elif opt[0] == "-n":
-            netInterface = opt[1]
-        elif opt[0] == "-o":
-            outFileName = opt[1]
-        elif opt[0] == "-p":
-            sePort = int(opt[1])
-        elif opt[0] == "-r":
-            recFileName = opt[1]
-        elif opt[0] == "-s":
-            slaveAddrs = opt[1].split(",")
-        elif opt[0] == "-t":
-            inputType = opt[1]
-        elif opt[0] == "-u":
-            updateFileName = opt[1]
-        elif opt[0] == "-v":
-            v_level += 1
-        elif opt[0] == "-x":
-            haltOnDataParsingException = True
-        else:
-            terminate(1, "Unknown option " + opt[0])
+
+    args = parser.parse_args()
+    if args.datasource == "-":
+        args.datasource = "stdin"
+
+    serialDevice = args.datasource in serial_port_names
+    passiveMode = True
 
     # configure logging
     stream_formatter = logging.Formatter("%(message)s")
     file_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
     
-    if debugFileName == "syslog":
+    if args.logfile == "syslog":
         handler = logging.handlers.SysLogHandler(address="/dev/log")
         handler.setFormatter(stream_formatter)
-    elif debugFileName == "stderr":
+    elif args.logfile == "stderr":
         handler = logging.StreamHandler(stream=sys.stderr)
         handler.setFormatter(stream_formatter)
-    elif debugFileName == "stdout":
+    elif args.logfile == "stdout":
         handler = logging.StreamHandler(stream=sys.stdout)
         handler.setFormatter(stream_formatter)
-    elif debugFileName:
-        handler = logging.FileHandler(debugFileName, mode=writeMode)
+    elif args.logfile:
+        handler = logging.FileHandler(args.logfile, mode="a" if args.append else "w")
         handler.setFormatter(file_formatter)
 
     level = {                               # previously:
@@ -336,7 +273,7 @@ if __name__ == "__main__":
             2: logging.DEBUG,               # -vv   debugMsgs
             3: seLogging.LOG_LEVEL_DATA,    # -vvv  debugData
             4: seLogging.LOG_LEVEL_RAW,     # -vvvv debugRaw
-            }.get(min(v_level, 4), logging.ERROR)
+            }.get(min(args.verbose, 4), logging.ERROR)
 
     # configure the root logger
     root_logger = logging.getLogger()
@@ -344,150 +281,91 @@ if __name__ == "__main__":
     root_logger.addHandler(handler)
 
     # validate input type
-    if inputType in ["2", "4"]:
-        if not serialDevice:
-            terminate(1, "Input device types 2 and 4 are only valid for a serial device")
-    elif inputType == "n":
-        if inFileName != "stdin":
+    if args.type in ["2", "4"] and not serialDevice:
+        terminate(1, "Input device types 2 and 4 are only valid for a serial device")
+    if args.type == "n":
+        args.datasource = "network"
+        if args.datasource != "stdin":
             terminate(1, "Input file cannot be specified for network mode")
-        networkDevice = True
-        inFileName = "network"
-    elif inputType != "":
-        terminate(1, "Invalid input type " + inputType)
 
     # get network interface parameters
-    if netInterface != "":
-        networkDevice = True
-        inFileName = "network"
+    if args.interface:
+        args.datasource = "network"
         passiveMode = False
-        try:
-            netInterfaceParams = netifaces.ifaddresses(netInterface)[2][0]
-            ipAddr = netInterfaceParams["addr"]
-            broadcastAddr = netInterfaceParams["broadcast"]
-            subnetMask = netInterfaceParams["netmask"]
-            networkSvcs = True
-        except ValueError:
-            raise
-            terminate(1, "network interface is not available")
+        netInterfaceParams = args.interface[2][0]
+        ipAddr = netInterfaceParams["addr"]
+        broadcastAddr = netInterfaceParams["broadcast"]
+        subnetMask = netInterfaceParams["netmask"]
 
     # serial device validation
     if serialDevice:
-        following = True
-        if inputType == "2":
+        args.following = True
+        if args.type == "2":
             passiveMode = False
-        elif inputType != "4":
+        elif args.type != "4":
             terminate(1, "Input device type 2 or 4 must be specified for serial device")
 
     # master mode validation
-    if masterMode:
+    if args.master:
         passiveMode = False
-        if inputType != "4":
+        if args.type != "4":
             terminate(1, "Master mode only allowed with RS485 serial device")
         if len(slaveAddrs) < 1:
             terminate(1, "At least one slave address must be specified for master mode")
 
     # command mode validation
-    if commandStr != "":
-        commands = []
-        for c in commandStr.split("/"):
-            if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
-                terminate(1, "Invalid command: {}".format(c))
-            commands.append(c.split(","))
-
-        commandAction = True
+    if args.commands:
         passiveMode = False
-        if len(slaveAddrs) != 1:
+        if len(args.slaves) != 1:
             terminate(1, "Exactly one slave address must be specified for command mode")
 
     # get encryption key
-    if keyFileName != "":
-        with open(keyFileName) as keyFile:
-            keyStr = keyFile.read().rstrip("\n")
+    keyStr = args.keyfile.read().rstrip("\n") if args.keyfile else None
 
     # print out the arguments and options
-    # debug parameters
-    logger.info("debugFileName: %s", debugFileName)
-    logger.info("haltOnDataParsingException: %s", haltOnDataParsingException)
-    # input parameters
-    logger.info("inFileName: %s", inFileName)
-    if inputType != "":
-        logger.info("inputType: %s", inputType)
-    logger.info("serialDevice: %s", serialDevice)
-    if serialDevice:
-        logger.info("    baudRate: %s", baudRate)
-    logger.info("networkDevice: %s", networkDevice)
-    logger.info("sePort: %s", sePort)
-    logger.info("networkSvcs: %s", networkSvcs)
-    if networkSvcs:
-        logger.info("netInterface %s", netInterface)
-        logger.info("    ipAddr %s", ipAddr)
-        logger.info("    subnetMask %s", subnetMask)
-        logger.info("    broadcastAddr %s", broadcastAddr)
-    logger.info("following: %s", following)
-    # action parameters
-    logger.info("passiveMode: %s", passiveMode)
-    logger.info("commandAction: %s", commandAction)
-    if commandAction:
-        for command in commands:
-            logger.info("    command: %s", " ".join(c for c in command))
-    logger.info("masterMode: %s", masterMode)
-    if masterMode or commandAction:
-        logger.info("slaveAddrs: %s", ",".join(slaveAddr for slaveAddr in slaveAddrs))
-    # output parameters
-    logger.info("outFileName: %s", outFileName)
-    if recFileName != "":
-        logger.info("recFileName: %s", recFileName)
-    logger.info("append: %s", writeMode)
-    if keyFileName != "":
-        logger.info("keyFileName: %s", keyFileName)
-        logger.info("key: %s", keyStr)
-    if updateFileName != "":
-        logger.info("updateFileName: %s", updateFileName)
+    for k,v in vars(args).iteritems():
+        logger.info("%s: %s", k, v)
 
     # initialization
     # open the specified data source
-    logger.info("opening %s", inFileName)
-    try:
-        if networkDevice:
-            if networkSvcs:
-                # start network services
-                seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
-                seNetwork.startDns(ipAddr)
-            dataFile =  seFiles.openDataSocket(sePort)
-        elif serialDevice:
-            dataFile =  seFiles.openSerial(inFileName, baudRate)
-        else:
-            dataFile =  seFiles.openInFile(inFileName)
+    logger.info("opening %s", args.datasource)
+    if args.type == "n":
+        if args.interface:
+            # start network services
+            seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
+            seNetwork.startDns(ipAddr)
+        dataFile =  seFiles.openDataSocket(args.port)
+    elif serialDevice:
+        dataFile =  seFiles.openSerial(args.datasource, args.baudrate)
+    else:
+        dataFile =  seFiles.openInFile(args.datasource)
 
-        # open the output files
-        recFile = seFiles.openOutFile(recFileName, writeMode)
-        if outFileName == "stdout":
-            outFile = sys.stdout
-        else:
-            outFile = seFiles.openOutFile(outFileName, writeMode)
-    except Exception as ex:
-        logger.error(ex)
-        sys.exit(1)
+    # open the output files
+    recFile = seFiles.openOutFile(args.record, "a" if args.append else "w")
+    if args.outfile == "stdout":
+        outFile = sys.stdout
+    else:
+        outFile = seFiles.openOutFile(args.outfile, "a" if args.append else "w")
 
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
-        readData(dataFile, recFile, outFile)
+        readData(dataFile, recFile, outFile, args.xerror, args.follow, args.type, args.port, passiveMode, args.update_file, keyStr, args.master)
     else:  # reading and writing to network or serial device
-        if commandAction:  # commands were specified
+        if args.commands:  # commands were specified
             # perform commands then terminate
-            doCommands(dataFile, commands, recFile)
+            doCommands(dataFile, commands, recFile, args.type, args.slaves[0], passiveMode)
         else:  # network or RS485
             # start a thread for reading
             readThread = threading.Thread(
-                name=readThreadName,
+                name=READ_THREAD_NAME,
                 target=readData,
-                args=(dataFile, recFile, outFile))
+                args=(dataFile, recFile, outFile, args.xerror, args.follow, args.type, args.port, passiveMode, keyStr, args.master))
             readThread.start()
-            logger.info("starting %s", readThreadName)
-            if masterMode:  # send RS485 master commands
+            logger.info("starting %s", READ_THREAD_NAME)
+            if args.master:  # send RS485 master commands
                 startMaster(args=(dataFile, recFile))
             # wait for termination
             running = waitForEnd()
     # cleanup
-    seFiles.closeData(dataFile, networkDevice)
+    seFiles.closeData(dataFile, args.type == "n")
     seFiles.closeOutFiles(recFile, outFile)

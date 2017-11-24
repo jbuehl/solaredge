@@ -63,10 +63,8 @@ def closeData(dataFile, networkDevice):
 
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
-    if fileName != "":
+    if fileName:
         return open(fileName, writeMode)
-    else:
-        return None
 
 # close output files
 def closeOutFiles(recFile, outFile):

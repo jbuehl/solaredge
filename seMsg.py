@@ -124,7 +124,7 @@ def parseMsg(msg, keyStr):
         (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
         # encryption key
         if function == 0x0503:
-            if keyStr != "":
+            if keyStr:
                 logger.data("Creating decryption object with key",
                       keyStr)
                 decrypt = SEDecrypt(keyStr.decode("hex"), data)
