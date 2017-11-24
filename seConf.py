@@ -13,8 +13,16 @@ LOG_LEVEL_RAW = 8
 logging.addLevelName(LOG_LEVEL_DATA, 'DATA')
 logging.addLevelName(LOG_LEVEL_RAW, 'RAW')
 
-logging.Logger.data = lambda self, message, *args, **kws: self.log(LOG_LEVEL_DATA, message, *args, **kws) 
-logging.Logger.raw = lambda self, message, *args, **kws: self.log(LOG_LEVEL_RAW, message, *args, **kws) 
+def _data_log(self, msg, *args, **kwargs):
+    if self.isEnabledFor(LOG_LEVEL_DATA):
+        self._log(LOG_LEVEL_DATA, msg, args, **kwargs)
+
+def _raw_log(self, msg, *args, **kwargs):
+    if self.isEnabledFor(LOG_LEVEL_RAW):
+        self._log(LOG_LEVEL_RAW, msg, args, **kwargs)
+
+logging.Logger.data = _data_log
+logging.Logger.raw = _raw_log
 
 logger = logging.getLogger(__name__)
 
