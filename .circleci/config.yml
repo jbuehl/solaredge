@@ -23,4 +23,4 @@ jobs:
       - run:
           command: |
             . venv/bin/activate
-            diff <(tshark -r "test/20171119000004.pcap" -T fields -e data | ./unhexlify.py | TZ='US/Pacific' ./semonitor.py -) test/20171119000004.json
+            diff <(tshark -r "test/20171119000004.pcap" -T fields -e data | ./utilities/unhexlify.py | TZ='US/Pacific' ./semonitor.py -) test/20171119000004.json
