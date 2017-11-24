@@ -2,7 +2,7 @@
 
 import struct
 import time
-from seConf import *
+import seLogging
 from Crypto.Cipher import AES
 import logging
 
@@ -89,10 +89,10 @@ def readMsg(inFile, recFile, passiveMode, inputType, following):
                 msg += nextByte
         msg = msg[:-magicLen]  # drop the magic from the end
     if len(msg) > 0:  # don't log zero length messages
-        logMsg("-->", dataInSeq, magic + msg, inFile.name)
+        logger.message("-->", dataInSeq, magic + msg, inFile.name)
     if recFile:
         recSeq += 1
-        logMsg("<--", recSeq, magic + msg, recFile.name)
+        logger.message("<--", recSeq, magic + msg, recFile.name)
         recFile.write(magic + msg)
         recFile.flush()
     return msg
@@ -147,7 +147,7 @@ def validateMsg(msg):
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
         logger.info("Message too short")
-        for l in format_data(msg):
+        for l in seLogging.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # parse the message header
@@ -157,13 +157,13 @@ def validateMsg(msg):
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
         logger.info("Data length is too big for the message")
-        for l in format_data(msg):
+        for l in seLogging.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xffff:
         logger.info("Data length doesn't match inverse length")
-        for l in format_data(msg):
+        for l in seLogging.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     data = msg[msgHdrLen:msgHdrLen + dataLen]
@@ -171,7 +171,7 @@ def validateMsg(msg):
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
     if extraLen != 0:
         logger.data("Discarding %s extra bytes", extraLen)
-        for l in format_data(msg[-extraLen:]):
+        for l in seLogging.format_data(msg[-extraLen:]):
             logger.data(l)
     # validate the checksum
     checksum = struct.unpack(
@@ -181,7 +181,7 @@ def validateMsg(msg):
     if calcsum != checksum:
         logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum,
                                                              calcsum))
-        for l in format_data(msg):
+        for l in seLogging.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     return (msgSeq, fromAddr, toAddr, function, data)
@@ -198,12 +198,12 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
 def sendMsg(dataFile, msg, recFile):
     global dataOutSeq, recSeq
     dataOutSeq += 1
-    logMsg("<--", dataOutSeq, magic + msg, dataFile.name)
+    logger.message("<--", dataOutSeq, magic + msg, dataFile.name)
     dataFile.write(magic + msg)
     dataFile.flush()
     if recFile:
         recSeq += 1
-        logMsg("<--", recSeq, magic + msg, recFile.name)
+        logger.message("<--", recSeq, magic + msg, recFile.name)
         recFile.write(magic + msg)
         recFile.flush()
 

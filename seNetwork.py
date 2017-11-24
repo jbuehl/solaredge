@@ -5,8 +5,6 @@
 import socket
 import threading
 import struct
-
-from seConf import *
 import logging
 
 logger = logging.getLogger(__name__)
@@ -265,7 +263,7 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
             logger.debug("waiting for dhcp message")
             (msg, addr) = dhcpSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
-            logMsg("-->", seq, msg, addr[0] + ":" + str(addr[1]))
+            logger.message("-->", seq, msg, addr[0] + ":" + str(addr[1]))
             dhcpRequest = DhcpMsg()
             dhcpRequest.parse(msg)
             if dhcpRequest.chaddr[
@@ -320,7 +318,7 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                     if dhcpReply:
                         seq += 1
                         dhcpReplyMsg = dhcpReply.format()
-                        logMsg("<--", seq, dhcpReplyMsg,
+                        logger.message("<--", seq, dhcpReplyMsg,
                                broadcastAddr + ":" + str(dhcpClientPort))
                         dhcpReply.log()
                         dhcpSocket.sendto(dhcpReplyMsg,
@@ -345,7 +343,7 @@ def startDns(ipAddr):
             logger.debug("waiting for dns message")
             (msg, addr) = dnsSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
-            logMsg("-->", seq, msg, addr[0] + ":" + str(addr[1]))
+            logger.message("-->", seq, msg, addr[0] + ":" + str(addr[1]))
             dnsRequest = DnsMsg()
             dnsRequest.parse(msg)
             dnsRequest.log()
@@ -360,7 +358,7 @@ def startDns(ipAddr):
                     for question in dnsRequest.questions
                 ])
             dnsReplyMsg = dnsReply.format()
-            logMsg("<--", seq, dnsReplyMsg, addr[0] + ":" + str(addr[1]))
+            logger.message("<--", seq, dnsReplyMsg, addr[0] + ":" + str(addr[1]))
             dnsReply.log()
             dnsSocket.sendto(dnsReplyMsg, (addr[0], addr[1]))
             del dnsRequest

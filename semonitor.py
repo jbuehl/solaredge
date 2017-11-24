@@ -11,7 +11,7 @@ import netifaces
 import os
 import signal
 import serial.tools.list_ports
-from seConf import *
+import seLogging
 import seFiles
 import seMsg
 import seData
@@ -22,6 +22,10 @@ import logging.handlers
 import re
 
 logger = logging.getLogger(__name__)
+
+# debug flags
+debugFileName = "stderr"
+haltOnDataParsingException = False
 
 # data source parameters
 inFileName = ""
@@ -113,7 +117,7 @@ def readData(dataFile, recFile, outFile):
                     processMsg(msg, dataFile, recFile, outFile)
                 except:
                     logger.info("Filed to parse message")
-                    for l in format_data(msg):
+                    for l in seLogging.format_data(msg):
                         logger.data(l)
                     if haltOnDataParsingException:
                         raise
@@ -125,7 +129,7 @@ def processMsg(msg, dataFile, recFile, outFile):
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
-        for l in format_data(data):
+        for l in seLogging.format_data(data):
             logger.data(l)
     else:
         msgData = seData.parseData(function, data)
@@ -331,8 +335,8 @@ if __name__ == "__main__":
     level = {                   # previously:
             1: logging.INFO,    # -v    debugFiles
             2: logging.DEBUG,   # -vv   debugMsgs
-            3: LOG_LEVEL_DATA,  # -vvv  debugData
-            4: LOG_LEVEL_RAW,   # -vvvv debugRaw
+            3: seLogging.LOG_LEVEL_DATA,  # -vvv  debugData
+            4: seLogging.LOG_LEVEL_RAW,   # -vvvv debugRaw
             }.get(min(v_level, 4), logging.ERROR)
 
     # configure the root logger

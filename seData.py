@@ -3,7 +3,7 @@
 import time
 import struct
 import json
-from seConf import *
+import seLogging
 import seCommands
 from seDataParams import *
 from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
@@ -123,7 +123,7 @@ def parseStatus(data):
     #        status = struct.unpack("<HHHHHHH", data)
     #        logger.data("status", "%d "*len(status) % status)
     #    return {"status": status}
-    for l in format_data(data):
+    for l in seLogging.format_data(data):
         logger.data(l)
     return {"status": 0}
 
@@ -249,7 +249,7 @@ def writeData(msgDict, outFile):
     if outFile:
         outSeq += 1
         msg = json.dumps(msgDict)
-        logMsg("<--", outSeq, msg, outFile.name)
+        logger.message("<--", outSeq, msg, outFile.name)
         logger.data(msg)
         outFile.write(msg + "\n")
         outFile.flush()
