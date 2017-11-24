@@ -312,7 +312,6 @@ if __name__ == "__main__":
             terminate(1, "Unknown option " + opt[0])
 
     # configure logging
-
     stream_formatter = logging.Formatter("%(message)s")
     file_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
     
@@ -329,11 +328,11 @@ if __name__ == "__main__":
         handler = logging.FileHandler(debugFileName, mode=writeMode)
         handler.setFormatter(file_formatter)
 
-    level = {
-            1: logging.INFO,
-            2: logging.DEBUG,
-            3: LOG_LEVEL_MSG,
-            4: LOG_LEVEL_RAW,
+    level = {                   # previously:
+            1: logging.INFO,    # -v    debugFiles
+            2: logging.DEBUG,   # -vv   debugMsgs
+            3: LOG_LEVEL_MSG,   # -vvv  debugData
+            4: LOG_LEVEL_RAW,   # -vvvv debugRaw
             }.get(min(v_level, 4), logging.ERROR)
 
     # configure the root logger

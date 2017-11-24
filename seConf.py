@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 # log an incoming or outgoing data message
 def logMsg(direction, seq, msg, endPoint=""):
     if direction == "-->":
-        logger.message(" ")
-    logger.message("%s %s message: %s length: %s", endPoint, direction, seq, len(msg))
+        logger.debug(" ")
+    logger.debug("%s %s message: %s length: %s", endPoint, direction, seq, len(msg))
     for l in format_data(msg):
         logger.raw(l)
     if direction == "<--":
-        logger.message(" ")
+        logger.debug(" ")
 
 # hex dump data
 def format_data(data):
