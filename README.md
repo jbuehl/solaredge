@@ -179,6 +179,8 @@ used to parse the performance data that has been previously captured to a file, 
 interact directly with a SolarEdge inverter over the RS232, RS485, or ethernet interface.
 Performance data is output to a file in JSON format.
 
+**seextract.py** (removed)
+
 **sekey.py** is used to extract the unique encryption key from an inverter.
 
 **se2state.py** follows a file containing JSON performance data and outputs a JSON file
@@ -331,6 +333,17 @@ from inverters and function as a SolarEdge monitoring server.  Use the inverter
 encryption key contained in the file 7f101234.key.  Write performance
 data to the file yyyymmdd.json.  Because the -n option is specified, the -t n option
 is implied.
+
+### seextract.py
+
+This program was intended to extract the TCP stream contining the SolarEdge data
+from a PCAP file.  Because it had issues and there exists a number of open source
+utilities that perform that function it was removed from the project.
+
+* tshark - https://www.wireshark.org/docs/man-pages/tshark.html
+* PcapSplitter - https://github.com/seladb/PcapPlusPlus/tree/master/Examples/PcapSplitter
+* tcpflow - https://github.com/simsong/tcpflow
+* SplitCap - https://www.netresec.com/?page=SplitCap
 
 ### se2state.py
 Maintain a JSON file containing the current state of SolarEdge inverters and optimizers.
