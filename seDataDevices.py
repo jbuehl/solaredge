@@ -40,7 +40,6 @@ sp = "\n\t\t\t\t\t\t: "
 # Create a "utility" constant, to use later to make code less verbose
 nan = float('nan')
 
-
 class ParseDevice(dict):
     """
     ParseDevice itself can only perform a very basic parse of a block of seData from a pcap file.  It's main purposes
@@ -354,7 +353,6 @@ class ParseDevice(dict):
             msg.append(subclass.itemDefs())
         return "\n".join(msg)
 
-
 class ParseDevice_0x0030(ParseDevice):
     def __new__(cls, data):
         # Create a bare minimum instance of a dictionary.  ALL subclasses of ParseDevice MUST do this.
@@ -439,7 +437,6 @@ class ParseDevice_0x0030(ParseDevice):
           identifiers.
         """
         return {self._devType: {self._seId: {self["batteryId"]: self}}}
-
 
 class ParseDevice_0x0022(ParseDevice):
     def __new__(cls, data):
@@ -616,7 +613,6 @@ class ParseDevice_0x0022(ParseDevice):
                                              self["recType"]))
         return {self._devType: {self._seId: {recTypeLabel: self}}}
 
-
 class ParseDevice_Explorer(ParseDevice):
     """ A special parser which tries out several different ways of interpreting each item in the data message, and
     reports *ALL* of them.
@@ -765,7 +761,6 @@ a step towards deciphering a new seType block, and creating a more sensible pars
         ]
         return '\n'.join(msg)
 
-
 def unwrap_metricsDict(mydict):
     """
     A iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,
@@ -801,7 +796,6 @@ def unwrap_metricsDict(mydict):
                     yield nice(k2), v2
                 else:
                     yield "{}.{}".format(nice(k), nice(k2)), v2
-
 
 def merge_update(dict1, dict2):
     """

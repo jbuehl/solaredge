@@ -12,7 +12,6 @@ import logging
 import logging.handlers
 import os
 
-
 class TimedRotatingFileHandlerUmasked(
         logging.handlers.TimedRotatingFileHandler):
     """
@@ -36,7 +35,6 @@ class TimedRotatingFileHandlerUmasked(
             return rtv
         except:
             os.umask(prevUmask)
-
 
 my_logger = logging.getLogger('syslog')
 my_logger.setLevel(logging.DEBUG)

@@ -28,7 +28,6 @@ def logMsg(direction, seq, msg, endPoint=""):
     if direction == "<--":
         logger.message(" ")
 
-
 # hex dump data
 def format_data(data):
     line_width = 16

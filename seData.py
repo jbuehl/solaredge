@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 # message debugging sequence numbers
 outSeq = 0
 
-
 # parse the message data
 def parseData(function, data):
     if function in [
@@ -54,7 +53,6 @@ def parseData(function, data):
         logger.info("Unknown function 0x%04x", function)
     return ''.join(x.encode('hex') for x in data)
 
-
 def parseEnergyStats(data):
     (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
     return {
@@ -65,22 +63,18 @@ def parseEnergyStats(data):
         "Time1": formatDateTime(Time1)
     }
 
-
 def parseParam(data):
     param = struct.unpack("<H", data)[0]
     logger.message("param:     %04x", param)
     return {"param": param}
-
 
 def parseVersion(data):
     version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
     logger.message("version:    %s", version)
     return {"version": version}
 
-
 def formatParam(param):
     return struct.pack("<H", param)
-
 
 def parseOffsetLength(data):
     (offset, length) = struct.unpack("<LL", data[0:8])
@@ -88,16 +82,13 @@ def parseOffsetLength(data):
     logger.message("length:   %08x", length)
     return {"offset": offset, "length": length, "data": data[8:]}
 
-
 def parseLong(data):
     param = struct.unpack("<L", data)[0]
     logger.message("param:     %08x", param)
     return {"param": param}
 
-
 def formatLong(param):
     return struct.pack("<L", param)
-
 
 def parseValueType(data):
     (value, dataType) = struct.unpack("<LH", data)
@@ -105,10 +96,8 @@ def parseValueType(data):
     logger.message("type:      %04x", dataType)
     return {"value": value, "type": dataType}
 
-
 def formatValueType(value, dataType):
     return struct.pack("<HL", value, dataType)
-
 
 def parseParamValue(data):
     (param, value) = struct.unpack("<HL", data)
@@ -116,10 +105,8 @@ def parseParamValue(data):
     logger.message("value:     %08x", value)
     return {"param": param, "value": value}
 
-
 def formatParamValue(param, value):
     return struct.pack("<HL", param, value)
-
 
 def parseTime(data):
     (timeValue, tzOffset) = struct.unpack("<Ll", data)
@@ -127,10 +114,8 @@ def parseTime(data):
     logger.message("tz:        UTC%+d", tzOffset / 60 / 60)
     return {"time": timeValue, "tz": tzOffset}
 
-
 def formatTime(timeValue, tzOffset):
     return struct.pack("<Ll", timeValue, tzOffset)
-
 
 # parse status data
 def parseStatus(data):
@@ -141,7 +126,6 @@ def parseStatus(data):
     for l in format_data(data):
         logger.message(l)
     return {"status": 0}
-
 
 # parse device data
 def parseDeviceData(data):
@@ -201,7 +185,6 @@ def parseDeviceData(data):
 
     return devsDict
 
-
 def parseEventData(seId, eventItems, devData):
     # unpack data and map to items
     seEventData = [
@@ -214,14 +197,12 @@ def parseEventData(seId, eventItems, devData):
         seEventData[4] = formatDateTime(seEventData[4])
     return devDataDict(seId, eventItems, seEventData)
 
-
 def parseInvData(seId, invItems, devData):
     # unpack data and map to items
     seInvData = [
         struct.unpack(invInFmt, devData[:invInFmtLen])[i] for i in invIdx
     ]
     return devDataDict(seId, invItems, seInvData)
-
 
 def parseInv3PhData(seId, invItems, devData):
     # unpack data and map to items
@@ -231,7 +212,6 @@ def parseInv3PhData(seId, invItems, devData):
     ]
     return devDataDict(seId, invItems, seInvData)
 
-
 def parseOptData(seId, optItems, devData):
     # unpack data and map to items
     seOptData = [
@@ -239,7 +219,6 @@ def parseOptData(seId, optItems, devData):
     ]
     seOptData[1] = parseId(seOptData[1])
     return devDataDict(seId, optItems, seOptData)
-
 
 def parseNewOptData(seId, optItems, devData):
     data = bytearray()
@@ -254,7 +233,6 @@ def parseNewOptData(seId, optItems, devData):
     return devDataDict(seId, optItems,
                        [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp])
 
-
 # create a dictionary of device data items
 def devDataDict(seId, itemNames, itemValues):
     devDict = {}
@@ -264,7 +242,6 @@ def devDataDict(seId, itemNames, itemValues):
     for i in range(3, len(itemNames)):
         devDict[itemNames[i]] = itemValues[i - 2]
     return devDict
-
 
 # write device data to output files
 def writeData(msgDict, outFile):
@@ -277,21 +254,17 @@ def writeData(msgDict, outFile):
         outFile.write(msg + "\n")
         outFile.flush()
 
-
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
 def parseId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
-
 
 # format a date
 def formatDateStamp(timeStamp):
     return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
 
-
 # format a time
 def formatTimeStamp(timeStamp):
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
-
 
 # format a timestamp using asctime
 # return the hex value if timestamp is invalid
@@ -300,7 +273,6 @@ def formatDateTime(timeStamp):
         return time.asctime(time.localtime(timeStamp))
     except ValueError:
         return ''.join(x.encode('hex') for x in struct.pack("<L", timeStamp))
-
 
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):

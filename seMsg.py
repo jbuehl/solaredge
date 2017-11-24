@@ -49,7 +49,6 @@ class SEDecrypt:
             map(chr, (msg003d[i + 22] ^ msg003d[18 + (i & 3)]
                       for i in range(len(msg003d) - 22)))))
 
-
 # decryption object
 decrypt = None
 
@@ -63,7 +62,6 @@ checksumLen = 2
 dataInSeq = 0
 dataOutSeq = 0
 recSeq = 0
-
 
 # return the next message
 def readMsg(inFile, recFile, passiveMode, inputType, following):
@@ -99,7 +97,6 @@ def readMsg(inFile, recFile, passiveMode, inputType, following):
         recFile.flush()
     return msg
 
-
 # return the specified number of bytes
 def readBytes(inFile, length, following):
     try:
@@ -115,7 +112,6 @@ def readBytes(inFile, length, following):
     except Exception as ex:
         logger.info("Exception:", exc_info=ex)
         return ""
-
 
 # parse a message
 def parseMsg(msg, keyStr):
@@ -145,7 +141,6 @@ def parseMsg(msg, keyStr):
                 logger.message("Decryption key not yet available")
                 return (0, 0, 0, 0, "")
         return (msgSeq, fromAddr, toAddr, function, data)
-
 
 # parse the header and validate the message
 def validateMsg(msg):
@@ -191,18 +186,13 @@ def validateMsg(msg):
         return (0, 0, 0, 0, "")
     return (msgSeq, fromAddr, toAddr, function, data)
 
-
 # format a message
 def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
-    checksum = calcCrc(
-        struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
+    checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     msg = struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq,
-                      fromAddr, toAddr, function) + data + struct.pack(
-                          "<H", checksum)
-    logMsgHdr(
-        len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
+                      fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
+    logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
     return msg
-
 
 # send a message
 def sendMsg(dataFile, msg, recFile):
@@ -216,7 +206,6 @@ def sendMsg(dataFile, msg, recFile):
         logMsg("<--", recSeq, magic + msg, recFile.name)
         recFile.write(magic + msg)
         recFile.flush()
-
 
 # crc calculation
 #
@@ -256,13 +245,11 @@ crcTable = [
     0x4100, 0x81c1, 0x8081, 0x4040
 ]
 
-
 def calcCrc(data):
     crc = 0x5a5a  # initial value
     for d in data:
         crc = crcTable[(crc ^ ord(d)) & 0xff] ^ (crc >> 8)
     return crc
-
 
 # formatted print a message header
 def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):

@@ -26,7 +26,6 @@ dhcpClientPort = 68
 dhcpThreadName = "dhcpThread"
 dnsThreadName = "dnsThread"
 
-
 # dhcp message class
 class DhcpMsg(object):
 
@@ -168,7 +167,6 @@ class DhcpMsg(object):
             logger.message("option: %d %s", opt[0],
                   "0x" + ''.join(x.encode('hex') for x in opt[1]))
 
-
 # dns message class
 class DnsMsg(object):
 
@@ -250,7 +248,6 @@ class DnsMsg(object):
             logger.message("    class: %04x" % answer[2])
             logger.message("    TTL: %d" % answer[3])
             logger.message("    resource: " + socket.inet_ntoa(answer[4]))
-
 
 # start thread to handle dhcp requests
 def startDhcp(ipAddr, subnetMask, broadcastAddr):
@@ -336,7 +333,6 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
     dhcpThread = threading.Thread(name=dhcpThreadName, target=dhcp)
     dhcpThread.start()
     logger.debug("starting" + dhcpThreadName)
-
 
 # start thread to handle dns requests
 def startDns(ipAddr):

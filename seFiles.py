@@ -28,7 +28,6 @@ socketTimeout = 120.0
 
 #    connection, address = ready_server.accept()
 
-
 # open data socket and wait for connection from inverter
 def openDataSocket(sePort):
     # open a socket and wait for a connection
@@ -44,11 +43,9 @@ def openDataSocket(sePort):
     clientSocket.settimeout(socketTimeout)
     return clientSocket.makefile("rwb")
 
-
 # open serial device
 def openSerial(inFileName, baudRate):
     return serial.Serial(inFileName, baudrate=baudRate)
-
 
 def openInFile(inFileName):
     if inFileName == "stdin":
@@ -57,7 +54,6 @@ def openInFile(inFileName):
         # Explicitly specify mode rb to keep windows happy!
         return open(inFileName, 'rb')
 
-
 # close the data source
 def closeData(dataFile, networkDevice):
     logger.info("closing %s", dataFile.name)
@@ -65,14 +61,12 @@ def closeData(dataFile, networkDevice):
         dataFile._sock.close()
     dataFile.close()
 
-
 # open in output file if it is specified
 def openOutFile(fileName, writeMode="w"):
     if fileName != "":
         return open(fileName, writeMode)
     else:
         return None
-
 
 # close output files
 def closeOutFiles(recFile, outFile):

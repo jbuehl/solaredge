@@ -86,7 +86,6 @@ def terminate(code=0, msg=""):
         logger.error(msg)
     sys.exit(code)
 
-
 # process the input data
 def readData(dataFile, recFile, outFile):
     if updateFileName != "":  # create an array of zeros for the firmware update file
@@ -119,7 +118,6 @@ def readData(dataFile, recFile, outFile):
                     if haltOnDataParsingException:
                         raise
 
-
 # process a received message
 def processMsg(msg, dataFile, recFile, outFile):
     # parse the message
@@ -131,14 +129,12 @@ def processMsg(msg, dataFile, recFile, outFile):
             logger.message(l)
     else:
         msgData = seData.parseData(function, data)
-        if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (
-                data != ""):  # performance data
+        if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (data != ""):  # performance data
             # write performance data to output file
             seData.writeData(msgData, outFile)
         elif (updateFileName != ""
               ) and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
-            updateBuf[msgData["offset"]:
-                      msgData["offset"] + msgData["length"]] = msgData["data"]
+            updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if (networkDevice or masterMode):  # send reply
             replyFunction = ""
             if function == seCommands.PROT_CMD_SERVER_POST_DATA:  # performance data
@@ -152,17 +148,13 @@ def processMsg(msg, dataFile, recFile, outFile):
             elif function == seCommands.PROT_CMD_SERVER_GET_GMT:  # time request
                 # set time
                 replyFunction = seCommands.PROT_RESP_SERVER_GMT
-                replyData = seData.formatTime(
-                    int(time.time()),
-                    (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 *
-                    60)
+                replyData = seData.formatTime(int(time.time()),
+                    (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
             elif function == seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
             if replyFunction != "":
-                msg = seMsg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction,
-                                replyData)
+                msg = seMsg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 seMsg.sendMsg(dataFile, msg, recFile)
-
 
 # write firmware image to file
 def writeUpdate(updateBuf):
@@ -171,7 +163,6 @@ def writeUpdate(updateBuf):
     with open(updateFileName, "w") as updateFile:
         updateFile.write(updateBuf)
 
-
 # RS485 master commands thread
 def masterCommands(dataFile, recFile):
     while running:
@@ -179,7 +170,7 @@ def masterCommands(dataFile, recFile):
             with threadLock:
                 # grant control of the bus to the slave
                 seMsg.sendMsg(dataFile,
-                        seMsg.formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
+                            seMsg.formatMsg(nextSeq(), masterAddr, int(slaveAddr, 16),
                                   seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
@@ -195,7 +186,6 @@ def masterCommands(dataFile, recFile):
             # cancel the timeout
             masterTimer.cancel()
         time.sleep(masterMsgInterval)
-
 
 # perform the specified commands
 def doCommands(dataFile, commands, recFile):
@@ -229,7 +219,6 @@ def doCommands(dataFile, commands, recFile):
         # wait a bit before sending the next one
         time.sleep(commandDelay)
 
-
 # start RS485 master thread
 def startMaster(args):
     # start a thread to poll for data
@@ -252,7 +241,6 @@ def nextSeq():
         seqFile.write(str(seq) + "\n")
     return seq
 
-
 # block while waiting for a keyboard interrupt
 def waitForEnd():
     try:
@@ -263,12 +251,12 @@ def waitForEnd():
         os.kill(os.getpid(), signal.SIGKILL)
         return False
 
-
 if __name__ == "__main__":
     # figure out the list of valid serial ports on this server
     # this is either a list of tuples or ListPortInfo objects
     serial_ports = serial.tools.list_ports.comports()
-    serial_port_names = map(lambda p: p.device if isinstance(p, serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
+    serial_port_names = map(lambda p: p.device if isinstance(p, 
+                            serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
 
     # get program arguments and options
     (opts, args) = getopt.getopt(sys.argv[1:], "ab:c:d:fk:mn:o:p:r:s:t:u:vx")
@@ -482,7 +470,6 @@ if __name__ == "__main__":
     except Exception as ex:
         logger.error(ex)
         sys.exit(1)
-
 
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
