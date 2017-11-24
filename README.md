@@ -94,7 +94,7 @@ must be sent over RS232.
 
 **Ethernet hardware configurations**
 
-Active
+#### Active
 
 ```
                   semonitor
@@ -102,7 +102,7 @@ inverter -------- server
 
 ```
 
-Passive using ethernet hub
+#### Passive using ethernet hub
 
 ```
                      capture
@@ -118,7 +118,7 @@ inverter ---     --- server
 
 ```
 
-Passive using dual capture server interfaces
+#### Passive using dual capture server interfaces
 
 ```
                    capture
@@ -132,7 +132,7 @@ inverter --------- server ----
 ```
 
 **RS485 hardware configurations**
-Active
+#### Active
 
 ```
 inverter ---
@@ -146,7 +146,7 @@ inverter -------- server
 inverter ---
 ```
 
-Passive
+#### Passive
 
 ```
                   RS485
