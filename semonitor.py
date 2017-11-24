@@ -136,8 +136,7 @@ def processMsg(msg, dataFile, recFile, outFile):
         if (function == seCommands.PROT_CMD_SERVER_POST_DATA) and (data != ""):  # performance data
             # write performance data to output file
             seData.writeData(msgData, outFile)
-        elif (updateFileName != ""
-              ) and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
+        elif (updateFileName != "") and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if (networkDevice or masterMode):  # send reply
             replyFunction = ""
@@ -332,11 +331,11 @@ if __name__ == "__main__":
         handler = logging.FileHandler(debugFileName, mode=writeMode)
         handler.setFormatter(file_formatter)
 
-    level = {                   # previously:
-            1: logging.INFO,    # -v    debugFiles
-            2: logging.DEBUG,   # -vv   debugMsgs
-            3: seLogging.LOG_LEVEL_DATA,  # -vvv  debugData
-            4: seLogging.LOG_LEVEL_RAW,   # -vvvv debugRaw
+    level = {                               # previously:
+            1: logging.INFO,                # -v    debugFiles
+            2: logging.DEBUG,               # -vv   debugMsgs
+            3: seLogging.LOG_LEVEL_DATA,    # -vvv  debugData
+            4: seLogging.LOG_LEVEL_RAW,     # -vvvv debugRaw
             }.get(min(v_level, 4), logging.ERROR)
 
     # configure the root logger
@@ -347,8 +346,7 @@ if __name__ == "__main__":
     # validate input type
     if inputType in ["2", "4"]:
         if not serialDevice:
-            terminate(
-                1, "Input device types 2 and 4 are only valid for a serial device")
+            terminate(1, "Input device types 2 and 4 are only valid for a serial device")
     elif inputType == "n":
         if inFileName != "stdin":
             terminate(1, "Input file cannot be specified for network mode")
@@ -378,8 +376,7 @@ if __name__ == "__main__":
         if inputType == "2":
             passiveMode = False
         elif inputType != "4":
-            terminate(
-                1, "Input device type 2 or 4 must be specified for serial device")
+            terminate(1, "Input device type 2 or 4 must be specified for serial device")
 
     # master mode validation
     if masterMode:
@@ -387,8 +384,7 @@ if __name__ == "__main__":
         if inputType != "4":
             terminate(1, "Master mode only allowed with RS485 serial device")
         if len(slaveAddrs) < 1:
-            terminate(
-                1, "At least one slave address must be specified for master mode")
+            terminate(1, "At least one slave address must be specified for master mode")
 
     # command mode validation
     if commandStr != "":
@@ -401,8 +397,7 @@ if __name__ == "__main__":
         commandAction = True
         passiveMode = False
         if len(slaveAddrs) != 1:
-            terminate(
-                1, "Exactly one slave address must be specified for command mode")
+            terminate(1, "Exactly one slave address must be specified for command mode")
 
     # get encryption key
     if keyFileName != "":

@@ -1,8 +1,7 @@
-# SolarEdge configuration, logging, and debugging
+# SolarEdge logging and debugging
 
 import sys
 import logging
-
 
 LOG_LEVEL_DATA = 9
 LOG_LEVEL_RAW = 8
