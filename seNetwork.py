@@ -242,6 +242,7 @@ class DnsMsg(object):
 def startDhcp(ipAddr, subnetMask, broadcastAddr):
     # handle dhcp requests
     def dhcp():
+        logger.debug("starting " + dhcpThreadName)
         ipAddrNum = socket.inet_aton(ipAddr)
         clientIpAddrNum = ipAddrNum[0:3] + chr(ord(ipAddrNum[3]) + 1)
         subnetMaskNum = socket.inet_aton(subnetMask)
@@ -316,12 +317,12 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
     dhcpThread = threading.Thread(name=dhcpThreadName, target=dhcp)
     dhcpThread.daemon = True
     dhcpThread.start()
-    logger.debug("starting " + dhcpThreadName)
 
 # start thread to handle dns requests
 def startDns(ipAddr):
     # handle dns requests
     def dns():
+        logger.debug("starting " + dnsThreadName)
         dnsSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         dnsSocket.bind(("", dnsPort))
         seq = 0
@@ -333,7 +334,7 @@ def startDns(ipAddr):
             dnsRequest = DnsMsg()
             dnsRequest.parse(msg)
             dnsRequest.log()
-            if dnsRequest.questions[0][0] != "":
+            if dnsRequest.questions[0][0] != "NONE":
                 seq += 1
                 # any hostname will resolve to this IP address
                 dnsReply = DnsMsg(
@@ -354,5 +355,4 @@ def startDns(ipAddr):
     dnsThread = threading.Thread(name=dnsThreadName, target=dns)
     dnsThread.daemon = True
     dnsThread.start()
-    logger.debug("starting " + dnsThreadName)
     
