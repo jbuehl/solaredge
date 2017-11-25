@@ -316,7 +316,7 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
     dhcpThread = threading.Thread(name=dhcpThreadName, target=dhcp)
     dhcpThread.daemon = True
     dhcpThread.start()
-    logger.debug("starting" + dhcpThreadName)
+    logger.debug("starting " + dhcpThreadName)
 
 # start thread to handle dns requests
 def startDns(ipAddr):
@@ -354,5 +354,5 @@ def startDns(ipAddr):
     dnsThread = threading.Thread(name=dnsThreadName, target=dns)
     dnsThread.daemon = True
     dnsThread.start()
-    logger.debug("starting" + dnsThreadName)
+    logger.debug("starting " + dnsThreadName)
     
