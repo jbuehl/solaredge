@@ -1,10 +1,10 @@
 # SolarEdge input data and file management
 
-import logging
 import serial
 import sys
 import socket
-import seLogging
+import logging
+import se.logutils
 
 logger = logging.getLogger(__name__)
 socketTimeout = 120.0

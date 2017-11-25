@@ -8,12 +8,12 @@ import sys
 import struct
 import netifaces
 import serial.tools.list_ports
-import seLogging
-import seFiles
-import seMsg
-import seData
-import seCommands
-import seNetwork
+import se.logutils
+import se.files
+import se.msg
+import se.data
+import se.commands
+import se.network
 import logging
 import logging.handlers
 import re
@@ -47,14 +47,14 @@ def terminate(code=0, msg=""):
 def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, inputType, port, passiveMode, updateFileName, keyStr, masterMode):
     updateBuf = list('\x00' * UPDATE_SIZE) if updateFileName else []
     if passiveMode:
-        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
+        msg = se.msg.readMsg(dataFile, recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
     while True:
-        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
+        msg = se.msg.readMsg(dataFile, recFile, passiveMode, inputType, following)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if inputType == "n":
-                seFiles.closeData(dataFile, True)
-                dataFile = seFiles.openDataSocket(port)
+                se.files.closeData(dataFile, True)
+                dataFile = se.files.openDataSocket(port)
             else:  # all finished
                 if updateFileName:  # write the firmware update file
                     writeUpdate(updateBuf, updateFileName)
@@ -75,39 +75,39 @@ def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, 
 # process a received message
 def processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, masterMode):
     # parse the message
-    (msgSeq, fromAddr, toAddr, function, data) = seMsg.parseMsg(msg, keyStr)
+    (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg, keyStr)
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
         for l in seLogging.format_data(data):
             logger.data(l)
     else:
-        msgData = seData.parseData(function, data)
-        if function == seCommands.PROT_CMD_SERVER_POST_DATA and data:  # performance data
+        msgData = se.data.parseData(function, data)
+        if function == se.commands.PROT_CMD_SERVER_POST_DATA and data:  # performance data
             # write performance data to output file
-            seData.writeData(msgData, outFile)
-        elif updateBuf and function == seCommands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
+            se.data.writeData(msgData, outFile)
+        elif updateBuf and function == se.commands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if inputType == "n" or masterMode:  # send reply
             replyFunction = ""
-            if function == seCommands.PROT_CMD_SERVER_POST_DATA:  # performance data
+            if function == se.commands.PROT_CMD_SERVER_POST_DATA:  # performance data
                 # send ack
-                replyFunction = seCommands.PROT_RESP_ACK
+                replyFunction = se.commands.PROT_RESP_ACK
                 replyData = ""
             elif function == 0x0503:  # encryption key
                 # send ack
-                replyFunction = seCommands.PROT_RESP_ACK
+                replyFunction = se.commands.PROT_RESP_ACK
                 replyData = ""
-            elif function == seCommands.PROT_CMD_SERVER_GET_GMT:  # time request
+            elif function == se.commands.PROT_CMD_SERVER_GET_GMT:  # time request
                 # set time
-                replyFunction = seCommands.PROT_RESP_SERVER_GMT
-                replyData = seData.formatTime(int(time.time()),
+                replyFunction = se.commands.PROT_RESP_SERVER_GMT
+                replyData = se.data.formatTime(int(time.time()),
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
-            elif function == seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
+            elif function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
             if replyFunction != "":
-                msg = seMsg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
-                seMsg.sendMsg(dataFile, msg, recFile)
+                msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
+                se.msg.sendMsg(dataFile, msg, recFile)
 
 # write firmware image to file
 def writeUpdate(updateBuf, updateFileName):
@@ -122,9 +122,9 @@ def masterCommands(dataFile, recFile, slaveAddrs):
         for slaveAddr in slaveAddrs:
             with threadLock:
                 # grant control of the bus to the slave
-                seMsg.sendMsg(dataFile,
-                            seMsg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
-                                  seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+                se.msg.sendMsg(dataFile,
+                            se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
+                                  se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
                 logger.info("RS485 master ack timeout")
@@ -144,9 +144,9 @@ def masterCommands(dataFile, recFile, slaveAddrs):
 def doCommands(dataFile, commands, recFile, inputType, slaveAddr, passiveMode, keyStr, masterMode, following):
     if masterMode:  # send RS485 master command
         # grant control of the bus to the slave
-        seMsg.sendMsg(dataFile,
-                seMsg.formatMsg(nextSeq(), MASTER_ADDR, slaveAddr,
-                          seCommands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+        se.msg.sendMsg(dataFile,
+                se.msg.formatMsg(nextSeq(), MASTER_ADDR, slaveAddr,
+                          se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
     for command in commands:
         # format the command parameters
         function = int(command[0], 16)
@@ -154,15 +154,15 @@ def doCommands(dataFile, commands, recFile, inputType, slaveAddr, passiveMode, k
         params = [int(p[1:], 16) for p in command[1:]]
         seq = nextSeq()
         # send the command
-        seMsg.sendMsg(dataFile,
-                seMsg.formatMsg(seq, MASTER_ADDR, slaveAddr, function,
+        se.msg.sendMsg(dataFile,
+                se.msg.formatMsg(seq, MASTER_ADDR, slaveAddr, function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
-        (msgSeq, fromAddr, toAddr, response, data) = seMsg.parseMsg(msg, keyStr)
-        msgData = seData.parseData(response, data)
+        msg = se.msg.readMsg(dataFile, recFile, passiveMode, inputType, following)
+        (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg, keyStr)
+        msgData = se.data.parseData(response, data)
         # write response to output file
-        seData.writeData({
+        se.data.writeData({
             "command": function,
             "response": response,
             "sequence": seq,
@@ -258,8 +258,8 @@ if __name__ == "__main__":
     level = {                               # previously:
             1: logging.INFO,                # -v    debugFiles
             2: logging.DEBUG,               # -vv   debugMsgs
-            3: seLogging.LOG_LEVEL_DATA,    # -vvv  debugData
-            4: seLogging.LOG_LEVEL_RAW,     # -vvvv debugRaw
+            3: se.logutils.LOG_LEVEL_DATA,  # -vvv  debugData
+            4: se.logutils.LOG_LEVEL_RAW,   # -vvvv debugRaw
             }.get(min(args.verbose, 4), logging.ERROR)
 
     # configure the root logger
@@ -323,18 +323,18 @@ if __name__ == "__main__":
             # start network services
             seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
             seNetwork.startDns(ipAddr)
-        dataFile =  seFiles.openDataSocket(args.port)
+        dataFile =  se.files.openDataSocket(args.port)
     elif serialDevice:
-        dataFile =  seFiles.openSerial(args.datasource, args.baudrate)
+        dataFile =  se.files.openSerial(args.datasource, args.baudrate)
     else:
-        dataFile =  seFiles.openInFile(args.datasource)
+        dataFile =  se.files.openInFile(args.datasource)
 
     # open the output files
-    recFile = seFiles.openOutFile(args.record, "a" if args.append else "w")
+    recFile = se.files.openOutFile(args.record, "a" if args.append else "w")
     if args.outfile == "stdout":
         outFile = sys.stdout
     else:
-        outFile = seFiles.openOutFile(args.outfile, "a" if args.append else "w")
+        outFile = se.files.openOutFile(args.outfile, "a" if args.append else "w")
 
     if passiveMode:  # only reading from file or serial device
         # read until eof then terminate
@@ -361,5 +361,5 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 pass
     # cleanup
-    seFiles.closeData(dataFile, args.type == "n")
-    seFiles.closeOutFiles(recFile, outFile)
+    se.files.closeData(dataFile, args.type == "n")
+    se.files.closeOutFiles(recFile, outFile)

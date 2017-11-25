@@ -2,9 +2,9 @@
 
 import struct
 import time
-import seLogging
-from Crypto.Cipher import AES
 import logging
+import se.logutils
+from Crypto.Cipher import AES
 
 logger = logging.getLogger(__name__)
 

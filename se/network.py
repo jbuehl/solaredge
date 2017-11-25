@@ -6,6 +6,7 @@ import socket
 import threading
 import struct
 import logging
+import se.logutils
 
 logger = logging.getLogger(__name__)
 

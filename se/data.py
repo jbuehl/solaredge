@@ -3,11 +3,11 @@
 import time
 import struct
 import json
-import seLogging
-import seCommands
-from seDataParams import *
-from seDataDevices import ParseDevice, merge_update, unwrap_metricsDict
 import logging
+import se.logutils
+import se.commands
+from se.dataparams import *
+from se.datadevices import ParseDevice, merge_update, unwrap_metricsDict
 
 logger = logging.getLogger(__name__)
 
@@ -17,34 +17,34 @@ outSeq = 0
 # parse the message data
 def parseData(function, data):
     if function in [
-            seCommands.PROT_RESP_ACK, seCommands.PROT_RESP_NACK, seCommands.PROT_CMD_MISC_GET_VER,
-            seCommands.PROT_CMD_MISC_GET_TYPE, seCommands.PROT_CMD_SERVER_GET_GMT,
-            seCommands.PROT_CMD_SERVER_GET_NAME, seCommands.PROT_CMD_POLESTAR_GET_STATUS,
-            seCommands.PROT_CMD_POLESTAR_MASTER_GRANT, seCommands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK
+            se.commands.PROT_RESP_ACK, se.commands.PROT_RESP_NACK, se.commands.PROT_CMD_MISC_GET_VER,
+            se.commands.PROT_CMD_MISC_GET_TYPE, se.commands.PROT_CMD_SERVER_GET_GMT,
+            se.commands.PROT_CMD_SERVER_GET_NAME, se.commands.PROT_CMD_POLESTAR_GET_STATUS,
+            se.commands.PROT_CMD_POLESTAR_MASTER_GRANT, se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK
     ]:
         # functions with no arguments
         return ''.join(x.encode('hex') for x in data)
-    elif function == seCommands.PROT_CMD_SERVER_POST_DATA:
+    elif function == se.commands.PROT_CMD_SERVER_POST_DATA:
         return parseDeviceData(data)
-    elif function == seCommands.PROT_RESP_POLESTAR_GET_STATUS:
+    elif function == se.commands.PROT_RESP_POLESTAR_GET_STATUS:
         return parseStatus(data)
-    elif function in [seCommands.PROT_CMD_PARAMS_GET_SINGLE, seCommands.PROT_CMD_UPGRADE_START]:
+    elif function in [se.commands.PROT_CMD_PARAMS_GET_SINGLE, se.commands.PROT_CMD_UPGRADE_START]:
         return parseParam(data)
-    elif function in [seCommands.PROT_CMD_MISC_RESET, seCommands.PROT_RESP_PARAMS_SINGLE]:
+    elif function in [se.commands.PROT_CMD_MISC_RESET, se.commands.PROT_RESP_PARAMS_SINGLE]:
         return parseValueType(data)
-    elif function == seCommands.PROT_RESP_MISC_GET_VER:
+    elif function == se.commands.PROT_RESP_MISC_GET_VER:
         return parseVersion(data)
-    elif function == seCommands.PROT_CMD_PARAMS_SET_SINGLE:
+    elif function == se.commands.PROT_CMD_PARAMS_SET_SINGLE:
         return parseParamValue(data)
-    elif function == seCommands.PROT_CMD_UPGRADE_WRITE:
+    elif function == se.commands.PROT_CMD_UPGRADE_WRITE:
         return parseOffsetLength(data)
-    elif function == seCommands.PROT_RESP_UPGRADE_SIZE:
+    elif function == se.commands.PROT_RESP_UPGRADE_SIZE:
         return parseLong(data)
-    elif function in [seCommands.PROT_RESP_MISC_GET_TYPE]:
+    elif function in [se.commands.PROT_RESP_MISC_GET_TYPE]:
         return parseParam(data)
-    elif function == seCommands.PROT_RESP_SERVER_GMT:
+    elif function == se.commands.PROT_RESP_SERVER_GMT:
         return parseTime(data)
-    elif function == seCommands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
+    elif function == se.commands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
         return parseEnergyStats(data)
     elif function == 0x0503:
         return {}
