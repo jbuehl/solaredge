@@ -323,6 +323,8 @@ if __name__ == "__main__":
 
     # print out the arguments and options
     for k,v in vars(args).iteritems():
+        if k == "slaves":
+            v = map(hex, v)
         logger.info("%s: %s", k, v)
 
     # initialization
