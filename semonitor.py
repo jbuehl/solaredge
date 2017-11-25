@@ -321,8 +321,8 @@ if __name__ == "__main__":
     if args.datasource == "network":
         if args.interface:
             # start network services
-            seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
-            seNetwork.startDns(ipAddr)
+            se.network.startDhcp(ipAddr, subnetMask, broadcastAddr)
+            se.network.startDns(ipAddr)
         dataFile =  se.files.openDataSocket(args.port)
     elif serialDevice:
         dataFile =  se.files.openSerial(args.datasource, args.baudrate)
