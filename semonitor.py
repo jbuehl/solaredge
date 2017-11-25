@@ -215,10 +215,11 @@ if __name__ == "__main__":
                             serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
 
     def validated_commands(command_str):
-        commands = command_str.split("/")
-        for c in commands:
+        commands = []
+        for c in command_str.split("/"):
             if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
                 raise argparse.ArgumentTypeError("Invalid command: {}".format(c))
+            commands.append(c.split(","))
         return commands
 
 
