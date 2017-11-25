@@ -7,8 +7,6 @@ import threading
 import sys
 import struct
 import netifaces
-import os
-import signal
 import serial.tools.list_ports
 import seLogging
 import seFiles
@@ -36,7 +34,6 @@ UPDATE_SIZE = 0x80000
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
 masterEvent = threading.Event()  # event to signal RS485 master release
-running = True
 
 # program termination
 def terminate(code=0, msg=""):
@@ -51,7 +48,7 @@ def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, 
     updateBuf = list('\x00' * UPDATE_SIZE) if updateFileName else []
     if passiveMode:
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)  # skip data until the start of the first complete message
-    while running:
+    while True:
         msg = seMsg.readMsg(dataFile, recFile, passiveMode, inputType, following)
         if msg == "":  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
@@ -121,7 +118,7 @@ def writeUpdate(updateBuf, updateFileName):
 
 # RS485 master commands thread
 def masterCommands(dataFile, recFile, slaveAddrs):
-    while running:
+    while True:
         for slaveAddr in slaveAddrs:
             with threadLock:
                 # grant control of the bus to the slave
@@ -179,6 +176,7 @@ def startMaster(args):
     # start a thread to poll for data
     masterThread = threading.Thread(
         name=MASTER_THREAD_NAME, target=masterCommands, args=args)
+    masterThread.daemon = True
     masterThread.start()
     logger.info("starting %s", MASTER_THREAD_NAME)
 
@@ -195,16 +193,6 @@ def nextSeq():
     with open(SEQ_FILE_NAME, "w") as seqFile:
         seqFile.write(str(seq) + "\n")
     return seq
-
-# block while waiting for a keyboard interrupt
-def waitForEnd():
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        # commit suicide
-        os.kill(os.getpid(), signal.SIGKILL)
-        return False
 
 
 if __name__ == "__main__":
@@ -361,12 +349,17 @@ if __name__ == "__main__":
                 name=READ_THREAD_NAME,
                 target=readData,
                 args=(dataFile, recFile, outFile, args.xerror, args.follow, args.type, args.port, passiveMode, keyStr, args.master))
+            readThread.daemon = True
             readThread.start()
             logger.info("starting %s", READ_THREAD_NAME)
             if args.master:  # send RS485 master commands
                 startMaster(args=(dataFile, recFile, args.slaves))
             # wait for termination
-            running = waitForEnd()
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
     # cleanup
     seFiles.closeData(dataFile, args.type == "n")
     seFiles.closeOutFiles(recFile, outFile)
