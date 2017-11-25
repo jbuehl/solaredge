@@ -116,17 +116,14 @@ def readBytes(inFile, length, following):
 # parse a message
 def parseMsg(msg, keyStr):
     global decrypt
-    if len(
-            msg
-    ) < msgHdrLen + checksumLen:  # throw out messages that are too short
+    if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
         return (0, 0, 0, 0, "")
     else:
         (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
         # encryption key
         if function == 0x0503:
             if keyStr:
-                logger.data("Creating decryption object with key",
-                      keyStr)
+                logger.data("Creating decryption object with key", keyStr)
                 decrypt = SEDecrypt(keyStr.decode("hex"), data)
             return (msgSeq, fromAddr, toAddr, function, "")
         # encrypted message
@@ -135,8 +132,7 @@ def parseMsg(msg, keyStr):
                 # decrypt the data and validate that as a message
                 logger.data("Decrypting message")
                 (seq, dataMsg) = decrypt.decrypt(data)
-                (msgSeq, fromAddr, toAddr, function, data) = validateMsg(
-                    dataMsg[4:])
+                (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
             else:  # don't have a key yet
                 logger.data("Decryption key not yet available")
                 return (0, 0, 0, 0, "")
@@ -151,8 +147,7 @@ def validateMsg(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # parse the message header
-    (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack(
-        "<HHHLLH", msg[0:msgHdrLen])
+    (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
@@ -174,13 +169,11 @@ def validateMsg(msg):
         for l in seLogging.format_data(msg[-extraLen:]):
             logger.data(l)
     # validate the checksum
-    checksum = struct.unpack(
-        "<H", msg[msgHdrLen + dataLen:msgHdrLen + dataLen + checksumLen])[0]
+    checksum = struct.unpack("<H", msg[msgHdrLen + dataLen:msgHdrLen + dataLen + checksumLen])[0]
     calcsum = calcCrc(
         struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     if calcsum != checksum:
-        logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum,
-                                                             calcsum))
+        logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
         for l in seLogging.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
