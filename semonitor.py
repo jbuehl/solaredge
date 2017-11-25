@@ -318,7 +318,7 @@ if __name__ == "__main__":
     # initialization
     # open the specified data source
     logger.info("opening %s", args.datasource)
-    if args.type == "n":
+    if args.datasource == "network":
         if args.interface:
             # start network services
             seNetwork.startDhcp(ipAddr, subnetMask, broadcastAddr)
@@ -348,7 +348,7 @@ if __name__ == "__main__":
             readThread = threading.Thread(
                 name=READ_THREAD_NAME,
                 target=readData,
-                args=(dataFile, recFile, outFile, args.xerror, args.follow, args.type, args.port, passiveMode, keyStr, args.master))
+                args=(dataFile, recFile, outFile, args.xerror, args.follow, args.type, args.port, passiveMode, args.update_file, keyStr, args.master))
             readThread.daemon = True
             readThread.start()
             logger.info("starting %s", READ_THREAD_NAME)
