@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 dhcpDnsBufferSize = 4096
 dhcpLeaseTime = 24 * 60 * 60  # 1 day
 validMacs = [
-    "\xb8\x27\xeb",  # Raspberry Pi
+    "\xb8\x27\xeb",  # Raspberry Pi (testing)
     "\x00\x27\x02",  # SolarEdge
 ]
 dnsTtl = 24 * 60 * 60  # 1 day
@@ -105,13 +105,12 @@ class DhcpMsg(object):
         for opt in self.options:
             msg += struct.pack(">BB", opt[0], len(opt[1])) + opt[1]
         msg += chr(self.optCodeEnd)
-        msg += "\x00" * (self.dhcpMsgLen - len(msg)
-                         )  # pad to minimum message length
+        msg += "\x00" * (self.dhcpMsgLen - len(msg))  # pad to minimum message length
         return msg
 
     def parse(self, msg):
-        (self.op, self.htype, self.hlen, self.hops, self.xid, self.secs,
-         self.flags) = struct.unpack(">BBBBLHH", msg[0:self.hdrLen])
+        (self.op, self.htype, self.hlen, self.hops, self.xid, self.secs, self.flags) = \
+            struct.unpack(">BBBBLHH", msg[0:self.hdrLen])
         msgPtr = self.hdrLen
         self.ciaddr = msg[msgPtr:msgPtr + self.addrLen]
         msgPtr += self.addrLen
@@ -134,8 +133,7 @@ class DhcpMsg(object):
             optCode = ord(msg[msgPtr])
             if optCode != self.optCodeEnd:
                 optLen = ord(msg[msgPtr + 1])
-                self.options.append((optCode,
-                                     msg[msgPtr + 2:msgPtr + 2 + optLen]))
+                self.options.append((optCode, msg[msgPtr + 2:msgPtr + 2 + optLen]))
                 msgPtr += 2 + optLen
             else:
                 msgPtr = len(msg)
@@ -152,18 +150,12 @@ class DhcpMsg(object):
         logger.data("yiaddr: %s", socket.inet_ntoa(self.yiaddr))
         logger.data("siaddr: %s", socket.inet_ntoa(self.siaddr))
         logger.data("giaddr: %s", socket.inet_ntoa(self.giaddr))
-        logger.data("chaddr: %s", ':'.join(
-            s.encode('hex') for s in self.chaddr[0:self.hlen]))
-        logger.data("sname: %s", ''.join(
-            x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
-        logger.data("filename: %s", ''.join(
-            x.encode('hex')
-            for x in self.filename[0:self.filename.find("\x00")]))
-        logger.data("cookie: %s",
-              "0x" + ''.join(x.encode('hex') for x in self.cookie))
+        logger.data("chaddr: %s", ':'.join(s.encode('hex') for s in self.chaddr[0:self.hlen]))
+        logger.data("sname: %s", ''.join(x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
+        logger.data("filename: %s", ''.join(x.encode('hex')for x in self.filename[0:self.filename.find("\x00")]))
+        logger.data("cookie: %s","0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
-            logger.data("option: %d %s", opt[0],
-                  "0x" + ''.join(x.encode('hex') for x in opt[1]))
+            logger.data("option: %d %s", opt[0],"0x" + ''.join(x.encode('hex') for x in opt[1]))
 
 # dns message class
 class DnsMsg(object):
@@ -190,8 +182,8 @@ class DnsMsg(object):
         else: self.adds = []
 
     def parse(self, msg):
-        (self.ident, self.flags, nQuestions, nAnswers, nAuths,
-         nAdds) = struct.unpack(">HHHHHH", msg[0:self.hdrLen])
+        (self.ident, self.flags, nQuestions, nAnswers, nAuths, nAdds) = \
+            struct.unpack(">HHHHHH", msg[0:self.hdrLen])
         msgPtr = self.hdrLen
         for i in range(nQuestions):
             qname = self.parseName(msg[msgPtr:])
@@ -219,9 +211,8 @@ class DnsMsg(object):
             msg += self.formatName(question[0]) + struct.pack(
                 ">HH", question[1], question[2])
         for answer in self.answers:
-            msg += self.formatName(answer[0]) + struct.pack(
-                ">HHLH", answer[1], answer[2], answer[3], len(
-                    answer[4])) + answer[4]
+            msg += self.formatName(answer[0]) + struct.pack(">HHLH", 
+                    answer[1], answer[2], answer[3], len(answer[4])) + answer[4]
         return msg
 
     def formatName(self, name):
@@ -260,19 +251,16 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
         dhcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         seq = 0
         while True:
-            logger.debug("waiting for dhcp message")
+            logger.debug("waiting for DHCP message")
             (msg, addr) = dhcpSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
             logger.message("-->", seq, msg, addr[0] + ":" + str(addr[1]))
             dhcpRequest = DhcpMsg()
             dhcpRequest.parse(msg)
-            if dhcpRequest.chaddr[
-                    0:
-                    3] in validMacs:  # only consider requests from specific MAC ranges
+            if dhcpRequest.chaddr[0:3] in validMacs:  # only consider requests from specific MAC ranges
                 dhcpRequest.log()
                 if dhcpRequest.options[0][0] == DhcpMsg.optCodeMsgType:
-                    if ord(dhcpRequest.options[0][
-                            1]) == DhcpMsg.msgTypeDiscover:
+                    if ord(dhcpRequest.options[0][1]) == DhcpMsg.msgTypeDiscover:
                         # respond to discover message with offer
                         dhcpReply = DhcpMsg(
                             op=DhcpMsg.opCodeReply,
@@ -283,17 +271,14 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                             yiaddr=clientIpAddrNum,
                             chaddr=dhcpRequest.chaddr,
                             options=[
-                                (DhcpMsg.optCodeMsgType,
-                                 chr(DhcpMsg.msgTypeOffer)),
+                                (DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeOffer)),
                                 (DhcpMsg.optCodeServerId, ipAddrNum),
-                                (DhcpMsg.optCodeLeaseTime,
-                                 struct.pack(">L", (dhcpLeaseTime))),
+                                (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
                                 (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
                                 (DhcpMsg.optCodeRouter, ipAddrNum),
                                 (DhcpMsg.optCodeDNS, ipAddrNum),
                             ])
-                    elif ord(dhcpRequest.options[0][
-                            1]) == DhcpMsg.msgTypeRequest:
+                    elif ord(dhcpRequest.options[0][1]) == DhcpMsg.msgTypeRequest:
                         # respond to request message with ack
                         dhcpReply = DhcpMsg(
                             op=DhcpMsg.opCodeReply,
@@ -304,11 +289,9 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                             yiaddr=clientIpAddrNum,
                             chaddr=dhcpRequest.chaddr,
                             options=[
-                                (DhcpMsg.optCodeMsgType, chr(
-                                    DhcpMsg.msgTypeAck)),
+                                (DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeAck)),
                                 (DhcpMsg.optCodeServerId, ipAddrNum),
-                                (DhcpMsg.optCodeLeaseTime,
-                                 struct.pack(">L", (dhcpLeaseTime))),
+                                (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
                                 (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
                                 (DhcpMsg.optCodeRouter, ipAddrNum),
                                 (DhcpMsg.optCodeDNS, ipAddrNum),
@@ -321,11 +304,13 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                         logger.message("<--", seq, dhcpReplyMsg,
                                broadcastAddr + ":" + str(dhcpClientPort))
                         dhcpReply.log()
-                        dhcpSocket.sendto(dhcpReplyMsg,
-                                          (broadcastAddr, dhcpClientPort))
+                        dhcpSocket.sendto(dhcpReplyMsg, (broadcastAddr, dhcpClientPort))
                         del dhcpReply
                 else:
                     logger.info("first option is not message type")
+            else:
+                logger.debug("ignoring DHCP request from "+
+                    ':'.join(x.encode('hex') for x in dhcpRequest.chaddr))
             del dhcpRequest
 
     dhcpThread = threading.Thread(name=dhcpThreadName, target=dhcp)
@@ -341,29 +326,30 @@ def startDns(ipAddr):
         dnsSocket.bind(("", dnsPort))
         seq = 0
         while True:
-            logger.debug("waiting for dns message")
+            logger.debug("waiting for DNS message")
             (msg, addr) = dnsSocket.recvfrom(dhcpDnsBufferSize)
             seq += 1
             logger.message("-->", seq, msg, addr[0] + ":" + str(addr[1]))
             dnsRequest = DnsMsg()
             dnsRequest.parse(msg)
             dnsRequest.log()
-            seq += 1
-            # any hostname will resolve to this IP address
-            dnsReply = DnsMsg(
-                ident=dnsRequest.ident,
-                flags=0x8000,
-                questions=dnsRequest.questions,
-                answers=[
-                    question + (dnsTtl, socket.inet_aton(ipAddr))
-                    for question in dnsRequest.questions
-                ])
-            dnsReplyMsg = dnsReply.format()
-            logger.message("<--", seq, dnsReplyMsg, addr[0] + ":" + str(addr[1]))
-            dnsReply.log()
-            dnsSocket.sendto(dnsReplyMsg, (addr[0], addr[1]))
+            if dnsRequest.questions[0][0] != "":
+                seq += 1
+                # any hostname will resolve to this IP address
+                dnsReply = DnsMsg(
+                    ident=dnsRequest.ident,
+                    flags=0x8000,
+                    questions=dnsRequest.questions,
+                    answers=[question + (dnsTtl, socket.inet_aton(ipAddr))
+                        for question in dnsRequest.questions])
+                dnsReplyMsg = dnsReply.format()
+                logger.message("<--", seq, dnsReplyMsg, addr[0] + ":" + str(addr[1]))
+                dnsReply.log()
+                dnsSocket.sendto(dnsReplyMsg, (addr[0], addr[1]))
+                del dnsReply
+            else:
+                logger.debug("ignoring DNS request with no hostname")
             del dnsRequest
-            del dnsReply
 
     dnsThread = threading.Thread(name=dnsThreadName, target=dns)
     dnsThread.daemon = True
