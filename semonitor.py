@@ -67,7 +67,7 @@ def readData(dataFile, recFile, outFile, haltOnDataParsingException, following, 
                     processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, masterMode)
                 except:
                     logger.info("Filed to parse message")
-                    for l in seLogging.format_data(msg):
+                    for l in se.logutils.format_data(msg):
                         logger.data(l)
                     if haltOnDataParsingException:
                         raise
@@ -79,7 +79,7 @@ def processMsg(msg, dataFile, recFile, outFile, keyStr, updateBuf, inputType, ma
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
-        for l in seLogging.format_data(data):
+        for l in se.logutils.format_data(data):
             logger.data(l)
     else:
         msgData = se.data.parseData(function, data)
