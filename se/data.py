@@ -123,7 +123,7 @@ def parseStatus(data):
     #        status = struct.unpack("<HHHHHHH", data)
     #        logger.data("status", "%d "*len(status) % status)
     #    return {"status": status}
-    for l in seLogging.format_data(data):
+    for l in se.logutils.format_data(data):
         logger.data(l)
     return {"status": 0}
 
