@@ -211,7 +211,8 @@ if __name__ == "__main__":
         return commands
 
 
-    parser = argparse.ArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
     parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
     parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
@@ -223,7 +224,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
     parser.add_argument("-p", dest="port", type=int, default=22222, help="port to listen on in network mode")
     parser.add_argument("-r", dest="record", type=argparse.FileType('w'), help="file to record all incoming and outgoing messages to")
-    parser.add_argument("-s", dest="slaves", type=lambda s: [int(x.strip(), 16) for x in s.split(",")], default=[], help="comma delimited list of SolarEdge slave inverter IDs")
+    parser.add_argument("-s", dest="slaves", type=lambda s: [int(x.strip(), 16) for x in s.split(",")], default=[], 
+        help="comma delimited list of SolarEdge slave inverter IDs")
     parser.add_argument("-t", dest="type", choices=["2","4","n"], help="serial data source type (2=RS232, 4=RS485, n=network)")
     parser.add_argument("-u", dest="update_file", type=argparse.FileType('w'), help="file to write firmwate update to (experimental)")
     parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
@@ -271,9 +273,9 @@ if __name__ == "__main__":
     if args.type in ["2", "4"] and not serialDevice:
         terminate(1, "Input device types 2 and 4 are only valid for a serial device")
     if args.type == "n":
-        args.datasource = "network"
         if args.datasource != "stdin":
             terminate(1, "Input file cannot be specified for network mode")
+        args.datasource = "network"
 
     # get network interface parameters
     if args.interface:
