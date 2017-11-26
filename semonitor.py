@@ -45,7 +45,7 @@ def terminate(code=0, msg=""):
 
 # process the input data
 def readData(args, mode, dataFile, recFile, outFile, keyStr):
-    updateBuf = list('\x00' * UPDATE_SIZE) if args.updateFileName else []
+    updateBuf = list('\x00' * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
         msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialDevice, mode.following)  # skip data until the start of the first complete message
     while True:
