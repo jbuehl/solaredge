@@ -114,7 +114,7 @@ def readBytes(inFile, length, following):
         return ""
 
 # parse a message
-def parseMsg(msg, keyStr):
+def parseMsg(msg, keyStr=""):
     global decrypt
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
         return (0, 0, 0, 0, "")
@@ -143,7 +143,7 @@ def validateMsg(msg):
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
         logger.info("Message too short")
-        for l in seLogging.format_data(msg):
+        for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # parse the message header
@@ -152,13 +152,13 @@ def validateMsg(msg):
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
         logger.info("Data length is too big for the message")
-        for l in seLogging.format_data(msg):
+        for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xffff:
         logger.info("Data length doesn't match inverse length")
-        for l in seLogging.format_data(msg):
+        for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     data = msg[msgHdrLen:msgHdrLen + dataLen]
@@ -166,7 +166,7 @@ def validateMsg(msg):
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
     if extraLen != 0:
         logger.data("Discarding %s extra bytes", extraLen)
-        for l in seLogging.format_data(msg[-extraLen:]):
+        for l in se.logutils.format_data(msg[-extraLen:]):
             logger.data(l)
     # validate the checksum
     checksum = struct.unpack("<H", msg[msgHdrLen + dataLen:msgHdrLen + dataLen + checksumLen])[0]
@@ -174,7 +174,7 @@ def validateMsg(msg):
         struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     if calcsum != checksum:
         logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
-        for l in seLogging.format_data(msg):
+        for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     return (msgSeq, fromAddr, toAddr, function, data)
