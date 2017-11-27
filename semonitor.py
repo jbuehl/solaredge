@@ -155,7 +155,7 @@ def doCommands(args, mode, dataFile, recFile, outFile):
         seq = nextSeq()
         # send the command
         se.msg.sendMsg(dataFile,
-                se.msg.formatMsg(seq, MASTER_ADDR, args.slaves[0], function,
+                se.msg.formatMsg(seq, MASTER_ADDR, int(args.slaves[0], 16), function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
         msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialType, mode.following)
@@ -205,9 +205,7 @@ def nextSeq():
 
 if __name__ == "__main__":
     # get the command line arguments and run mode
-    (errors, args, mode) = se.env.getArgs()
-    if errors:
-        terminate(1, "Command line errors")
+    (args, mode) = se.env.getArgs()
     
     # open the specified data source
     logger.info("opening %s", args.datasource)

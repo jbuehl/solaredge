@@ -20,13 +20,17 @@ RunMode = namedtuple("RunMode", ("serialDevice",  # boolean
                                  "following",     # boolean
                                  ))
 
-def error(msg):
-    logger.error(msg)
-    return True
-    
-def getArgs():
-    errors = False
+# argument parser class
+class SeArgumentParser(argparse.ArgumentParser):        
+    def error(self, message):
+        self.print_usage()
+        sys.stderr.write(message+"\n")
+        sys.exit(2)
 
+# get arguments from the command line and validate them
+def getArgs():
+
+    # argument validation functions
     def validated_commands(command_str):
         commands = []
         for c in command_str.split("/"):
@@ -35,7 +39,15 @@ def getArgs():
             commands.append(c.split(","))
         return commands
 
-    parser = argparse.ArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', 
+    def validated_slaves(slave_str):
+        slaves = []
+        for s in slave_str.split(","):
+            if not re.match(r"^[0-9a-fA-F]+$", s):
+                raise argparse.ArgumentTypeError("Invalid slave ID: {}".format(s))
+            slaves.append(s)
+        return slaves
+
+    parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', 
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
     parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
@@ -48,8 +60,7 @@ def getArgs():
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
     parser.add_argument("-p", dest="port", type=int, default=22222, help="port to listen on in network mode")
     parser.add_argument("-r", dest="record", type=argparse.FileType('w'), help="file to record all incoming and outgoing messages to")
-    parser.add_argument("-s", dest="slaves", type=lambda s: [int(x.strip(), 16) for x in s.split(",")], default=[], 
-        help="comma delimited list of SolarEdge slave inverter IDs")
+    parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma delimited list of SolarEdge slave inverter IDs")
     parser.add_argument("-t", dest="type", choices=["2","4","n"], help="serial data source type (2=RS232, 4=RS485, n=network)")
     parser.add_argument("-u", dest="updatefile", type=argparse.FileType('w'), help="file to write firmware update to (experimental)")
     parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
@@ -104,11 +115,11 @@ def getArgs():
         passiveMode = True
 
     if args.type in ["2", "4"] and not serialDevice:
-        errors = error(args.datasource+" is not a valid serial device")
-        errors = error("Input device types 2 and 4 are only valid for a serial device")
+        parser.error(args.datasource+" is not a valid serial device"+"\n"+
+                     "Input device types 2 and 4 are only valid for a serial device")
     if args.type == "n":
         if args.datasource != "":
-            errors = error("Input file cannot be specified for network mode")
+            parser.error("Input file cannot be specified for network mode")
         args.datasource = "network"
         networkDevice = True
         passiveMode = False
@@ -126,15 +137,15 @@ def getArgs():
         if args.type == "2":
             passiveMode = False
         elif args.type != "4":
-            errors = error("Input device type 2 or 4 must be specified for serial device")
+            parser.error("Input device type 2 or 4 must be specified for serial device")
 
     # master mode validation
     if args.master:
         passiveMode = False
         if args.type != "4":
-            errors = error("Master mode only allowed with RS485 serial device")
+            parser.error("Master mode only allowed with RS485 serial device")
         if len(args.slaves) < 1:
-            errors = error("At least one slave address must be specified for master mode")
+            parser.error("At least one slave address must be specified for master mode")
     else:
         passiveMode = True
 
@@ -142,17 +153,15 @@ def getArgs():
     if args.commands:
         passiveMode = False
         if len(args.slaves) != 1:
-            errors = error("Exactly one slave address must be specified for command mode")
+            parser.error("Exactly one slave address must be specified for command mode")
 
     # print out the arguments and option
-    if errors:
-        parser.print_usage()
-    else:
-        for k,v in vars(args).iteritems():
-            if k == "slaves":
-                v = map(hex, v)
-            logger.info("%s: %s", k, v)
+    for k,v in sorted(vars(args).iteritems()):
+        if k == "commands":
+            v = " ".join(",".join(cpart for cpart in command) for command in v)
+        if k == "slaves":
+            v = ",".join(slave for slave in v)
+        logger.info("%s: %s", k, v)
 
-    return (errors, args, 
-        RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
+    return (args, RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
     
