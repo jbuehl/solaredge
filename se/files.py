@@ -35,7 +35,7 @@ def openDataSocket(sePort):
     dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     dataSocket.bind(("", sePort))
     dataSocket.listen(0)
-    logger.info("waiting for connection")
+    logger.info("waiting for connection on port "+str(sePort))
     (clientSocket, addr) = dataSocket.accept()
     dataSocket.close()
     logger.info("connection from %s:%s", addr[0], addr[1])

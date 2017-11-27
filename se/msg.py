@@ -114,7 +114,7 @@ def readBytes(inFile, length, following):
         return ""
 
 # parse a message
-def parseMsg(msg, keyStr):
+def parseMsg(msg, keyStr=""):
     global decrypt
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
         return (0, 0, 0, 0, "")
