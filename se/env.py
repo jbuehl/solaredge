@@ -98,34 +98,25 @@ def getArgs():
     root_logger.setLevel(level)
     root_logger.addHandler(handler)
 
-    # validate input type
     serialDevice = False
     networkDevice = False
-    
+    passiveMode = True
+
+    # data source validation    
     if args.datasource == "-":
         args.datasource = "stdin"
-        passiveMode = True
-    else:
+    elif args.datasource != "stdin":
         # figure out the list of valid serial ports on this server
         # this is either a list of tuples or ListPortInfo objects
         serial_ports = serial.tools.list_ports.comports()
         serial_port_names = map(lambda p: p.device if isinstance(p, 
                                 serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
         serialDevice = args.datasource in serial_port_names
-        passiveMode = True
 
-    if args.type in ["2", "4"] and not serialDevice:
-        parser.error(args.datasource+" is not a valid serial device"+"\n"+
-                     "Input device types 2 and 4 are only valid for a serial device")
-    if args.type == "n":
-        if args.datasource != "":
+    # network interface validation
+    if (args.type == "n") or (args.interface):
+        if args.datasource != "stdin":
             parser.error("Input file cannot be specified for network mode")
-        args.datasource = "network"
-        networkDevice = True
-        passiveMode = False
-
-    # get network interface parameters
-    if args.interface:
         args.datasource = "network"
         networkDevice = True
         passiveMode = False
@@ -138,6 +129,10 @@ def getArgs():
             passiveMode = False
         elif args.type != "4":
             parser.error("Input device type 2 or 4 must be specified for serial device")
+    else:
+        if args.type in ["2", "4"]:
+            parser.error(args.datasource+" is not a valid serial device"+"\n"+
+                         "Input device types 2 and 4 are only valid for a serial device")
 
     # master mode validation
     if args.master:
