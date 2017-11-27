@@ -6,8 +6,9 @@ jobs:
     steps:
       - run: 
           command: |
+            sudo sh -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list'
             curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-            sudo apt-get install -y git-lfs tshark
+            sudo apt-get -t jessie-backports install -y git-lfs tshark
       - checkout
       - restore_cache:
           key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
@@ -23,4 +24,4 @@ jobs:
       - run:
           command: |
             . venv/bin/activate
-            diff <(tshark -r "test/20171119000004.pcap" -T fields -e data | ./utilities/unhexlify.py | TZ='US/Pacific' ./semonitor.py -) test/20171119000004.json
+            test/test.sh
