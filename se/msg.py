@@ -142,7 +142,7 @@ def parseMsg(msg, keyStr=""):
 def validateMsg(msg):
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
-        logger.info("Message too short")
+        logger.error("Message too short")
         for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
@@ -151,13 +151,13 @@ def validateMsg(msg):
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
-        logger.info("Data length is too big for the message")
+        logger.error("Data length is too big for the message")
         for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xffff:
-        logger.info("Data length doesn't match inverse length")
+        logger.error("Data length doesn't match inverse length")
         for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")
@@ -173,7 +173,7 @@ def validateMsg(msg):
     calcsum = calcCrc(
         struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     if calcsum != checksum:
-        logger.info("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
+        logger.error("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
         for l in se.logutils.format_data(msg):
             logger.data(l)
         return (0, 0, 0, 0, "")

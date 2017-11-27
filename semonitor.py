@@ -127,7 +127,7 @@ def masterCommands(dataFile, recFile, slaveAddrs):
                                   se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
 
             def masterTimerExpire():
-                logger.info("RS485 master ack timeout")
+                logger.debug("RS485 master ack timeout")
                 masterEvent.set()
 
             # start a timeout to release the bus if the slave doesn't respond
@@ -254,5 +254,5 @@ if __name__ == "__main__":
             block()
             
     # cleanup
-    se.files.closeData(dataFile, args.type == "n")
+    se.files.closeData(dataFile, mode.networkDevice)
     se.files.closeOutFiles(recFile, outFile)
