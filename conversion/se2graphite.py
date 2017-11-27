@@ -7,7 +7,7 @@ import getopt
 import time
 import sys
 import socket
-from se.datadevices import unwrap_metricsDict
+from common import unwrap_metricsDict
 
 try:
     import syslog
