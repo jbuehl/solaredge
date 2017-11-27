@@ -66,7 +66,7 @@ def getArgs():
     parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
     parser.add_argument("-n", dest="interface", type=netifaces.ifaddresses, help="run DHCP and DNS network services on the specified interface")
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
-    parser.add_argument("-p", dest="ports", type=validated_ports, default=[22222, 22221, 80], help="port to listen on in network mode")
+    parser.add_argument("-p", dest="ports", type=validated_ports, default=[22222, 22221, 80], help="ports to listen on in network mode")
     parser.add_argument("-r", dest="record", type=argparse.FileType('w'), help="file to record all incoming and outgoing messages to")
     parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma delimited list of SolarEdge slave inverter IDs")
     parser.add_argument("-t", dest="type", choices=["2","4","n"], help="serial data source type (2=RS232, 4=RS485, n=network)")

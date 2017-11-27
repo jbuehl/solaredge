@@ -230,7 +230,8 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
                          interface
     -o outfile           write performance data to the specified file in 
                          JSON format (default: stdout)
-    -p port              port to listen on in network mode (default: 22222)
+    -p ports             ports to listen on in network mode 
+                         (default: 22222,22221,80)
     -r recfile           file to record all incoming and outgoing messages to
     -s inv[,inv,...]     comma delimited list of SolarEdge slave inverter IDs
     -t 2|4|n             data source type (2=RS232, 4=RS485, n=network)
