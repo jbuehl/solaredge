@@ -7,7 +7,7 @@ import logging
 import se.logutils
 import se.commands
 from se.dataparams import *
-from se.datadevices import ParseDevice, merge_update, unwrap_metricsDict
+from se.datadevices import ParseDevice, merge_update
 
 logger = logging.getLogger(__name__)
 

@@ -402,13 +402,13 @@ Convert SolarEdge inverter performance monitoring data from JSON to CSV.
 #### Options
     -a              append to inverter and optimizer files
     -d delim        csv file delimiter (default: ",")
-    -h              write column headers to csv files
+    -t              write column headers to csv files
     -p csvPrefix    prefix for all csv filenames
     -i invFile      deprecated - use -p instead
     -o optFile      deprecated - use -p instead
     
 #### Examples
-    python se2csv.py -p yyyymmdd -h yyyymmdd.json
+    python se2csv.py -p yyyymmdd -t yyyymmdd.json
 
 Read from SE data file yyyymmdd.json and write CSV data  with headers,
 for each device type encountered (eg optimizers, inverters, batteries),

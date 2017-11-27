@@ -2,162 +2,46 @@
 
 # Convert SolarEdge inverter performance monitoring data from JSON to CSV
 
-import getopt
 import json
-import sys
+import argparse
+import csv
 
-from se.datadevices import ParseDevice
-from se.datadevices import unwrap_metricsDict
+from common import unwrap_metricsDict
 
-# file parameters
-devsFilePrefix = ""
-devsFile = {}
-eventsFileName = ""
-headers = False
-delim = ","
-writeMode = "w"
-devsSeq = {}
-devsItems = {}
-
-
-def openInFile(inFileName):
-    if inFileName == "stdin":
-        return sys.stdin
-    else:
-        return open(inFileName)
-
-
-# open the specified input file
-def openInput(inFileName):
-    return openInFile(inFileName)
-
-
-# close the input file
-def closeInput(dataFile):
-    dataFile.close()
-
-
-# open in output file if it is specified
-def openOutFile(fileName, writeMode="w"):
-    if fileName != "":
-        return open(fileName, writeMode)
-
-
-# close output files
-def closeOutFiles(devsFile):
-    for devFile in devsFile.itervalues():
-        devFile.close()
-
-
-# write output file headers
-def writeHeaders(outFile, items):
-    outFile.write(delim.join(item for item in items) + "\n")
-
-
-# write data to output files
-def writeData(msgDict, devsFilePrefix):
-    global devsSeq, devsFile
-    if devsFilePrefix:
-        for baseName, devAttrs in unwrap_metricsDict(msgDict):
-            devName, devId = baseName.split(".", 1)
-            if devName not in devsSeq.keys():
-                # First time we've seen this devName, construct devsFileName entry and open the file
-                devsSeq[devName] = 0
-                devsFileName = '{}.{}.csv'.format(devsFilePrefix, devName)
-                devsFile[devName] = openOutFile(devsFileName, writeMode)
-                # Extract the list of item names for this devName
-                itemNames = get_device_items(devAttrs)
-                # Add deviceId to the start of list of itemNames to put into the csv file
-                itemNames.insert(0, "__Identifier__")
-                devsItems[devName] = itemNames
-                if headers:
-                    writeHeaders(devsFile[devName], devsItems[devName])
-
-            # Make sure __Identifer__ is actually stored in devAttrs
-            devAttrs["__Identifier__"] = devId
-            devsSeq[devName] = writeDevData(
-                devsFile[devName],
-                # todo Implement a more elegant way of building a generic format list
-                ["%s"] * len(devsItems[devName]),  #optOutFmt,
-                devAttrs,
-                devsItems[devName],
-                devsSeq[devName])
-
-
-def get_device_items(devAttrs):
-    # Extract the list of item names for this devName
-    # When the parsed data is reduced to reduced to json we lose the information about which subclass parsed it! :-(
-    # So we have to examine the subclasses again.
-    try:
-        seType, devLen = get_device_header_details(devAttrs)
-        for subclass in ParseDevice.__subclasses__():
-            if subclass._dev == seType:
-                return subclass.itemNames()
-    except KeyError:
-        pass
-    # This won't work for the unrecognised devices which are parsed by the special ParseDevice_Explorer, because of the
-    # way each instance generates (lots of) names when the __init__ method runs.
-    # So, just get all the names from the json dictionary!  It's what I want when exploring a new device anyway.
-    outItems = devAttrs.keys()
-    outItems.sort()
-    return outItems
-
-
-def get_device_header_details(devAttrs):
-    seType = int(devAttrs["seType"],
-                 16)  # (At the moment) I am storing seType as a hex str
-    devLen = devAttrs["devLen"]
-    return seType, devLen
-
-
-# write device data to output file
-def writeDevData(outFile, outFmt, devDict, devItems, devSeq):
-    if outFile:
-        outMsg = delim.join(
-            [(outFmt[i] % devDict[devItems[i]]) for i in range(len(devItems))])
-        devSeq += 1
-        outFile.write(outMsg + "\n")
-    return devSeq
-
-
-# get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "ad:hi:o:p:e:")
-
-for opt in opts:
-    if opt[0] == "-a":
-        writeMode = "a"
-    elif opt[0] == "-d":
-        delim = opt[1]
-    elif opt[0] == "-h":
-        headers = True
-    elif opt[0] == "-i":
-        invFileName = opt[1]
-        print('The -i option is deprecated, use -p "csvFileNamePrefix" instead')
-    elif opt[0] == "-o":
-        optFileName = opt[1]
-        print('The -o option is deprecated, use -p "csvFileNamePrefix" instead')
-    elif opt[0] == "-e":
-        eventsFileName = opt[1]
-        print('The -e option is deprecated, use -p "csvFileNamePrefix" instead')
-    elif opt[0] == "-p":
-        devsFilePrefix = opt[1]
-
-if devsFilePrefix == "":
-    print('No csv file output will be produced unless the -p "a-csvFileNamePrefix" is used')
 
 if __name__ == "__main__":
 
-    try:
-        inFileName = args[0]
-    except:
-        inFileName = "stdin"
+    def deprecated(s):
+        raise argparse.ArgumentTypeError("Deprecated option.")
+
+    parser = argparse.ArgumentParser(description='reads a file containing JSON performance data and outputs a separate comma delimited file for each device type (eg inverter, optimizer, battery) encountered that is suitable for input to a spreadsheet.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to inverter and optimizer files")
+    parser.add_argument("-d", dest="delimeter", default=",", help="csv file delimiter")
+    parser.add_argument("-t", dest="headers", action="store_true", default=False, help="write column headers to csv files")
+    parser.add_argument("-p", dest="prefix", required=True, help="prefix for all csv filenames")
+    parser.add_argument("-i", type=deprecated, help="The -i option is deprecated, use -p \"csvFileNamePrefix\" instead")
+    parser.add_argument("-o", type=deprecated, help="The -o option is deprecated, use -p \"csvFileNamePrefix\" instead")
+    parser.add_argument("-e", type=deprecated, help="The -e option is deprecated, use -p \"csvFileNamePrefix\" instead")
+    parser.add_argument("infile", type=argparse.FileType('r'), default="-", nargs='?', help="File containing performance data in JSON format")
+
+    args = parser.parse_args()
+
+    devsFile = {}
 
     # process the data
-    inFile = openInput(inFileName)
-    for jsonStr in inFile:
-        try:
-            writeData(json.loads(jsonStr), devsFilePrefix)
-        except ValueError:
-            print jsonStr
-    closeInput(inFile)
-    closeOutFiles(devsFile)
+    for jsonStr in args.infile:
+        for baseName, devAttrs in unwrap_metricsDict(json.loads(jsonStr)):
+            devName, devId = baseName.split(".", 1)
+            if devName not in devsFile:
+                devsFileName = '{}.{}.csv'.format(args.prefix, devName)
+                itemNames = [ "__Identifier__"] + sorted(devAttrs.keys())
+                devsFile[devName] = csv.DictWriter(open(devsFileName, "a" if args.append else "w"), itemNames)
+                if args.headers:
+                    devsFile[devName].writeheader()
+
+            devAttrs["__Identifier__"] = devId
+            # the default for DictWriter is to use repr() for floats so stringify everything before writing
+            # https://docs.python.org/2/library/csv.html#csv.writer
+            for k,v in devAttrs.iteritems():
+                devAttrs[k] = str(v)
+            devsFile[devName].writerow(devAttrs)

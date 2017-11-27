@@ -24,7 +24,7 @@ import sys
 import socket
 import struct
 import pickle
-from se.datadevices import unwrap_metricsDict
+from common import unwrap_metricsDict
 
 try:
     import syslog
