@@ -3,45 +3,50 @@
 import serial
 import sys
 import socket
+import select
 import logging
 import se.logutils
 
 logger = logging.getLogger(__name__)
 socketTimeout = 120.0
 
-# proposed implementation for issue #21
-#
-#servers = []
-#
-#for port in portlist:
-#    ds = ("0.0.0.0", port)
-#    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#    server.bind(ds)
-#    server.listen(1)
-#    servers.append(server)
-#
-#while True:
-#    # Wait for any of the listening servers to get a client
-#    # connection attempt
-#    readable,_,_ = select.select(servers, [], [])
-#    ready_server = readable[0]
-#    connection, address = ready_server.accept()
-
-# open data socket and wait for connection from inverter
-def openDataSocket(sePort):
-    # open a socket and wait for a connection
-    dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    dataSocket.bind(("", sePort))
-    dataSocket.listen(0)
-    logger.info("waiting for connection on port "+str(sePort))
-    (clientSocket, addr) = dataSocket.accept()
-    dataSocket.close()
-    logger.info("connection from %s:%s", addr[0], addr[1])
+# open data sockets and wait for connection from inverter
+def openDataSocket(ports):
+    listeners = []
+    # listen on all the specified ports
+    for port in ports:
+        logger.info("waiting for connection on port "+str(port))
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("", port))
+        listener.listen(1)
+        listeners.append(listener)
+    # Wait for one of the listeners to get a client connection
+    (readable, writable, exceptional) = select.select(listeners, [], [])
+    listener = readable[0]
+    (clientSocket, addr) = listener.accept()
+    logger.info("connection from %s:%s to port %d", addr[0], addr[1], listener.getsockname()[1])
+    # close all the listening sockets
+    for listener in listeners:
+        listener.close()
     # set a timeout so lost connection can be detected
     clientSocket.settimeout(socketTimeout)
     return clientSocket.makefile("rwb")
+
+## open data socket and wait for connection from inverter
+#def openDataSocket(sePort):
+#    # open a socket and wait for a connection
+#    dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#    dataSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#    dataSocket.bind(("", sePort))
+#    dataSocket.listen(0)
+#    logger.info("waiting for connection on port "+str(sePort))
+#    (clientSocket, addr) = dataSocket.accept()
+#    dataSocket.close()
+#    logger.info("connection from %s:%s", addr[0], addr[1])
+#    # set a timeout so lost connection can be detected
+#    clientSocket.settimeout(socketTimeout)
+#    return clientSocket.makefile("rwb")
 
 # open serial device
 def openSerial(inFileName, baudRate):

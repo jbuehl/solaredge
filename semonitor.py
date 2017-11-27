@@ -54,7 +54,7 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
             # eof from network means connection was broken, wait for a reconnect and continue
             if mode.networkDevice:
                 se.files.closeData(dataFile, True)
-                dataFile = se.files.openDataSocket(args.port)
+                dataFile = se.files.openDataSocket(args.ports)
             else:  # all finished
                 if args.updatefile:  # write the firmware update file
                     writeUpdate(updateBuf, args.updatefile)
@@ -216,7 +216,7 @@ if __name__ == "__main__":
             se.network.startDhcp(netInterfaceParams["addr"], 
                 netInterfaceParams["netmask"], netInterfaceParams["broadcast"])
             se.network.startDns(netInterfaceParams["addr"])
-        dataFile =  se.files.openDataSocket(args.port)
+        dataFile =  se.files.openDataSocket(args.ports)
     elif mode.serialDevice:
         dataFile =  se.files.openSerial(args.datasource, args.baudrate)
     else:
