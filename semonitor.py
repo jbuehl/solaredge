@@ -14,12 +14,8 @@ import se.data
 import se.commands
 import se.network
 import logging
-from collections import namedtuple
-#import logging.handlers
 
 logger = logging.getLogger(__name__)
-
-Files = namedtuple("Files", ("dataFile", "outFile", "recFile", "keyStr"))
 
 # action parameters
 COMMAND_DELAY = 2
@@ -47,30 +43,33 @@ def terminate(code=0, msg=""):
 def readData(args, mode, dataFile, recFile, outFile, keyStr):
     updateBuf = list('\x00' * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
-        msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialDevice, mode.following)  # skip data until the start of the first complete message
-    while True:
-        msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialDevice, mode.following)
-        if not msg:  # end of file
+        # skip data until the start of the first complete message
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)  
+    while not eof:
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
+        if eof:  # end of file
+            logger.info("End of file")
             # eof from network means connection was broken, wait for a reconnect and continue
             if mode.networkDevice:
                 se.files.closeData(dataFile, True)
                 dataFile = se.files.openDataSocket(args.ports)
-            else:  # all finished
-                if args.updatefile:  # write the firmware update file
-                    writeUpdate(updateBuf, args.updatefile)
-                return
+                eof = False
         if msg == "\x00" * len(msg):  # ignore messages containing all zeros
             logger.data(msg)
         else:
             with threadLock:
                 try:
                     processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf)
-                except:
-                    logger.info("Failed to parse message")
+                except Exception as ex:
+                    logger.info("Failed to parse message: "+ex)
                     for l in se.logutils.format_data(msg):
                         logger.data(l)
                     if args.xerror:
                         raise
+        # all finished
+        if args.updatefile:  # write the firmware update file
+            writeUpdate(updateBuf, args.updatefile)
+        return
 
 # process a received message
 def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
@@ -158,7 +157,7 @@ def doCommands(args, mode, dataFile, recFile, outFile):
                 se.msg.formatMsg(seq, MASTER_ADDR, int(args.slaves[0], 16), function,
                           struct.pack(format, *tuple(params))), recFile)
         # wait for the response
-        msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialType, mode.following)
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)
         msgData = se.data.parseData(response, data)
         # write response to output file
