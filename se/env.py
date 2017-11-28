@@ -49,10 +49,10 @@ def getArgs():
 
     def validated_ports(ports_str):
         ports = []
-        for s in slave_str.split(","):
-            if not re.match(r"^[0-9a-fA-F]+$", p):
+        for p in ports_str.split(","):
+            if not re.match(r"^[0-9]+$", p):
                 raise argparse.ArgumentTypeError("Invalid port number: {}".format(p))
-            ports.append(p)
+            ports.append(int(p))
         return ports
 
     parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', 
