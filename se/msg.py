@@ -73,7 +73,7 @@ def readMsg(inFile, recFile, passiveMode, inputType, following):
         msg = readBytes(inFile, magicLen + msgHdrLen, following)
         if msg == "":
             logger.info("end of file")
-            return msg
+            return None
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr,
          function) = struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum

@@ -50,7 +50,7 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
         msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialDevice, mode.following)  # skip data until the start of the first complete message
     while True:
         msg = se.msg.readMsg(dataFile, recFile, mode.passiveMode, mode.serialDevice, mode.following)
-        if msg == "":  # end of file
+        if not msg:  # end of file
             # eof from network means connection was broken, wait for a reconnect and continue
             if mode.networkDevice:
                 se.files.closeData(dataFile, True)
