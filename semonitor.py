@@ -66,10 +66,10 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
                         logger.data(l)
                     if args.xerror:
                         raise
-        # all finished
-        if args.updatefile:  # write the firmware update file
-            writeUpdate(updateBuf, args.updatefile)
-        return
+    # all finished
+    if args.updatefile:  # write the firmware update file
+        writeUpdate(updateBuf, args.updatefile)
+    return
 
 # process a received message
 def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
