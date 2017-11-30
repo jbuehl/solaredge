@@ -1,7 +1,3 @@
 *.pyc
 .DS_Store
-env
-crontab
-sebackup
-secapture
-semonitor
+scripts
