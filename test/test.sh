@@ -2,12 +2,13 @@
 
 export TZ='US/Pacific'
 
-TMP=/tmp/outputs
-
 for pcap in `ls test/pcap`
 do
-    rm -rf $TMP
-    mkdir $TMP
+    TMP=$(mktemp -d)
+    if [ -z "${TMP}" ]; then
+        echo "Failed to create temporary directory '${TMP}'"
+        break
+    fi
 
     SAMPLE="${pcap%.*}"
     KEY_OPTION=""
@@ -20,4 +21,6 @@ do
     diff <(tshark -r test/pcap/$SAMPLE.pcap -T fields -e data | ./utilities/unhexlify.py | ./semonitor.py - $KEY_OPTION) test/json/$SAMPLE.json
     cat test/json/$SAMPLE.json | conversion/se2csv.py -p $TMP/$SAMPLE -t
     diff $TMP/ test/csv/$SAMPLE/ -w
+
+    rm -rf "${TMP}"
 done
