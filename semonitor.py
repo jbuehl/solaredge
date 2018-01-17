@@ -41,6 +41,7 @@ def terminate(code=0, msg=""):
 
 # process the input data
 def readData(args, mode, dataFile, recFile, outFile, keyStr):
+    eof = False
     updateBuf = list('\x00' * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
         # skip data until the start of the first complete message
