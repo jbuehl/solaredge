@@ -5,12 +5,13 @@ import time
 import logging
 import se.logutils
 from Crypto.Cipher import AES
+from Crypto.Random import random
 
 logger = logging.getLogger(__name__)
 
 sleepInterval = .1
 
-class SEDecrypt:
+class SECrypto:
     def __init__(self, key, msg0503):
         """
         Initialise a SolarEdge communication decryption object.
@@ -19,38 +20,60 @@ class SEDecrypt:
                  parameters 0239, 023a, 023b, and 023c.
         msg0503: a 34-byte string with the contents of a 0503 message.
         """
-        enkey1 = map(ord, AES.new(key).encrypt(msg0503[0:16]))
+        enkey1 = map(ord, AES.new(key).encrypt(msg0503[:16]))
         self.cipher = AES.new("".join(
             map(chr, (enkey1[i] ^ ord(msg0503[i + 16]) for i in range(16)))))
+        self.encrypt_seq = random.randint(0, 0xffff)
+
+    def crypt(self, msg003d):
+        """
+        msg003d: the contents of the 003d message to crypt, as list(int).
+
+        Modifies the list in-place and returns it.
+        """
+        rand1 = msg003d[:16]
+        pos = 16
+        while pos < len(msg003d):
+            if not pos % 16:
+                rand = map(ord, self.cipher.encrypt("".join(map(chr, rand1))))
+                for posc in range(15, -1, -1):
+                    rand1[posc] = (rand1[posc] + 1) & 0xff
+                    if rand1[posc]:
+                        break
+            msg003d[pos] ^= rand[pos % 16]
+            pos += 1
+        return msg003d
 
     def decrypt(self, msg003d):
         """
-        msg003d: the contents of the 003d message to decrypt.
+        msg003d: the contents of the 003d message to decrypt, as string.
 
         Returns a tuple(int(sequenceNumber), str(data)).
         """
-        rand1 = map(ord, msg003d[0:16])
-        rand = map(ord, self.cipher.encrypt(msg003d[0:16]))
-        msg003d = map(ord, msg003d)
-        posa = 0
-        posb = 16
-        while posb < len(msg003d):
-            msg003d[posb] ^= rand[posa]
-            posb += 1
-            posa += 1
-            if posa == 16:
-                posa = 0
-                for posc in range(15, -1, -1):
-                    rand1[posc] = (rand1[posc] + 1) & 0x0FF
-                    if rand1[posc]:
-                        break
-                rand = map(ord, self.cipher.encrypt("".join(map(chr, rand1))))
-        return (msg003d[16] + (msg003d[17] << 8), "".join(
-            map(chr, (msg003d[i + 22] ^ msg003d[18 + (i & 3)]
-                      for i in range(len(msg003d) - 22)))))
+        msg003d = self.crypt(map(ord, msg003d))
+        for i in range(len(msg003d) - 22):
+            msg003d[i + 22] ^= msg003d[18 + (i & 3)]
+        return (msg003d[16] + (msg003d[17] << 8),
+                "".join(map(chr, msg003d[22:])))
 
-# decryption object
-decrypt = None
+    def encrypt(self, msg):
+        """
+        msg: the contents of the data to encrypt, as string.
+
+        Returns the data encrypted.
+        """
+        self.encrypt_seq = (self.encrypt_seq + 1) & 0xffff
+        rand1 = [random.randint(0, 255) for x in range(16)]
+        rand2 = [random.randint(0, 255) for x in range(4)]
+        seqnr = [self.encrypt_seq & 0xff, self.encrypt_seq >> 8 & 0xff]
+        msg003d = rand1 + seqnr + rand2 + map(ord, msg)
+        for i in range(len(msg)):
+            msg003d[i + 22] ^= msg003d[18 + (i & 3)]
+        return "".join(map(chr, self.crypt(msg003d)))
+
+
+# cryptography object
+cipher = None
 
 # message constants
 magic = "\x12\x34\x56\x79"
@@ -118,7 +141,7 @@ def readBytes(inFile, length, mode):
 
 # parse a message
 def parseMsg(msg, keyStr=""):
-    global decrypt
+    global cipher
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
         return (0, 0, 0, 0, "")
     else:
@@ -126,15 +149,15 @@ def parseMsg(msg, keyStr=""):
         # encryption key
         if function == 0x0503:
             if keyStr:
-                logger.data("Creating decryption object with key", keyStr)
-                decrypt = SEDecrypt(keyStr.decode("hex"), data)
+                logger.data("Creating cipher object with key", keyStr)
+                cipher = SECrypto(keyStr.decode("hex"), data)
             return (msgSeq, fromAddr, toAddr, function, "")
         # encrypted message
         elif function == 0x003d:
-            if decrypt:
+            if cipher:
                 # decrypt the data and validate that as a message
                 logger.data("Decrypting message")
-                (seq, dataMsg) = decrypt.decrypt(data)
+                (seq, dataMsg) = cipher.decrypt(data)
                 (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
             else:  # don't have a key yet
                 logger.data("Decryption key not yet available")
@@ -183,11 +206,17 @@ def validateMsg(msg):
     return (msgSeq, fromAddr, toAddr, function, data)
 
 # format a message
-def formatMsg(msgSeq, fromAddr, toAddr, function, data=""):
+def formatMsg(msgSeq, fromAddr, toAddr, function, data="", encrypt=True):
     checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     msg = struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq,
                       fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
     logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
+
+    if cipher and encrypt:
+        # encrypt the data and format that as a message
+        logger.data("Encrypting message")
+        msg = formatMsg((cipher.encrypt_seq+1000) & 0xffff,
+            0xfffffffd, 0xffffffff, 0x003d, cipher.encrypt(magic + msg), False)
     return msg
 
 # send a message
