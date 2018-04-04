@@ -21,6 +21,7 @@ do
     echo "Key option: ${KEY_OPTION}"
     tshark -r "test/pcap/${SAMPLE}.pcap" -T fields -e data | ./utilities/unhexlify.py | ./semonitor.py -r "${TMP}/${SAMPLE}.rec" -o "${TMP}/${SAMPLE}.json" - $KEY_OPTION
     diff "${TMP}/${SAMPLE}.json" "test/json/${SAMPLE}.json"
+    cmp -l "${TMP}/${SAMPLE}.rec" "test/rec/${SAMPLE}.rec"
     mkdir "${TMPSE2CSV}"
     cat "test/json/${SAMPLE}.json" | conversion/se2csv.py -p "${TMPSE2CSV}/${SAMPLE}" -t
     diff "${TMP}/se2csv" "test/csv/${SAMPLE}/" -w
