@@ -28,5 +28,9 @@ do
     cat "test/json/${SAMPLE}.json" | conversion/se2csv.py -p "${TMPSE2CSV}/${SAMPLE}" -t
     diff "${TMP}/se2csv" "test/csv/${SAMPLE}/" -w
 
-    rm -rf "${TMP}"
+    if [ -d "${TMP}" ] && [ "${TMP#/tmp/tmp.}x" != "${TMP}x" ]; then
+        rm -rf "${TMP}"
+    fi
 done
+
+exit 0
