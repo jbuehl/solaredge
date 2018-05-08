@@ -5,14 +5,14 @@ set -eux
 
 export TZ='US/Pacific'
 
-for pcap in $(ls "test/pcap/"); do
+for pcap in test/pcap/*.pcap; do
     TMP=$(mktemp -d)
     if [ ! -d "${TMP}" ]; then
         echo "Failed to create temporary directory '${TMP}'"
         break
     fi
     TMPSE2CSV="${TMP}/se2csv"
-    SAMPLE="${pcap%.*}"
+    SAMPLE="$(basename --suffix=".pcap" "${pcap}")"
     REC_OPTION="-r ${TMP}/${SAMPLE}.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.json"
     KEY_OPTION=""
