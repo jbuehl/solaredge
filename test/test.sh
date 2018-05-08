@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/sh
+
+set -eu
 
 export TZ='US/Pacific'
 
