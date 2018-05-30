@@ -7,6 +7,7 @@ import re
 import argparse
 from collections import namedtuple
 import logging
+import logging.handlers
 import se.logutils
 
 logger = logging.getLogger(__name__)
