@@ -1,0 +1,4 @@
+test/csv/** filter=lfs diff=lfs merge=lfs -text
+test/json/** filter=lfs diff=lfs merge=lfs -text
+test/pcap/** filter=lfs diff=lfs merge=lfs -text
+test/rec/** filter=lfs diff=lfs merge=lfs -text
