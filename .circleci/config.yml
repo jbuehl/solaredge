@@ -8,6 +8,7 @@ jobs:
           command: |
             sudo sh -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/backports.list'
             curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+            sudo apt-get install -y libwireshark8 # don't pull libwireshark from backports
             sudo apt-get -t jessie-backports install -y git-lfs tshark
       - checkout
       - restore_cache:
