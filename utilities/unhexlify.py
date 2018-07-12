@@ -13,4 +13,8 @@ import binascii
 import sys
 
 for l in sys.stdin:
-    sys.stdout.write(binascii.unhexlify(l.strip()))
+    if sys.version_info >= (3,0):
+        sys.stdout.buffer.write(binascii.unhexlify(l.strip()))
+    else:
+        sys.stdout.write(binascii.unhexlify(l.strip()))
+
