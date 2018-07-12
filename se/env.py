@@ -160,7 +160,7 @@ def getArgs():
             parser.error("Exactly one slave address must be specified for command mode")
 
     # print out the arguments and option
-    for k,v in sorted(vars(args).iteritems()):
+    for k,v in sorted(vars(args).items()):
         if k == "commands":
             v = " ".join(",".join(cpart for cpart in command) for command in v)
         if k == "slaves":
