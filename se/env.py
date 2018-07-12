@@ -168,7 +168,6 @@ def getArgs():
         if k == "ports":
             v = ",".join(str(port) for port in v)
         logger.info("%s: %s", k, v)
-  
 
     return (args, RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
     
