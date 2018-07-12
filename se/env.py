@@ -159,25 +159,15 @@ def getArgs():
         if len(args.slaves) != 1:
             parser.error("Exactly one slave address must be specified for command mode")
 
-        # print out the arguments and option
-    if sys.version_info >= (3,0):
-        for k,v in sorted(vars(args).items()):
-            if k == "commands":
-                v = " ".join(",".join(cpart for cpart in command) for command in v)
-            if k == "slaves":
-                v = ",".join(slave for slave in v)
-            if k == "ports":
-                v = ",".join(str(port) for port in v)
-            logger.info("%s: %s", k, v)
-    else:
-        for k,v in sorted(vars(args).iteritems()):
-            if k == "commands":
-                v = " ".join(",".join(cpart for cpart in command) for command in v)
-            if k == "slaves":
-                v = ",".join(slave for slave in v)
-            if k == "ports":
-                v = ",".join(str(port) for port in v)
-            logger.info("%s: %s", k, v)
+    # print out the arguments and option
+    for k,v in sorted(vars(args).items()):
+        if k == "commands":
+            v = " ".join(",".join(cpart for cpart in command) for command in v)
+        if k == "slaves":
+            v = ",".join(slave for slave in v)
+        if k == "ports":
+            v = ",".join(str(port) for port in v)
+        logger.info("%s: %s", k, v)
   
 
     return (args, RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
