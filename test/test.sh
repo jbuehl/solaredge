@@ -7,7 +7,7 @@ export TZ='US/Pacific'
 
 for pcap in $(ls "test/pcap/"); do
     TMP=$(mktemp -d)
-    if [ -z "${TMP}" ]; then
+    if [ ! -d "${TMP}" ]; then
         echo "Failed to create temporary directory '${TMP}'"
         break
     fi
