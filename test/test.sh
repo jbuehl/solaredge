@@ -1,6 +1,7 @@
 #!/bin/sh
 
-set -eu
+set -o pipefail
+set -eux
 
 export TZ='US/Pacific'
 
@@ -19,8 +20,6 @@ do
     then
         KEY_OPTION="-k test/keys/${SAMPLE}.key"
     fi
-    echo "Running test sample: ${SAMPLE}"
-    echo "Key option: ${KEY_OPTION}"
     tshark -r "test/pcap/${SAMPLE}.pcap" -T fields -e data | ./utilities/unhexlify.py | ./semonitor.py -r "${TMP}/${SAMPLE}.rec" -o "${TMP}/${SAMPLE}.json" - $KEY_OPTION
     diff "${TMP}/${SAMPLE}.json" "test/json/${SAMPLE}.json"
     cmp -l "${TMP}/${SAMPLE}.rec" "test/rec/${SAMPLE}.rec"
