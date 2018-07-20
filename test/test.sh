@@ -12,7 +12,7 @@ for pcap in test/pcap/*.pcap; do
         break
     fi
     TMPSE2CSV="${TMP}/se2csv"
-    SAMPLE="${pcap%.*}"
+    SAMPLE="$(basename --suffix=".pcap" "${pcap}")"
     REC_OPTION="-r ${TMP}/${SAMPLE}.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.json"
     KEY_OPTION=""
