@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -o pipefail
 set -eux
@@ -12,7 +12,7 @@ for pcap in test/pcap/*.pcap; do
         break
     fi
     TMPSE2CSV="${TMP}/se2csv"
-    SAMPLE="$(basename --suffix=".pcap" "${pcap}")"
+    SAMPLE="${pcap%.*}"
     REC_OPTION="-r ${TMP}/${SAMPLE}.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.json"
     KEY_OPTION=""
@@ -21,7 +21,7 @@ for pcap in test/pcap/*.pcap; do
     fi
     SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} - ${KEY_OPTION}"
 
-    tshark -r "test/pcap/${SAMPLE}.pcap" -T fields -e data | ./utilities/unhexlify.py | eval ./semonitor.py "${SEMONITOR_OPTIONS}"
+    tshark -r "test/pcap/${SAMPLE}.pcap" -T fields -e data | ./utilities/unhexlify.py | ./semonitor.py ${SEMONITOR_OPTIONS}
     diff "${TMP}/${SAMPLE}.json" "test/json/${SAMPLE}.json"
     cmp -l "${TMP}/${SAMPLE}.rec" "test/rec/${SAMPLE}.rec"
     mkdir "${TMPSE2CSV}"
@@ -32,5 +32,3 @@ for pcap in test/pcap/*.pcap; do
         rm -rf "${TMP}"
     fi
 done
-
-exit 0
