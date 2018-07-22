@@ -224,7 +224,7 @@ def sendMsg(dataFile, msg, recFile):
     recordMsg(magic + msg, recFile)
 
 # write a message to the record file
-def recordMsg(msg, recFile);
+def recordMsg(msg, recFile):
     if recFile:
         recFile.write(msg)
         recFile.flush()
