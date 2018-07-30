@@ -84,30 +84,29 @@ checksumLen = 2
 # message debugging sequence numbers
 dataInSeq = 0
 dataOutSeq = 0
-recSeq = 0
 
 # return the next message
 def readMsg(inFile, recFile, mode):
-    global dataInSeq, recSeq
+    global dataInSeq
     dataInSeq += 1
     msg = ""
     eof = False
     if not (mode.passiveMode or (mode.serialType == 4)):
         # active mode that is not rs485
         # read the magic number and header
-        msg = readBytes(inFile, magicLen + msgHdrLen, mode)
+        msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode)
         if msg == "":   # end of file
             return (msg, True)
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = \
             struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
-        msg += readBytes(inFile, dataLen + checksumLen, mode)
+        msg += readBytes(inFile, recFile, dataLen + checksumLen, mode)
         msg = msg[magicLen:]    # strip the magic number from the beginning
     else:
         # passive mode or rs485
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            nextByte = readBytes(inFile, 1, mode)
+            nextByte = readBytes(inFile, recFile, 1, mode)
             if nextByte == "":  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
@@ -116,15 +115,10 @@ def readMsg(inFile, recFile, mode):
         msg = msg[:-magicLen]  # strip the magic number from the end
     if len(msg) > 0:  # don't log zero length messages
         logger.message("-->", dataInSeq, magic + msg, inFile.name)
-    if recFile:
-        recSeq += 1
-        logger.message("<--", recSeq, magic + msg, recFile.name)
-        recFile.write(magic + msg)  # include the magic number in the recorded file
-        recFile.flush()
     return (msg, eof)
 
 # return the specified number of bytes
-def readBytes(inFile, length, mode):
+def readBytes(inFile, recFile, length, mode):
     try:
         inBuf = inFile.read(length)
         if inBuf == "":  # end of file
@@ -133,6 +127,7 @@ def readBytes(inFile, length, mode):
                 while inBuf == "":
                     time.sleep(sleepInterval)
                     inBuf = inFile.read(length)
+        recordMsg(inBuf, recFile)
         return inBuf
     # treat exceptions as end of file
     except Exception as ex:
@@ -221,15 +216,17 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data="", encrypt=True):
 
 # send a message
 def sendMsg(dataFile, msg, recFile):
-    global dataOutSeq, recSeq
+    global dataOutSeq
     dataOutSeq += 1
     logger.message("<--", dataOutSeq, magic + msg, dataFile.name)
     dataFile.write(magic + msg)
     dataFile.flush()
+    recordMsg(magic + msg, recFile)
+
+# write a message to the record file
+def recordMsg(msg, recFile):
     if recFile:
-        recSeq += 1
-        logger.message("<--", recSeq, magic + msg, recFile.name)
-        recFile.write(magic + msg)
+        recFile.write(msg)
         recFile.flush()
 
 # crc calculation
