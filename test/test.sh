@@ -28,6 +28,14 @@ for pcap in test/pcap/*.pcap; do
     ./conversion/se2csv.py -p "${TMPSE2CSV}/${SAMPLE}" -t < "test/json/${SAMPLE}.json"
     diff "${TMPSE2CSV}/" "test/csv/${SAMPLE}/" -w
 
+    IN_OPTION="test/rec/${SAMPLE}.rec"
+    REC_OPTION="-r ${TMP}/${SAMPLE}.re.rec"
+    OUT_OPTION="-o ${TMP}/${SAMPLE}.re.json"
+    SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} ${KEY_OPTION}"
+    ./semonitor.py ${SEMONITOR_OPTIONS}
+    diff "${TMP}/${SAMPLE}.re.json" "test/json/${SAMPLE}.json"
+    cmp -l "${TMP}/${SAMPLE}.re.rec" "test/rec/${SAMPLE}.rec"
+
     if [ -d "${TMP}" ] && [ "${TMP#/tmp/tmp.}x" != "${TMP}x" ]; then
         rm -rf "${TMP}"
     fi
