@@ -145,7 +145,8 @@ def doCommands(args, mode, dataFile, recFile, outFile):
     if mode.masterMode:  # send RS485 master command
         # grant control of the bus to the slave
         se.msg.sendMsg(dataFile,
-                se.msg.formatMsg(nextSeq(), MASTER_ADDR, args.slaves[0], se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), 
+                se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(args.slaves[0], 16), 
+                se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), 
                 recFile)
     for command in args.commands:
         # format the command parameters
