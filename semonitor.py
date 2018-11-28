@@ -142,12 +142,6 @@ def masterCommands(dataFile, recFile, slaveAddrs):
 
 # perform the specified commands
 def doCommands(args, mode, dataFile, recFile, outFile):
-    if mode.masterMode:  # send RS485 master command
-        # grant control of the bus to the slave
-        se.msg.sendMsg(dataFile,
-                se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(args.slaves[0], 16), 
-                se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), 
-                recFile)
     for command in args.commands:
         # format the command parameters
         function = int(command[0], 16)
@@ -158,6 +152,12 @@ def doCommands(args, mode, dataFile, recFile, outFile):
         se.msg.sendMsg(dataFile,
                 se.msg.formatMsg(seq, MASTER_ADDR, int(args.slaves[0], 16), function,
                           struct.pack(format, *tuple(params))), recFile)
+        if mode.masterMode:  # send RS485 master command
+            # grant control of the bus to the slave
+            se.msg.sendMsg(dataFile,
+                    se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(args.slaves[0], 16), 
+                    se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), 
+                    recFile)
         # wait for the response
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)
