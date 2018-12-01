@@ -120,25 +120,29 @@ def writeUpdate(updateBuf, updateFileName):
 def masterCommands(dataFile, recFile, slaveAddrs):
     while True:
         for slaveAddr in slaveAddrs:
-            with threadLock:
-                # grant control of the bus to the slave
-                se.msg.sendMsg(dataFile,
-                            se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
-                                  se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
-
-            def masterTimerExpire():
-                logger.debug("RS485 master ack timeout")
-                masterEvent.set()
-
-            # start a timeout to release the bus if the slave doesn't respond
-            masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
-            masterTimer.start()
-            # wait for slave to release the bus
-            masterEvent.clear()
-            masterEvent.wait()
-            # cancel the timeout
-            masterTimer.cancel()
+            masterGrant(dataFile, recFile, slaveAddr)
         time.sleep(MASTER_MSG_INTERVAL)
+
+# send RS485 master grant command and wait for an ACK
+def masterGrant(dataFile, recFile, slaveAddr):
+    with threadLock:
+        # grant control of the bus to the slave
+        se.msg.sendMsg(dataFile,
+                    se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
+                          se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+
+    def masterTimerExpire():
+        logger.debug("RS485 master ack timeout")
+        masterEvent.set()
+
+    # start a timeout to release the bus if the slave doesn't respond
+    masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
+    masterTimer.start()
+    # wait for slave to release the bus
+    masterEvent.clear()
+    masterEvent.wait()
+    # cancel the timeout
+    masterTimer.cancel()
 
 # perform the specified commands
 def doCommands(args, mode, dataFile, recFile, outFile):
@@ -154,11 +158,8 @@ def doCommands(args, mode, dataFile, recFile, outFile):
                           struct.pack(format, *tuple(params))), recFile)
         if mode.masterMode:  # send RS485 master command
             # grant control of the bus to the slave
-            se.msg.sendMsg(dataFile,
-                    se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(args.slaves[0], 16), 
-                    se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), 
-                    recFile)
-        # wait for the response
+            masterGrant(dataFile, recFile, args.slaves[0])
+        # wait for the response to the command
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)
         msgData = se.data.parseData(response, data)
