@@ -91,13 +91,13 @@ def main():
 
 def getargs():
     parser = argparse.ArgumentParser(description='Takes output from semonitor.py and puts all output into json files based on the day and hour that the message was recieve. No processing is done, messages in from semonitor.py direct to files.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-D", dest="debug", action="store_true",  default=False, help="Turn on debug messages (verbose!)")
+    parser.add_argument("-v", dest="debug", action="store_true",  default=False, help="Turn on very verbose debug messages")
     parser.add_argument("-b", dest="basedir", required=True, help="This is the base directory to put files into (Required)")
     parser.add_argument("-p", dest="prefix", default="solardata_", help="prefix for all csv filenames (defaults to 'solardata_')")
     parser.add_argument("-d", dest="store_daily", default=False, action="store_true", help="Instead of using Hourly files (YYYY-MM-DD-hh) store in daily files (YYYY-MM-DD) - Results in larger files. Default is False (Use Hourly)")
     parser.add_argument("-t", dest="openfilesecs", default="120", help="If no data added to open outputfiles in this many seconds, then close them and wait for more data. Defaults to 120 seconds")
-    parser.add_argument("-s", dest="infile", default="stdin", help="File to process. The Default of stdin is used to pipe data to this script. Otherwise it will just process a single file (provided by -s) and exit)")
     parser.add_argument("-w", dest="looper", default=False, action="store_true", help="Wait forever on stdin. This only applies when -s is not set or set to stdin. It will wait forever on listening to stdin. Use this to wait for long running processes. If this is not set, after 10 attempts to read from stdin, it will exit gracefully. This is the default so you can cat files to this, and have it return. If you are running this as part of a semonitor.py process that is live, then set -w so it can go a long time without input and not close")
+    parser.add_argument("infile", default="stdin", nargs='?', help="File to process. The Default of stdin is used to pipe data to this script. Otherwise it will just process a single file (provided by -s) and exit)")
 
     defargs = parser.parse_args()
     if defargs.looper == True and defargs.infile != "stdin": 
