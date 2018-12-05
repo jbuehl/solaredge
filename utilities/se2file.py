@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import time
+import os
 import sys
 import datetime
 from collections import OrderedDict
@@ -16,6 +17,7 @@ def main():
     prefix = args.prefix
     openfilesecs = int(args.openfilesecs)
     store_daily = args.store_daily
+    make_daily_dir = args.make_daily_dir
     looper = args.looper
     if args.infile == "stdin":
         inFile = sys.stdin
@@ -52,7 +54,12 @@ def main():
                 curstore = curday
             else:
                 curstore = curhour
-            tfname = basedir + "/" + prefix + curstore + ".json"
+            if make_daily_dir == True:
+                if not os.path.isdir(basedir + "/" + curday):
+                    os.mkdir(basedir + "/" + curday)
+                tfname = basedir + "/" + curday + "/" + prefix + curstore + ".json"
+            else:
+                tfname = basedir + "/" + prefix + curstore + ".json"
             if tfname != writefilename:
                 if debug:
                     print("Looks like a new day: Temp Name: %s - Old Name: %s" % (tfname, writefilename))
@@ -97,6 +104,7 @@ def getargs():
     parser.add_argument("-d", dest="store_daily", default=False, action="store_true", help="Instead of using Hourly files (YYYY-MM-DD-hh) store in daily files (YYYY-MM-DD) - Results in larger files. Default is False (Use Hourly)")
     parser.add_argument("-t", dest="openfilesecs", default="120", help="If no data added to open outputfiles in this many seconds, then close them and wait for more data. Defaults to 120 seconds")
     parser.add_argument("-w", dest="looper", default=False, action="store_true", help="Wait forever on stdin. This only applies when -s is not set or set to stdin. It will wait forever on listening to stdin. Use this to wait for long running processes. If this is not set, after 10 attempts to read from stdin, it will exit gracefully. This is the default so you can cat files to this, and have it return. If you are running this as part of a semonitor.py process that is live, then set -w so it can go a long time without input and not close")
+    parser.add_argument("-m", dest="make_daily_dir", default=False, action="store_true", help="Create a use a directory in the format YYYY-MM-DD for each day of files. Otherwise all files will be in the root of the -b argument")
     parser.add_argument("infile", default="stdin", nargs='?', help="File to process. The Default of stdin is used to pipe data to this script. Otherwise it will just process a single file (provided by -s) and exit)")
 
     defargs = parser.parse_args()
