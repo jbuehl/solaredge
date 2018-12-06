@@ -153,7 +153,7 @@ def parseMsg(msg, keyStr=""):
                 # decrypt the data and validate that as a message
                 logger.data("Decrypting message")
                 (seq, dataMsg) = cipher.decrypt(data)
-                 if dataMsg[0:4] != magic:
+                if dataMsg[0:4] != magic:
                     logger.data("Invalid decryption key - Clearing Cipher")
                     cipher = None
                     return (0, 0, 0, 0, "")
