@@ -62,7 +62,7 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
                 try:
                     processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf)
                 except Exception as ex:
-                    logger.info("Failed to parse message: "+ex)
+                    logger.info("Failed to parse message: "+str(ex))
                     for l in se.logutils.format_data(msg):
                         logger.data(l)
                     if args.xerror:
