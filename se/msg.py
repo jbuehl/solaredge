@@ -1,15 +1,21 @@
 # SolarEdge message protocol
 
 import struct
+import os
 import time
 import logging
+import datetime
 import se.logutils
+import binascii
 from Crypto.Cipher import AES
 from Crypto.Random import random
 
 logger = logging.getLogger(__name__)
 
 sleepInterval = .1
+
+# Hard coded last0503.msg file. os module used to find full path to calling msg.py file, then removes the se part so it's essentially the root of solaredge (where semonitor.py lives)
+LAST0503FILE = os.path.dirname(os.path.realpath(__file__)).replace('/'+ __name__.split(".")[0], '') + "/last0503.msg"
 
 class SECrypto:
     def __init__(self, key, msg0503):
@@ -20,7 +26,21 @@ class SECrypto:
                  parameters 0239, 023a, 023b, and 023c.
         msg0503: a 34-byte string with the contents of a 0503 message.
         """
+        # Get the current time in human readable form so a human can ready the last0503.msg file and know when it was last updated
+        curtime = datetime.datetime.now()
+        mystrtime = curtime.strftime("%Y-%m-%d %H:%M:%S")
+        # Create a key by encrypting the data from Solar Edge with our key)
         enkey1 = map(ord, AES.new(key).encrypt(msg0503[:16]))
+        # Store the 0503 message in a hex string
+        hex_msg0503 = binascii.hexlify(msg0503)
+        # Format the line in the last0503.msg file
+        # Format is: String Timestamp (for us humans),Epoch in seconds (for easy math),hex encoded previous message
+        outstr = mystrtime + "," + str(int(time.time())) + "," + hex_msg0503
+        # Write the outstr to the last0503.msg file, clobbering the previous (hence 'w' write mode)
+        ko = open(LAST0503FILE, "w")
+        ko.write(outstr)
+        ko.close
+        # self.cipher is an AES object
         self.cipher = AES.new("".join(
             map(chr, (enkey1[i] ^ ord(msg0503[i + 16]) for i in range(16)))))
         self.encrypt_seq = random.randint(0, 0xffff)
@@ -71,9 +91,9 @@ class SECrypto:
             msg003d[i + 22] ^= msg003d[18 + (i & 3)]
         return "".join(map(chr, self.crypt(msg003d)))
 
-
-# cryptography object
+# cryptography object variable and global indicator if the load of last0503.msg was attempted
 cipher = None
+bcipher = False
 
 # message constants
 magic = "\x12\x34\x56\x79"
@@ -134,10 +154,65 @@ def readBytes(inFile, recFile, length, mode):
         logger.info("Exception while reading data: "+str(ex))
         return ""
 
+# A function to attempt to load the the rotating key from the last0503.msg file
+def loadRotKey(keyStr):
+    global cipher
+    mydata = ""
+    # First try the file operation, if this doesn't work, no big deal, we just don't load the key, but we do log the attempt
+    try:
+        ki = open(LAST0503FILE, "r")
+        mydata = ki.read()
+        ki.close()
+    except:
+        logger.data("Could not open last0503.msg file, not loading")
+
+    # If the try block doing the file operation was successful, mydata will now not be blank, so we try to operate on it. 
+    if mydata != "":
+        # These are the variables where we keep the last load time and the last key data
+        lastsave = 0
+        lastkey = ""
+        # We attempt to load the file and split the contents. If this try fails, we assume the file to have been corrupted (manual edit etc) and we give up, not loading the key
+        try:
+            lastsave = int(mydata.split(",")[1])
+            lastkey = mydata.split(",")[2].strip()
+        except:
+            logger.data("last0503.msg not in proper format - not loading")
+        # If we have both a last load time and data in our variables, we assume the try block succeeded and we do some more validation
+        if lastsave != 0 and lastkey != "":
+            # First we check the time, if the last load time is more than 24 hours ago, we give up. No point in trying decryption with an old key
+            curtime = int(time.time())
+            if curtime - lastsave <= 86400: #86400 seconds is 24 hours 60 secs * 60 min * 24 hours
+                # Now we check that our key is indeed 68 characters. If it is not we give up and don't load
+                if len(lastkey) == 68: # Check to ensure its 68 characters
+                    logger.data("Attempting to load data from last0503.msg")
+                    # Our last try if this fails, we log an unknown error
+                    try:
+                        cipher = SECrypto(keyStr.decode("hex"), binascii.unhexlify(lastkey))
+                        logger.data("Rotated key from last0503.msg loaded successfully!")
+                    except:
+                        logger.data("Unknown error in loading rotating key. Not using")
+                else:
+                    logger.data("Saved rotating key length not correct. Not using")
+    else:
+        logger.data("No data read from last0503.msg. Not loading")
+    # This function, since it works on the global cipher object, always returns true
+    # This return basically sets bcipher and tells the application we've already attempted to load the last0503.msg
+    # So even if cipher is still None, don't try to load from file again. There's no point. This should resolve itselve the next 0503 message that is loaded/saved
+    return True
+
+
 # parse a message
 def parseMsg(msg, keyStr=""):
     global cipher
+    global bcipher
+    # If bcipher is False then we've not attempted to load the rotating key from the last0503.msg file. 
+    # Also, we don't want to load from file if for some reason cipher is not None (it shouldn't be if bcipher is False)
+    # If bcipher is False and cipher is None, then try to load the rotating key. The result of the "attempt" to load the rotating key is stored in bcipher. The attempt is ALWAYS true
+    # The idea here is that we make one attempt to the load the file, and if it works, then cipher is no longer None and we can move on. Else, don't try loading again. 
+    if bcipher == False and cipher is None:
+        bcipher = loadRotKey(keyStr)
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
+        logger.data("Threw out a message that was too short")
         return (0, 0, 0, 0, "")
     else:
         (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
@@ -154,7 +229,8 @@ def parseMsg(msg, keyStr=""):
                 logger.data("Decrypting message")
                 (seq, dataMsg) = cipher.decrypt(data)
                 if dataMsg[0:4] != magic:
-                    logger.data("Invalid decryption key")
+                    logger.data("Invalid decryption key - Clearing Cipher")
+                    cipher = None
                     return (0, 0, 0, 0, "")
                 else:
                     (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
