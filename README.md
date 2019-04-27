@@ -245,7 +245,7 @@ of a packet capture or the output from a previous run of semonitor.py.  It may a
 read in real time from one of the RS232, RS485, or ethernet interfaces on a SolarEdge inverter.
 
 If you wish to pipe data from a pcap file, you may find the following tshark command useful:
-`tshark -r infile.pcap -T fields -e data | ./utilities/unhexlify.py | ./semonitor.py -`
+`tshark -r infile.pcap -T fields -e data | xxd -r -p | ./semonitor.py -`
 
 Debug messages are sent to the system log, unless the -d option is specified.  If an error occurs
 while processing data, the program will log a message and continue unless the -x option is
