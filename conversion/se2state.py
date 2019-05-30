@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Maintain a file containing the current state and selected statistics 
+# Maintain a file containing the current state and selected statistics
 # of SolarEdge inverters and optimizers
 
 import json
@@ -26,7 +26,7 @@ def avgItems(itemDict, itemAttr):
         return sumItems(itemDict, itemAttr)/(len(itemDict) - 1)
     except ZeroDivisionError:
         return 0
-            
+
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "i:o:")
 try:
@@ -39,13 +39,13 @@ for opt in opts:
         inverters = opt[1].split(",")
     if opt[0] == "-o":
         outFileName = opt[1]
-        
+
 # initialize the state dictionary
 if initialize:
     # zero the statistics
-    stateDict = {"inverters": 
-                    {"stats": {"Vac": 0.0, "Pac":0.0, "Eac":0.0, "Eday": 0.0, "Etot": 0.0, "Temp": 0.0}}, 
-                "optimizers": 
+    stateDict = {"inverters":
+                    {"stats": {"Vac": 0.0, "Pac":0.0, "Eac":0.0, "Eday": 0.0, "Etot": 0.0, "Temp": 0.0}},
+                "optimizers":
                     {"stats": {"Temp": 0.0}}}
     for inverter in inverters:
         stateDict["inverters"]["stats"][inverter] = {"Vac":0.0, "Pac":0.0, "Eac":0.0, "Eday":0.0, "Etot": 0.0, "Temp": 0.0}
@@ -56,7 +56,7 @@ else:
             stateDict = json.load(stateFile)
     except IOError:
         pass
-        
+
 # read the input forever
 while True:
     jsonStr = ""
@@ -72,7 +72,7 @@ while True:
     stateDict["inverters"]["stats"]["Vac"] = avgItems(stateDict["inverters"], "Vac")
     stateDict["inverters"]["stats"]["Pac"] = sumItems(stateDict["inverters"], "Pac")
     stateDict["inverters"]["stats"]["Eac"] = sumItems(stateDict["inverters"], "Eac")
-    stateDict["inverters"]["stats"]["Eday"] += sumItems(inDict["inverters"], "Eac")
+    stateDict["inverters"]["stats"]["Eday"] = sumItems(stateDict["inverters"], "Eday")
     stateDict["inverters"]["stats"]["Etot"] = sumItems(stateDict["inverters"], "Etot")
     stateDict["inverters"]["stats"]["Temp"] = avgItems(stateDict["inverters"], "Temp")
     stateDict["optimizers"]["stats"]["Temp"] = avgItems(stateDict["optimizers"], "Temp")
