@@ -72,7 +72,10 @@ while True:
     stateDict["inverters"]["stats"]["Vac"] = avgItems(stateDict["inverters"], "Vac")
     stateDict["inverters"]["stats"]["Pac"] = sumItems(stateDict["inverters"], "Pac")
     stateDict["inverters"]["stats"]["Eac"] = sumItems(stateDict["inverters"], "Eac")
-    stateDict["inverters"]["stats"]["Eday"] = sumItems(stateDict["inverters"], "Eday")
+    Eday = sumItems(stateDict["inverters"], "Eday")
+    # only update Eday if it increases
+    if Eday > stateDict["inverters"]["stats"]["Eday"]:
+        stateDict["inverters"]["stats"]["Eday"] = Eday
     stateDict["inverters"]["stats"]["Etot"] = sumItems(stateDict["inverters"], "Etot")
     stateDict["inverters"]["stats"]["Temp"] = avgItems(stateDict["inverters"], "Temp")
     stateDict["optimizers"]["stats"]["Temp"] = avgItems(stateDict["optimizers"], "Temp")
