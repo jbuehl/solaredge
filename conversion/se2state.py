@@ -27,6 +27,11 @@ def avgItems(itemDict, itemAttr):
     except ZeroDivisionError:
         return 0
 
+def writeState(stateDict, outFileName):
+    # update the state file
+    with open(outFileName, "w") as outFile:
+        json.dump(stateDict, outFile)
+
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "i:o:")
 try:
@@ -49,6 +54,7 @@ if initialize:
                     {"stats": {"Temp": 0.0}}}
     for inverter in inverters:
         stateDict["inverters"]["stats"][inverter] = {"Vac":0.0, "Pac":0.0, "Eac":0.0, "Eday":0.0, "Etot": 0.0, "Temp": 0.0}
+    writeState(stateDict, outFileName)
 else:
     # start with values from the file if it exists
     try:
@@ -88,6 +94,4 @@ while True:
             stateDict["optimizers"][optimizer]["Vmod"] = 0.0
             stateDict["optimizers"][optimizer]["Vopt"] = 0.0
             stateDict["optimizers"][optimizer]["Imod"] = 0.0
-    # update the state file
-    with open(outFileName, "w") as outFile:
-        json.dump(stateDict, outFile)
+    writeState(stateDict, outFileName)
