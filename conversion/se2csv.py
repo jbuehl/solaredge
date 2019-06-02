@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # process the data
     for jsonStr in args.infile:
-        for baseName, devAttrs in unwrap_metricsDict(json.loads(jsonStr)):
+        for baseName, devAttrs in sorted(unwrap_metricsDict(json.loads(jsonStr))):
             devName, devId = baseName.split(".", 1)
             if devName not in devsFile:
                 devsFileName = '{}.{}.csv'.format(args.prefix, devName)
