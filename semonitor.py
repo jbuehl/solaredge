@@ -14,6 +14,7 @@ import se.data
 import se.commands
 import se.network
 import logging
+from builtins import bytes
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ threadLock = threading.Lock()  # lock to synchronize reads and writes
 masterEvent = threading.Event()  # event to signal RS485 master release
 
 # program termination
-def terminate(code=0, msg=""):
+def terminate(code=0, msg=b""):
     if code == 0:
         logger.info(msg)
     else:
@@ -42,7 +43,7 @@ def terminate(code=0, msg=""):
 # process the input data
 def readData(args, mode, dataFile, recFile, outFile, keyStr):
     eof = False
-    updateBuf = list('\x00' * UPDATE_SIZE) if args.updatefile else []
+    updateBuf = list(b"\x00" * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
         # skip data until the start of the first complete message
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)  
@@ -55,7 +56,7 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
                 se.files.closeData(dataFile, True)
                 dataFile = se.files.openDataSocket(args.ports)
                 eof = False
-        if msg == "\x00" * len(msg):  # ignore messages containing all zeros
+        if msg == b"\x00" * len(msg):  # ignore messages containing all zeros
             logger.data(msg)
         else:
             with threadLock:
@@ -89,15 +90,15 @@ def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
         elif updateBuf and function == se.commands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
             updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if mode.networkDevice or mode.masterMode:  # send reply
-            replyFunction = ""
+            replyFunction = b""
             if function == se.commands.PROT_CMD_SERVER_POST_DATA:  # performance data
                 # send ack
                 replyFunction = se.commands.PROT_RESP_ACK
-                replyData = ""
+                replyData = b""
             elif function == 0x0503:  # encryption key
                 # send ack
                 replyFunction = se.commands.PROT_RESP_ACK
-                replyData = ""
+                replyData = b""
             elif function == se.commands.PROT_CMD_SERVER_GET_GMT:  # time request
                 # set time
                 replyFunction = se.commands.PROT_RESP_SERVER_GMT
@@ -105,15 +106,15 @@ def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
             elif function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
-            if replyFunction != "":
+            if replyFunction:
                 msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 se.msg.sendMsg(dataFile, msg, recFile)
 
 # write firmware image to file
 def writeUpdate(updateBuf, updateFileName):
-    updateBuf = "".join(updateBuf)
+    updateBuf = b"".join(updateBuf)
     logger.info("writing %s", updateFileName)
-    with open(updateFileName, "w") as updateFile:
+    with open(updateFileName, "wb") as updateFile:
         updateFile.write(updateBuf)
 
 # RS485 master commands thread
@@ -224,14 +225,17 @@ if __name__ == "__main__":
     else:
         dataFile =  se.files.openInFile(args.datasource)
     # get encryption key
-    keyStr = args.keyfile.read().rstrip("\n") if args.keyfile else None
+    keyStr = args.keyfile.read().rstrip(b"\n") if args.keyfile else None
 
     # open the output files
-    recFile = se.files.openOutFile(args.record, "a" if args.append else "w")
+    recFile = se.files.openOutFile(args.record, "ab" if args.append else "wb")
     if args.outfile == "stdout":
-        outFile = sys.stdout
+        if sys.version_info >= (3,0):
+            outFile = sys.stdout.buffer
+        else:
+            outFile = sys.stdout
     else:
-        outFile = se.files.openOutFile(args.outfile, "a" if args.append else "w")
+        outFile = se.files.openOutFile(args.outfile, "ab" if args.append else "wb")
 
     # figure out what to do based on the mode of operation
     if mode.passiveMode:  # only reading from file or serial device

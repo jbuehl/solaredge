@@ -35,7 +35,7 @@ def _message_log(self, direction, seq, msg, endPoint=""):
 def format_data(data):
     line_width = 16
     for i in range(0, len(data), line_width):
-        yield "data:       " + ' '.join(x.encode('hex') for x in data[i:i+line_width])
+        yield "data:       " + ' '.join("{:02x}".format(x) for x in data[i:i+line_width])
 
 logging.Logger.data = _data_log
 logging.Logger.raw = _raw_log

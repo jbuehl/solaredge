@@ -7,6 +7,7 @@ import logging
 import datetime
 import se.logutils
 import binascii
+from builtins import bytes
 from Crypto.Cipher import AES
 from Crypto.Random import random
 
@@ -30,32 +31,32 @@ class SECrypto:
         curtime = datetime.datetime.now()
         mystrtime = curtime.strftime("%Y-%m-%d %H:%M:%S")
         # Create a key by encrypting the data from Solar Edge with our key)
-        enkey1 = map(ord, AES.new(key).encrypt(msg0503[:16]))
+        enkey1 = bytes(AES.new(key).encrypt(msg0503[:16]))
         # Store the 0503 message in a hex string
         hex_msg0503 = binascii.hexlify(msg0503)
         # Format the line in the last0503.msg file
         # Format is: String Timestamp (for us humans),Epoch in seconds (for easy math),hex encoded previous message
-        outstr = mystrtime + "," + str(int(time.time())) + "," + hex_msg0503
+        outstr = mystrtime + "," + str(int(time.time())) + "," + str(hex_msg0503)
         # Write the outstr to the last0503.msg file, clobbering the previous (hence 'w' write mode)
         ko = open(LAST0503FILE, "w")
         ko.write(outstr)
         ko.close
         # self.cipher is an AES object
-        self.cipher = AES.new("".join(
-            map(chr, (enkey1[i] ^ ord(msg0503[i + 16]) for i in range(16)))))
+        self.cipher = AES.new(bytes(list((enkey1[i] ^ msg0503[i + 16] for i in range(16)))))
         self.encrypt_seq = random.randint(0, 0xffff)
 
     def crypt(self, msg003d):
         """
-        msg003d: the contents of the 003d message to crypt, as list(int).
+        msg003d: the contents of the 003d message to crypt, as bytes.
 
-        Modifies the list in-place and returns it.
+        Returns the new list
         """
-        rand1 = msg003d[:16]
+        msg003d = list(msg003d)
+        rand1 = list(msg003d[:16])
         pos = 16
         while pos < len(msg003d):
             if not pos % 16:
-                rand = map(ord, self.cipher.encrypt("".join(map(chr, rand1))))
+                rand = bytes(self.cipher.encrypt(bytes(rand1)))
                 for posc in range(15, -1, -1):
                     rand1[posc] = (rand1[posc] + 1) & 0xff
                     if rand1[posc]:
@@ -68,13 +69,12 @@ class SECrypto:
         """
         msg003d: the contents of the 003d message to decrypt, as string.
 
-        Returns a tuple(int(sequenceNumber), str(data)).
+        Returns a tuple(int(sequenceNumber), bytes(data)).
         """
-        msg003d = self.crypt(map(ord, msg003d))
+        msg003d = self.crypt(msg003d)
         for i in range(len(msg003d) - 22):
             msg003d[i + 22] ^= msg003d[18 + (i & 3)]
-        return (msg003d[16] + (msg003d[17] << 8),
-                "".join(map(chr, msg003d[22:])))
+        return (msg003d[16] + (msg003d[17] << 8), bytes(msg003d[22:]))
 
     def encrypt(self, msg):
         """
@@ -86,17 +86,17 @@ class SECrypto:
         rand1 = [random.randint(0, 255) for x in range(16)]
         rand2 = [random.randint(0, 255) for x in range(4)]
         seqnr = [self.encrypt_seq & 0xff, self.encrypt_seq >> 8 & 0xff]
-        msg003d = rand1 + seqnr + rand2 + map(ord, msg)
+        msg003d = rand1 + seqnr + rand2 + msg
         for i in range(len(msg)):
             msg003d[i + 22] ^= msg003d[18 + (i & 3)]
-        return "".join(map(chr, self.crypt(msg003d)))
+        return self.crypt(msg003d)
 
 # cryptography object variable and global indicator if the load of last0503.msg was attempted
 cipher = None
 bcipher = False
 
 # message constants
-magic = "\x12\x34\x56\x79"
+magic = b"\x12\x34\x56\x79"
 magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
@@ -109,13 +109,13 @@ dataOutSeq = 0
 def readMsg(inFile, recFile, mode):
     global dataInSeq
     dataInSeq += 1
-    msg = ""
+    msg = b""
     eof = False
     if not (mode.passiveMode or (mode.serialType == 4)):
         # active mode that is not rs485
         # read the magic number and header
         msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode)
-        if msg == "":   # end of file
+        if not msg:   # end of file
             return (msg, True)
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = \
             struct.unpack("<HHHLLH", msg[magicLen:])
@@ -127,7 +127,7 @@ def readMsg(inFile, recFile, mode):
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
             nextByte = readBytes(inFile, recFile, 1, mode)
-            if nextByte == "":  # end of file
+            if not nextByte:  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
             else:
@@ -140,11 +140,11 @@ def readMsg(inFile, recFile, mode):
 # return the specified number of bytes
 def readBytes(inFile, recFile, length, mode):
     try:
-        inBuf = inFile.read(length)
-        if inBuf == "":  # end of file
+        inBuf = bytes(inFile.read(length))
+        if not inBuf:  # end of file
             if mode.following:
                 # wait for more data
-                while inBuf == "":
+                while not inBuf:
                     time.sleep(sleepInterval)
                     inBuf = inFile.read(length)
         recordMsg(inBuf, recFile)
@@ -152,7 +152,7 @@ def readBytes(inFile, recFile, length, mode):
     # treat exceptions as end of file
     except Exception as ex:
         logger.info("Exception while reading data: "+str(ex))
-        return ""
+        return b""
 
 # A function to attempt to load the the rotating key from the last0503.msg file
 def loadRotKey(keyStr):
@@ -167,10 +167,10 @@ def loadRotKey(keyStr):
         logger.data("Could not open last0503.msg file, not loading")
 
     # If the try block doing the file operation was successful, mydata will now not be blank, so we try to operate on it. 
-    if mydata != "":
+    if mydata:
         # These are the variables where we keep the last load time and the last key data
         lastsave = 0
-        lastkey = ""
+        lastkey = b""
         # We attempt to load the file and split the contents. If this try fails, we assume the file to have been corrupted (manual edit etc) and we give up, not loading the key
         try:
             lastsave = int(mydata.split(",")[1])
@@ -178,7 +178,7 @@ def loadRotKey(keyStr):
         except:
             logger.data("last0503.msg not in proper format - not loading")
         # If we have both a last load time and data in our variables, we assume the try block succeeded and we do some more validation
-        if lastsave != 0 and lastkey != "":
+        if lastsave != 0 and lastkey:
             # First we check the time, if the last load time is more than 24 hours ago, we give up. No point in trying decryption with an old key
             curtime = int(time.time())
             if curtime - lastsave <= 86400: #86400 seconds is 24 hours 60 secs * 60 min * 24 hours
@@ -187,7 +187,7 @@ def loadRotKey(keyStr):
                     logger.data("Attempting to load data from last0503.msg")
                     # Our last try if this fails, we log an unknown error
                     try:
-                        cipher = SECrypto(keyStr.decode("hex"), binascii.unhexlify(lastkey))
+                        cipher = SECrypto(binascii.unhexlify(keyStr), binascii.unhexlify(lastkey))
                         logger.data("Rotated key from last0503.msg loaded successfully!")
                     except:
                         logger.data("Unknown error in loading rotating key. Not using")
@@ -213,15 +213,15 @@ def parseMsg(msg, keyStr=""):
         bcipher = loadRotKey(keyStr)
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
         logger.data("Threw out a message that was too short")
-        return (0, 0, 0, 0, "")
+        return (0, 0, 0, 0, b"")
     else:
         (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
         # encryption key
         if function == 0x0503:
             if keyStr:
                 logger.data("Creating cipher object with key", keyStr)
-                cipher = SECrypto(keyStr.decode("hex"), data)
-            return (msgSeq, fromAddr, toAddr, function, "")
+                cipher = SECrypto(binascii.unhexlify(keyStr), data)
+            return (msgSeq, fromAddr, toAddr, function, b"")
         # encrypted message
         elif function == 0x003d:
             if cipher:
@@ -231,12 +231,12 @@ def parseMsg(msg, keyStr=""):
                 if dataMsg[0:4] != magic:
                     logger.data("Invalid decryption key - Clearing Cipher")
                     cipher = None
-                    return (0, 0, 0, 0, "")
+                    return (0, 0, 0, 0, b"")
                 else:
                     (msgSeq, fromAddr, toAddr, function, data) = validateMsg(dataMsg[4:])
             else:  # don't have a key yet
                 logger.data("Decryption key not yet available")
-                return (0, 0, 0, 0, "")
+                return (0, 0, 0, 0, b"")
         return (msgSeq, fromAddr, toAddr, function, data)
 
 # parse the header and validate the message
@@ -246,7 +246,7 @@ def validateMsg(msg):
         logger.error("Message too short")
         for l in se.logutils.format_data(msg):
             logger.data(l)
-        return (0, 0, 0, 0, "")
+        return (0, 0, 0, 0, b"")
     # parse the message header
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack("<HHHLLH", msg[0:msgHdrLen])
     logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
@@ -255,13 +255,13 @@ def validateMsg(msg):
         logger.error("Data length is too big for the message")
         for l in se.logutils.format_data(msg):
             logger.data(l)
-        return (0, 0, 0, 0, "")
+        return (0, 0, 0, 0, b"")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xffff:
         logger.error("Data length doesn't match inverse length")
         for l in se.logutils.format_data(msg):
             logger.data(l)
-        return (0, 0, 0, 0, "")
+        return (0, 0, 0, 0, b"")
     data = msg[msgHdrLen:msgHdrLen + dataLen]
     # discard extra bytes after the message
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
@@ -277,11 +277,11 @@ def validateMsg(msg):
         logger.error("Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum))
         for l in se.logutils.format_data(msg):
             logger.data(l)
-        return (0, 0, 0, 0, "")
+        return (0, 0, 0, 0, b"")
     return (msgSeq, fromAddr, toAddr, function, data)
 
 # format a message
-def formatMsg(msgSeq, fromAddr, toAddr, function, data="", encrypt=True):
+def formatMsg(msgSeq, fromAddr, toAddr, function, data=b"", encrypt=True):
     checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
     msg = struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq,
                       fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
@@ -350,7 +350,7 @@ crcTable = [
 def calcCrc(data):
     crc = 0x5a5a  # initial value
     for d in data:
-        crc = crcTable[(crc ^ ord(d)) & 0xff] ^ (crc >> 8)
+        crc = crcTable[(crc ^ d) & 0xff] ^ (crc >> 8)
     return crc
 
 # formatted print a message header

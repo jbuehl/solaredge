@@ -54,7 +54,10 @@ def openSerial(inFileName, baudRate):
 
 def openInFile(inFileName):
     if inFileName == "stdin":
-        return sys.stdin
+        if sys.version_info >= (3,0):
+            return sys.stdin.buffer
+        else:
+            return sys.stdin
     else:
         # Explicitly specify mode rb to keep windows happy!
         return open(inFileName, 'rb')
@@ -67,7 +70,7 @@ def closeData(dataFile, networkDevice):
     dataFile.close()
 
 # open in output file if it is specified
-def openOutFile(fileName, writeMode="w"):
+def openOutFile(fileName, writeMode="wb"):
     if fileName:
         return open(fileName, writeMode)
 
