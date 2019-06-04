@@ -20,7 +20,7 @@ def unwrap_metricsDict(mydict):
         return str(k).replace("\x00", '').replace(" ", "_").replace(
             "devices", "")
 
-    for k, v in mydict.iteritems():
+    for k, v in mydict.items():
         if "Date" in v.keys():
             yield nice(k), v
         else:

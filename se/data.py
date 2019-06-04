@@ -251,7 +251,7 @@ def writeData(msgDict, outFile):
         msg = json.dumps(msgDict, sort_keys=True)
         logger.message("<--", outSeq, msg, outFile.name)
         logger.data(msg)
-        outFile.write(msg + "\n")
+        outFile.write(msg.encode('latin-1') + b"\n")
         outFile.flush()
 
 # remove the extra bit that is sometimes set in a device ID and upcase the letters
@@ -277,5 +277,5 @@ def formatDateTime(timeStamp):
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
     logger.data("%s %s type: %04x len: %04x", devType, seId, seType, devLen)
-    for k,v in devData.iteritems():
+    for k,v in devData.items():
         logger.data("    %s : %s", k, v)

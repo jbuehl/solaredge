@@ -151,10 +151,10 @@ class ParseDevice(dict):
         lineSize = 16
 
         def hexLine(data):
-            return ' '.join(x.encode('hex') for x in data)
+            return ' '.join("{:02x}".format(x) for x in data)
 
         hexLines = []
-        if data != "":
+        if data:
             printPtr = 0
             while len(data) - printPtr >= lineSize:
                 hexLines.append(hexLine(data[printPtr:printPtr + lineSize]))
@@ -770,7 +770,7 @@ def merge_update(dict1, dict2):
     :param dict2: A new subsidiary nested dictionary, to be merged into dict1.
     :return: None, but the master dictionary is updated with **only** the new parts of dict2 merged in.
     """
-    for k2, v2 in dict2.iteritems():
+    for k2, v2 in dict2.items():
         if k2 not in dict1.keys():
             dict1.update({k2: v2})
         elif isinstance(v2, dict):
