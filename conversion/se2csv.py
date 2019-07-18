@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # process the data
     for jsonStr in args.infile:
-        for baseName, devAttrs in unwrap_metricsDict(json.loads(jsonStr)):
+        for baseName, devAttrs in sorted(unwrap_metricsDict(json.loads(jsonStr))):
             devName, devId = baseName.split(".", 1)
             if devName not in devsFile:
                 devsFileName = '{}.{}.csv'.format(args.prefix, devName)
@@ -40,8 +40,4 @@ if __name__ == "__main__":
                     devsFile[devName].writeheader()
 
             devAttrs["__Identifier__"] = devId
-            # the default for DictWriter is to use repr() for floats so stringify everything before writing
-            # https://docs.python.org/2/library/csv.html#csv.writer
-            for k,v in devAttrs.iteritems():
-                devAttrs[k] = str(v)
             devsFile[devName].writerow(devAttrs)

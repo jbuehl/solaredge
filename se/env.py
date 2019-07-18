@@ -63,7 +63,7 @@ def getArgs():
     parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
     parser.add_argument("-d", dest="logfile", default="stderr", help="where to write log messages.  either a file name or one of ['stderr', 'syslog']")
     parser.add_argument("-f", dest="follow", action="store_true", default=False, help="wait for appended data as the input file grows (as in tail -f)")
-    parser.add_argument("-k", dest="keyfile", type=argparse.FileType('r'), help="file containing a hex encoded encryption key")
+    parser.add_argument("-k", dest="keyfile", type=argparse.FileType('rb'), help="file containing a hex encoded encryption key")
     parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
     parser.add_argument("-n", dest="interface", type=netifaces.ifaddresses, help="run DHCP and DNS network services on the specified interface")
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
