@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 # run environment that is derived from the arguments that defines how the program will behave
 RunMode = namedtuple("RunMode", ("serialDevice",  # boolean
                                  "networkDevice", # boolean
-                                 "serialType",    # serial device type: "2" or "4" 
-                                 "passiveMode",   # boolean 
+                                 "serialType",    # serial device type: "2" or "4"
+                                 "passiveMode",   # boolean
                                  "masterMode",    # boolean
                                  "following",     # boolean
                                  ))
 
 # argument parser class
-class SeArgumentParser(argparse.ArgumentParser):        
+class SeArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         self.print_usage()
         sys.stderr.write(message+"\n")
@@ -56,7 +56,7 @@ def getArgs():
             ports.append(int(p))
         return ports
 
-    parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry', 
+    parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
     parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
@@ -81,7 +81,7 @@ def getArgs():
     # configure logging
     stream_formatter = logging.Formatter("%(message)s")
     file_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
-    
+
     if args.logfile == "syslog":
         handler = logging.handlers.SysLogHandler(address="/dev/log")
         handler.setFormatter(stream_formatter)
@@ -111,14 +111,14 @@ def getArgs():
     networkDevice = False
     passiveMode = True
 
-    # data source validation    
+    # data source validation
     if args.datasource == "-":
         args.datasource = "stdin"
     elif args.datasource != "stdin":
         # figure out the list of valid serial ports on this server
         # this is either a list of tuples or ListPortInfo objects
         serial_ports = serial.tools.list_ports.comports()
-        serial_port_names = map(lambda p: p.device if isinstance(p, 
+        serial_port_names = map(lambda p: p.device if isinstance(p,
                                 serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
         serialDevice = args.datasource in serial_port_names
 
@@ -170,4 +170,3 @@ def getArgs():
         logger.info("%s: %s", k, v)
 
     return (args, RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
-    
