@@ -19,7 +19,7 @@ for pcap in test/pcap/*.pcap; do
     if [ -f "test/keys/${SAMPLE}.key" ]; then
         KEY_OPTION="-k test/keys/${SAMPLE}.key"
     fi
-    SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} - ${KEY_OPTION} -v"
+    SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} - ${KEY_OPTION} -v -x"
 
     tshark -r "test/pcap/${SAMPLE}.pcap" -T fields -e data | xxd -r -p | ./semonitor.py ${SEMONITOR_OPTIONS}
     diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.json"
@@ -31,7 +31,7 @@ for pcap in test/pcap/*.pcap; do
     IN_OPTION="test/rec/${SAMPLE}.rec"
     REC_OPTION="-r ${TMP}/${SAMPLE}.re.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.re.json"
-    SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} ${KEY_OPTION} -v"
+    SEMONITOR_OPTIONS="${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} ${KEY_OPTION} -v -x"
     ./semonitor.py ${SEMONITOR_OPTIONS}
     diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.re.json"
     cmp -l "test/rec/${SAMPLE}.rec" "${TMP}/${SAMPLE}.re.rec"
