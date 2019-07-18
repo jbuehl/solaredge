@@ -249,7 +249,6 @@ def writeData(msgDict, outFile):
     if outFile:
         outSeq += 1
         msg = json.dumps(msgDict, sort_keys=True)
-        logger.message("<--", outSeq, msg, outFile.name)
         logger.data(msg)
         outFile.write(msg.encode('latin-1') + b"\n")
         outFile.flush()
