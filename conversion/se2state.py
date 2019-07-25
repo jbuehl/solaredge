@@ -74,6 +74,10 @@ while True:
     # update the state values
     stateDict["inverters"].update(inDict["inverters"])
     stateDict["optimizers"].update(inDict["optimizers"])
+    # compute optimizer power
+    for optimizer in stateDict["optimizers"].keys():
+        if optimizer != "stats":
+            stateDict["optimizers"][optimizer]["Pdc"] = stateDict["optimizers"][optimizer]["Vmod"] * stateDict["optimizers"][optimizer]["Imod"]
     # compute the stats
     stateDict["inverters"]["stats"]["Vac"] = avgItems(stateDict["inverters"], "Vac")
     stateDict["inverters"]["stats"]["Pac"] = sumItems(stateDict["inverters"], "Pac")
