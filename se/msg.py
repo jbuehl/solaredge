@@ -166,7 +166,7 @@ def loadRotKey(keyStr):
     except:
         logger.data("Could not open last0503.msg file, not loading")
 
-    # If the try block doing the file operation was successful, mydata will now not be blank, so we try to operate on it. 
+    # If the try block doing the file operation was successful, mydata will now not be blank, so we try to operate on it.
     if mydata:
         # These are the variables where we keep the last load time and the last key data
         lastsave = 0
@@ -205,10 +205,10 @@ def loadRotKey(keyStr):
 def parseMsg(msg, keyStr=""):
     global cipher
     global bcipher
-    # If bcipher is False then we've not attempted to load the rotating key from the last0503.msg file. 
+    # If bcipher is False then we've not attempted to load the rotating key from the last0503.msg file.
     # Also, we don't want to load from file if for some reason cipher is not None (it shouldn't be if bcipher is False)
     # If bcipher is False and cipher is None, then try to load the rotating key. The result of the "attempt" to load the rotating key is stored in bcipher. The attempt is ALWAYS true
-    # The idea here is that we make one attempt to the load the file, and if it works, then cipher is no longer None and we can move on. Else, don't try loading again. 
+    # The idea here is that we make one attempt to the load the file, and if it works, then cipher is no longer None and we can move on. Else, don't try loading again.
     if bcipher == False and cipher is None:
         bcipher = loadRotKey(keyStr)
     if len(msg) < msgHdrLen + checksumLen:  # throw out messages that are too short
@@ -282,9 +282,9 @@ def validateMsg(msg):
 
 # format a message
 def formatMsg(msgSeq, fromAddr, toAddr, function, data=b"", encrypt=True):
-    checksum = calcCrc(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function) + data)
-    msg = struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq,
-                      fromAddr, toAddr, function) + data + struct.pack("<H", checksum)
+    checksum = calcCrc(bytearray(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function)) + data)
+    msg = bytearray(struct.pack("<HHHLLH", len(data), ~len(data) & 0xffff, msgSeq,
+                      fromAddr, toAddr, function) + data + struct.pack("<H", checksum))
     logMsgHdr(len(data), ~len(data) & 0xffff, msgSeq, fromAddr, toAddr, function)
 
     if cipher and encrypt:
