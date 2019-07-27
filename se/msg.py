@@ -106,27 +106,29 @@ dataInSeq = 0
 dataOutSeq = 0
 
 # return the next message
-def readMsg(inFile, recFile, mode):
+def readMsg(inFile, recFile, mode, state):
+    se.logutils.setState(state, "passiveMode", mode.passiveMode)
+    se.logutils.setState(state, "serialType", mode.serialType)
     global dataInSeq
     dataInSeq += 1
     msg = b""
     eof = False
-    if not (mode.passiveMode or (mode.serialType == 4)):
+    if not mode.passiveMode and (mode.serialType == 4):
         # active mode that is not rs485
         # read the magic number and header
-        msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode)
+        msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode, state)
         if not msg:   # end of file
             return (msg, True)
         (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = \
             struct.unpack("<HHHLLH", msg[magicLen:])
         # read the data and checksum
-        msg += readBytes(inFile, recFile, dataLen + checksumLen, mode)
+        msg += readBytes(inFile, recFile, dataLen + checksumLen, mode, state)
         msg = msg[magicLen:]    # strip the magic number from the beginning
     else:
         # passive mode or rs485
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            nextByte = readBytes(inFile, recFile, 1, mode)
+            nextByte = readBytes(inFile, recFile, 1, mode, state)
             if not nextByte:  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
@@ -138,7 +140,8 @@ def readMsg(inFile, recFile, mode):
     return (msg, eof)
 
 # return the specified number of bytes
-def readBytes(inFile, recFile, length, mode):
+def readBytes(inFile, recFile, length, mode, state):
+    se.logutils.setState(state, "readLength", length)
     try:
         inBuf = bytes(inFile.read(length))
         if not inBuf:  # end of file
@@ -148,6 +151,7 @@ def readBytes(inFile, recFile, length, mode):
                     time.sleep(sleepInterval)
                     inBuf = inFile.read(length)
         recordMsg(inBuf, recFile)
+        se.logutils.setState(state, "lastByteRead", "{:02x}".format(bytearray(inBuf)[-1]))
         return inBuf
     # treat exceptions as end of file
     except Exception as ex:
