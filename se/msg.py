@@ -113,7 +113,7 @@ def readMsg(inFile, recFile, mode, state):
     dataInSeq += 1
     msg = b""
     eof = False
-    if not mode.passiveMode and (mode.serialType == 4):
+    if not mode.passiveMode and (mode.serialType == "4"):
         # active mode that is not rs485
         # read the magic number and header
         msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode, state)
