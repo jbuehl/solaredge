@@ -227,7 +227,7 @@ class ParseDevice(dict):
             # I suspect a legacy "bug" somewhere in the solaredge messages, but in the meantime just check the bytes
             # and fix it.
             elif paramInFmt == 'f' and (
-                    data[dataPtr:dataPtr + paramLen] == '\xff\xff\x7f\xff'):
+                    data[dataPtr:dataPtr + paramLen] == b'\xff\xff\x7f\xff'):
                 self[paramName] = float('nan')
             else:
                 self[paramName] = struct.unpack(

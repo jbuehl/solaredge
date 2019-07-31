@@ -155,6 +155,11 @@ def parseDeviceData(data):
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems,
                                          data[dataPtr:dataPtr + devLen])
+            # Correct odd case where solaredge inverter sends Nan value in opposite byte order to all other float values
+            # ie solaredge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as - 3.402... * 10 ** 38
+            # but b'\xff\x7f\xff\xff' unpacks as Nan, which is the "correct" value when this byte pattern is seen.
+            if invDict[seId]["PMax"] < -3 * 10**38:
+                invDict[seId]["PMax"] = float('nan')
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
         elif seType == 0x0011:  # 3 phase inverter data
             invDict[seId] = parseInv3PhData(seId, inv3PhItems,
