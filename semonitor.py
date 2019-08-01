@@ -41,14 +41,14 @@ def terminate(code=0, msg=b""):
     sys.exit(code)
 
 # process the input data
-def readData(args, mode, dataFile, recFile, outFile, keyStr):
+def readData(args, mode, state, dataFile, recFile, outFile, keyStr):
     eof = False
     updateBuf = list(b"\x00" * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
         # skip data until the start of the first complete message
-        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)  
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
     while not eof:
-        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
         if eof:  # end of file
             logger.info("End of file")
             # eof from network means connection was broken, wait for a reconnect and continue
@@ -60,21 +60,23 @@ def readData(args, mode, dataFile, recFile, outFile, keyStr):
             logger.data(msg)
         else:
             with threadLock:
+                se.logutils.setState(state, "threadLock", True)
                 try:
-                    processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf)
+                    processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updateBuf)
                 except Exception as ex:
                     logger.info("Failed to parse message: "+str(ex))
                     for l in se.logutils.format_data(msg):
                         logger.data(l)
                     if args.xerror:
                         raise
+                se.logutils.setState(state, "threadLock", False)
     # all finished
     if args.updatefile:  # write the firmware update file
         writeUpdate(updateBuf, args.updatefile)
     return
 
 # process a received message
-def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
+def processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updateBuf):
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg, keyStr)
     if function == 0:
@@ -106,6 +108,7 @@ def processMsg(msg, args, mode, dataFile, recFile, outFile, keyStr, updateBuf):
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
             elif function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
+                se.logutils.setState(state, "masterEvent", masterEvent.isSet())
             if replyFunction:
                 msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 se.msg.sendMsg(dataFile, msg, recFile)
@@ -118,35 +121,45 @@ def writeUpdate(updateBuf, updateFileName):
         updateFile.write(updateBuf)
 
 # RS485 master commands thread
-def masterCommands(dataFile, recFile, slaveAddrs):
+def masterCommands(state, dataFile, recFile, slaveAddrs):
+    se.logutils.setState(state, "masterThread", True)
     while True:
         for slaveAddr in slaveAddrs:
-            masterGrant(dataFile, recFile, slaveAddr)
+            masterGrant(state, dataFile, recFile, slaveAddr)
         time.sleep(MASTER_MSG_INTERVAL)
+    se.logutils.setState(state, "masterThread", False)
 
 # send RS485 master grant command and wait for an ACK
-def masterGrant(dataFile, recFile, slaveAddr):
+def masterGrant(state, dataFile, recFile, slaveAddr):
     with threadLock:
+        se.logutils.setState(state, "threadLock", True)
         # grant control of the bus to the slave
         se.msg.sendMsg(dataFile,
                     se.msg.formatMsg(nextSeq(), MASTER_ADDR, int(slaveAddr, 16),
                           se.commands.PROT_CMD_POLESTAR_MASTER_GRANT), recFile)
+        se.logutils.setState(state, "threadLock", False)
 
     def masterTimerExpire():
         logger.debug("RS485 master ack timeout")
         masterEvent.set()
+        se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+        se.logutils.setState(state, "masterTimer", False)
 
     # start a timeout to release the bus if the slave doesn't respond
     masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
     masterTimer.start()
+    se.logutils.setState(state, "masterTimer", True)
     # wait for slave to release the bus
     masterEvent.clear()
+    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
     masterEvent.wait()
+    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
     # cancel the timeout
     masterTimer.cancel()
+    se.logutils.setState(state, "masterTimer", False)
 
 # perform the specified commands
-def doCommands(args, mode, dataFile, recFile, outFile):
+def doCommands(args, mode, state, dataFile, recFile, outFile):
     for command in args.commands:
         # format the command parameters
         function = int(command[0], 16)
@@ -184,12 +197,12 @@ def startMaster(args):
     logger.info("starting %s", MASTER_THREAD_NAME)
 
 # wait until keyboard interrupt
-def block():
+def block(state):
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        pass
+        se.logutils.dumpState(state)
 
 # get next sequence number
 def nextSeq():
@@ -207,16 +220,24 @@ def nextSeq():
 
 
 if __name__ == "__main__":
+    # create the state variables with timestamps
+    state = {}
+    se.logutils.setState(state, "readThread", False)
+    se.logutils.setState(state, "masterThread", False)
+    se.logutils.setState(state, "masterTimer", False)
+    se.logutils.setState(state, "threadLock", False)
+    se.logutils.setState(state, "masterEvent", False)
+
     # get the command line arguments and run mode
     (args, mode) = se.env.getArgs()
-    
+
     # open the specified data source
     logger.info("opening %s", args.datasource)
     if args.datasource == "network":
         if args.interface:
             # start network services
             netInterfaceParams = args.interface[2][0]
-            se.network.startDhcp(netInterfaceParams["addr"], 
+            se.network.startDhcp(netInterfaceParams["addr"],
                 netInterfaceParams["netmask"], netInterfaceParams["broadcast"])
             se.network.startDns(netInterfaceParams["addr"])
         dataFile =  se.files.openDataSocket(args.ports)
@@ -240,25 +261,25 @@ if __name__ == "__main__":
     # figure out what to do based on the mode of operation
     if mode.passiveMode:  # only reading from file or serial device
         # read until eof then terminate
-        readData(args, mode, dataFile, recFile, outFile, keyStr)
+        readData(args, mode, state, dataFile, recFile, outFile, keyStr)
     else:  # reading and writing to network or serial device
         if args.commands:  # commands were specified
             # perform commands then terminate
-            doCommands(args, mode, dataFile, recFile, outFile)
+            doCommands(args, mode, state, dataFile, recFile, outFile)
         else:  # interacting over network or RS485
             # start a separate thread for reading
             readThread = threading.Thread(
                 name=READ_THREAD_NAME,
                 target=readData,
-                args=(args, mode, dataFile, recFile, outFile, keyStr))
+                args=(args, mode, state, dataFile, recFile, outFile, keyStr))
             readThread.daemon = True
             readThread.start()
             logger.info("starting %s", READ_THREAD_NAME)
             if args.master:  # send RS485 master commands
-                startMaster(args=(dataFile, recFile, args.slaves))
+                startMaster(args=(state, dataFile, recFile, args.slaves))
             # wait for termination
-            block()
-            
+            block(state)
+
     # cleanup
     se.files.closeData(dataFile, mode.networkDevice)
     se.files.closeOutFiles(recFile, outFile)

@@ -2,6 +2,8 @@
 
 import sys
 import logging
+import traceback
+import time
 
 LOG_LEVEL_DATA = 9
 LOG_LEVEL_RAW = 8
@@ -41,3 +43,19 @@ logging.Logger.data = _data_log
 logging.Logger.raw = _raw_log
 logging.Logger.message = _message_log
 
+# set a state variable
+def setState(state, item, value):
+    state[item] = [time.time(), value]
+
+# dump out the state variables and stack traces of all threads
+def dumpState(state):
+    logger = logging.getLogger(__name__)
+    logger.info("state:")
+    for item in state.keys():
+        logger.info("      "+time.strftime("%H:%M:%S", time.localtime(state[item][0]))+" "+item+": "+str(state[item][1]))
+    for threadId, stack in sys._current_frames().items():
+        logger.info("ThreadID: %s" % threadId)
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            logger.info('      File: "%s", line %d, in %s' % (filename, lineno, name))
+            if line:
+                logger.info("            "+line)
