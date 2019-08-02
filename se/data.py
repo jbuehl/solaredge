@@ -8,6 +8,7 @@ import se.logutils
 import se.commands
 from se.dataparams import *
 from se.datadevices import ParseDevice, merge_update
+import codecs
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def parseData(function, data):
     else:
         # unknown function type
         logger.info("Unknown function 0x%04x", function)
-    return ''.join(x.encode('hex') for x in data)
+    return codecs.encode(data, 'hex').decode('ascii')
 
 def parseEnergyStats(data):
     (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
