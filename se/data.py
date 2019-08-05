@@ -8,6 +8,7 @@ import se.logutils
 import se.commands
 from se.dataparams import *
 from se.datadevices import ParseDevice, merge_update
+import codecs
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def parseData(function, data):
     else:
         # unknown function type
         logger.info("Unknown function 0x%04x", function)
-    return ''.join(x.encode('hex') for x in data)
+    return codecs.encode(data, 'hex').decode('ascii')
 
 def parseEnergyStats(data):
     (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
@@ -155,6 +156,11 @@ def parseDeviceData(data):
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems,
                                          data[dataPtr:dataPtr + devLen])
+            # Correct odd case where solaredge inverter sends Nan value in opposite byte order to all other float values
+            # ie solaredge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as - 3.402... * 10 ** 38
+            # but b'\xff\x7f\xff\xff' unpacks as Nan, which is the "correct" value when this byte pattern is seen.
+            if invDict[seId]["Pmax"] < -3 * 10**38:
+                invDict[seId]["Pmax"] = float('nan')
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
         elif seType == 0x0011:  # 3 phase inverter data
             invDict[seId] = parseInv3PhData(seId, inv3PhItems,

@@ -227,11 +227,17 @@ class ParseDevice(dict):
             # I suspect a legacy "bug" somewhere in the solaredge messages, but in the meantime just check the bytes
             # and fix it.
             elif paramInFmt == 'f' and (
-                    data[dataPtr:dataPtr + paramLen] == '\xff\xff\x7f\xff'):
+                    data[dataPtr:dataPtr + paramLen] == b'\xff\xff\x7f\xff'):
                 self[paramName] = float('nan')
             else:
                 self[paramName] = struct.unpack(
                     '<' + paramInFmt, data[dataPtr:dataPtr + paramLen])[0]
+                if 's' in paramInFmt:
+                    # Python3.x requires that we convert byte string to unicode string
+                    # if the value is to be used (later on) as a dictionary key for nested fields
+                    # Required for eg for battery Ids
+                    # Remove trailing 'null' character (ie 0x00) at the same time
+                    self[paramName] = self[paramName].decode('utf-8').strip('\x00')
 
             # Optionally format the field
             if outFormatFn == 'dateTime':
