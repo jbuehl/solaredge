@@ -1,0 +1,18 @@
+#!/bin/bash -
+
+DATADIR=/data/solar/
+STATEDIR=/root/
+PREFIX=
+INVERTERS=7F104920,7F104A16
+
+# wait for the time to get set
+while [ `date +%Y` == "1969" ]
+do
+	echo "Waiting for correct time"
+	sleep 1
+done
+
+python /root/solaredge/semonitor.py -vv -t n | \
+stdbuf -oL uniq | \
+tee ${DATADIR}${PREFIX}`date +%Y%m%d%H%M%S`.json | \
+python /root/solaredge/conversion/se2state.py -i ${INVERTERS} -o ${STATEDIR}solar.json
