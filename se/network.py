@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 dhcpDnsBufferSize = 4096
 dhcpLeaseTime = 24 * 60 * 60  # 1 day
 validMacs = [
-    "\xb8\x27\xeb",  # Raspberry Pi (testing)
-    "\x00\x27\x02",  # SolarEdge
+    b"\xb8\x27\xeb",  # Raspberry Pi (testing)
+    b"\x00\x27\x02",  # SolarEdge
 ]
 dnsTtl = 24 * 60 * 60  # 1 day
 
@@ -28,7 +28,7 @@ dnsThreadName = "dnsThread"
 # dhcp message class
 class DhcpMsg(object):
 
-    cookie = "\x63\x82\x53\x63"
+    cookie = b"\x63\x82\x53\x63"
 
     hdrLen = 12
     chaddrLen = 16
@@ -65,13 +65,13 @@ class DhcpMsg(object):
                  xid=0,
                  secs=0,
                  flags=0x8000,
-                 ciaddr="\x00\x00\x00\x00",
-                 yiaddr="\x00\x00\x00\x00",
-                 siaddr="\x00\x00\x00\x00",
-                 giaddr="\x00\x00\x00\x00",
-                 chaddr="\x00" * chaddrLen,
-                 sname="\x00" * snameLen,
-                 filename="\x00" * filenameLen,
+                 ciaddr=b"\x00\x00\x00\x00",
+                 yiaddr=b"\x00\x00\x00\x00",
+                 siaddr=b"\x00\x00\x00\x00",
+                 giaddr=b"\x00\x00\x00\x00",
+                 chaddr=b"\x00" * chaddrLen,
+                 sname=b"\x00" * snameLen,
+                 filename=b"\x00" * filenameLen,
                  cookie=cookie,
                  options=None):
         self.op = op
@@ -93,20 +93,20 @@ class DhcpMsg(object):
         else: self.options = []
 
     def format(self):
-        msg = struct.pack(">BBBBLHH", self.op, self.htype, self.hlen,
-                          self.hops, self.xid, self.secs, self.flags)
+        msg = bytearray(struct.pack(">BBBBLHH", self.op, self.htype, self.hlen,
+                          self.hops, self.xid, self.secs, self.flags))
         msg += self.ciaddr + self.yiaddr + self.siaddr + self.giaddr
-        msg += self.chaddr + "\x00" * (self.chaddrLen - len(self.chaddr)
+        msg += self.chaddr + b"\x00" * (self.chaddrLen - len(self.chaddr)
                                        )  # pad to fixed length
-        msg += self.sname + "\x00" * (self.snameLen - len(self.sname)
+        msg += self.sname + b"\x00" * (self.snameLen - len(self.sname)
                                       )  # pad to fixed length
-        msg += self.filename + "\x00" * (self.filenameLen - len(self.filename)
+        msg += self.filename + b"\x00" * (self.filenameLen - len(self.filename)
                                          )  # pad to fixed length
         msg += self.cookie
         for opt in self.options:
-            msg += struct.pack(">BB", opt[0], len(opt[1])) + opt[1]
+            msg += bytearray(struct.pack(">BB", opt[0], len(opt[1]))) + opt[1]
         msg += chr(self.optCodeEnd)
-        msg += "\x00" * (self.dhcpMsgLen - len(msg))  # pad to minimum message length
+        msg += b"\x00" * (self.dhcpMsgLen - len(msg))  # pad to minimum message length
         return msg
 
     def parse(self, msg):
@@ -152,8 +152,8 @@ class DhcpMsg(object):
         logger.data("siaddr: %s", socket.inet_ntoa(self.siaddr))
         logger.data("giaddr: %s", socket.inet_ntoa(self.giaddr))
         logger.data("chaddr: %s", ':'.join(s.encode('hex') for s in self.chaddr[0:self.hlen]))
-        logger.data("sname: %s", ''.join(x.encode('hex') for x in self.sname[0:self.sname.find("\x00")]))
-        logger.data("filename: %s", ''.join(x.encode('hex')for x in self.filename[0:self.filename.find("\x00")]))
+        logger.data("sname: %s", ''.join(x.encode('hex') for x in self.sname[0:self.sname.find(b"\x00")]))
+        logger.data("filename: %s", ''.join(x.encode('hex')for x in self.filename[0:self.filename.find(b"\x00")]))
         logger.data("cookie: %s","0x" + ''.join(x.encode('hex') for x in self.cookie))
         for opt in self.options:
             logger.data("option: %d %s", opt[0],"0x" + ''.join(x.encode('hex') for x in opt[1]))
@@ -205,15 +205,15 @@ class DnsMsg(object):
         return name
 
     def format(self):
-        msg = struct.pack(">HHHHHH", self.ident, self.flags,
+        msg = bytearray(struct.pack(">HHHHHH", self.ident, self.flags,
                           len(self.questions), len(self.answers),
-                          len(self.auths), len(self.adds))
+                          len(self.auths), len(self.adds)))
         for question in self.questions:
-            msg += self.formatName(question[0]) + struct.pack(
-                ">HH", question[1], question[2])
+            msg += self.formatName(question[0]) + bytearray(struct.pack(
+                ">HH", question[1], question[2]))
         for answer in self.answers:
-            msg += self.formatName(answer[0]) + struct.pack(">HHLH", 
-                    answer[1], answer[2], answer[3], len(answer[4])) + answer[4]
+            msg += self.formatName(answer[0]) + bytearray(struct.pack(">HHLH",
+                    answer[1], answer[2], answer[3], len(answer[4]))) + answer[4]
         return msg
 
     def formatName(self, name):
@@ -221,7 +221,7 @@ class DnsMsg(object):
         msg = ""
         for part in parts:
             msg += chr(len(part)) + part
-        return msg + "\x00"
+        return msg + b"\x00"
 
     def log(self):
         logger.data("id: %x" % self.ident)
@@ -275,7 +275,7 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                             options=[
                                 (DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeOffer)),
                                 (DhcpMsg.optCodeServerId, ipAddrNum),
-                                (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
+                                (DhcpMsg.optCodeLeaseTime, bytearray(struct.pack(">L", (dhcpLeaseTime)))),
                                 (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
                                 (DhcpMsg.optCodeRouter, ipAddrNum),
                                 (DhcpMsg.optCodeDNS, ipAddrNum),
@@ -293,7 +293,7 @@ def startDhcp(ipAddr, subnetMask, broadcastAddr):
                             options=[
                                 (DhcpMsg.optCodeMsgType, chr(DhcpMsg.msgTypeAck)),
                                 (DhcpMsg.optCodeServerId, ipAddrNum),
-                                (DhcpMsg.optCodeLeaseTime, struct.pack(">L", (dhcpLeaseTime))),
+                                (DhcpMsg.optCodeLeaseTime, bytearray(struct.pack(">L", (dhcpLeaseTime)))),
                                 (DhcpMsg.optCodeSubnetMask, subnetMaskNum),
                                 (DhcpMsg.optCodeRouter, ipAddrNum),
                                 (DhcpMsg.optCodeDNS, ipAddrNum),
@@ -356,4 +356,3 @@ def startDns(ipAddr):
     dnsThread = threading.Thread(name=dnsThreadName, target=dns)
     dnsThread.daemon = True
     dnsThread.start()
-    
