@@ -31,7 +31,9 @@ def openDataSocket(ports):
         listener.close()
     # set a timeout so lost connection can be detected
     clientSocket.settimeout(socketTimeout)
-    return clientSocket.makefile("rwb")
+    socketFile = clientSocket.makefile("rwb")
+    socketFile.name = "<socket>"
+    return socketFile
 
 ## open data socket and wait for connection from inverter
 #def openDataSocket(sePort):
@@ -65,8 +67,6 @@ def openInFile(inFileName):
 # close the data source
 def closeData(dataFile, networkDevice):
     logger.info("closing %s", dataFile.name)
-    if networkDevice:
-        dataFile._sock.close()
     dataFile.close()
 
 # open in output file if it is specified
