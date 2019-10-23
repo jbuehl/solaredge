@@ -174,7 +174,7 @@ def doCommands(args, mode, state, dataFile, recFile, outFile):
             # grant control of the bus to the slave
             masterGrant(dataFile, recFile, args.slaves[0])
         # wait for the response to the command
-        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode)
+        (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)
         msgData = se.data.parseData(response, data)
         # write response to output file
