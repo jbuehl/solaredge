@@ -132,12 +132,20 @@ class ParseDevice(dict):
     # format a date
     @staticmethod
     def formatDateStamp(timeStamp):
-        return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
+        try:
+            return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
+        except Exception as ex:
+            logger.info("Invalid time stamp: "str(timeStamp)+" "+str(ex))
+            return "invalid"
 
     # format a time
     @staticmethod
     def formatTimeStamp(timeStamp):
-        return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+        try:
+            return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+        except Exception as ex:
+            logger.info("Invalid time stamp: "+str(timeStamp)+" "+str(ex))
+            return "invalid"
 
     # format a hex entry as a readable string
     @staticmethod

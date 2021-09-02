@@ -171,8 +171,6 @@ def parseDeviceData(data):
                                              data[dataPtr:dataPtr + devLen])
             logDevice("event:         ", seType, seId, devLen, eventDict[seId])
         else:  # unknown device type, or one that ParseDevice can handle
-            # log("Unknown device 0x%04x" % seType)
-            # logData(data[dataPtr-devHdrLen:dataPtr+devLen])
 
             # In production would usually set explorer to False, to prevent excessively long (and mostly useless) parse
             # results for unknown device types.
@@ -242,8 +240,13 @@ def parseNewOptData(seId, optItems, devData):
 # create a dictionary of device data items
 def devDataDict(seId, itemNames, itemValues):
     devDict = {}
-    devDict["Date"] = formatDateStamp(itemValues[0])
-    devDict["Time"] = formatTimeStamp(itemValues[0])
+    try:
+        devDict["Date"] = formatDateStamp(itemValues[0])
+        devDict["Time"] = formatTimeStamp(itemValues[0])
+    except Exception as ex:
+        logger.info("Invalid time stamp: "+str(itemValues[0])+" "+str(ex))
+        devDict["Date"] = "invalid"
+        devDict["Time"] = "invalid"
     devDict["ID"] = seId
     for i in range(3, len(itemNames)):
         devDict[itemNames[i]] = itemValues[i - 2]
@@ -278,6 +281,9 @@ def formatDateTime(timeStamp):
         return time.asctime(time.localtime(timeStamp))
     except ValueError:
         return ''.join(x.encode('hex') for x in struct.pack("<L", timeStamp))
+    except Exception as ex:
+        logger.info("Invalid time stamp: "+str(timeStamp)+" "+str(ex))
+        return "invalid"
 
 # formatted print of device data
 def logDevice(devType, seType, seId, devLen, devData):
