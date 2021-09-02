@@ -135,7 +135,7 @@ class ParseDevice(dict):
         try:
             return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
         except Exception as ex:
-            logger.info("Invalid time stamp: "str(timeStamp)+" "+str(ex))
+            logger.info("Invalid time stamp: "+str(timeStamp)+" "+str(ex))
             return "invalid"
 
     # format a time
