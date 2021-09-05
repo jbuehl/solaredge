@@ -6,6 +6,7 @@ import json
 import getopt
 import sys
 import struct
+import binascii
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "o:")
@@ -19,8 +20,9 @@ for opt in opts:
         outFile = open(opt[1], "w")
 
 # read 4 lines from the input
-key = ""
+key = b''
 for i in range(4):
     data = json.loads(inFile.readline().rstrip("\n"))
+    print(data["data"]["value"])
     key += struct.pack("<L", data["data"]["value"])
-outFile.write(''.join(x.encode('hex') for x in key))
+outFile.write(binascii.hexlify(key).decode("ascii"))
