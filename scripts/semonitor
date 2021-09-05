@@ -3,7 +3,7 @@
 DATADIR=/data/solar/
 STATEDIR=/root/
 PREFIX=
-INVERTERS=7F104920,7F104A16
+INVERTERS=730A8690,7F104A16
 
 # wait for the time to get set
 while [ `date +%Y` == "1969" ]
