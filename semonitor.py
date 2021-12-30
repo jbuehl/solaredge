@@ -172,7 +172,7 @@ def doCommands(args, mode, state, dataFile, recFile, outFile):
                           struct.pack(format, *tuple(params))), recFile)
         if mode.masterMode:  # send RS485 master command
             # grant control of the bus to the slave
-            masterGrant(dataFile, recFile, args.slaves[0])
+            masterGrant(state, dataFile, recFile, args.slaves[0])
         # wait for the response to the command
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)
