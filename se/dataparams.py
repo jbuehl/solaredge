@@ -167,4 +167,20 @@ optOutFmt = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]
 #  voltage Panel, 10 bit (1/8 v)
 #  Uptime of optimiser, 16 bit (secs)
 #  DateTime, 32 bit (secs)
+
+# Decode optimiser data in packet type 0x0082
+#  (into same order as original data)
+#
+# Byte index (in reverse order):
+#
+# 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00
+# ?? ?? ?? ?? ?? Cc cO o# pp Uu uu Dd dd dd dd
+#  # = oo|Pp
+#  ?? ?? ?? ?? ?? always contain the same bytes
+#
+#  Current (panel), 12 bit (1/160 Amp)
+#  voltage Output, 10 bit (1/8 v)
+#  voltage Panel, 10 bit (1/8 v)
+#  Uptime of optimiser, 16 bit (secs)
+#  DateTime, 32 bit (secs)
 #

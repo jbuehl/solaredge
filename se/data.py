@@ -153,6 +153,10 @@ def parseDeviceData(data):
             optDict[seId] = parseNewOptData(seId, optItems,
                                             data[dataPtr:dataPtr + devLen])
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
+        elif seType == 0x0082:  # s440 optimizers
+            optDict[seId] = parseS440OptData(seId, optItems,
+                                            data[dataPtr:dataPtr + devLen])
+            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems,
                                          data[dataPtr:dataPtr + devLen])
@@ -233,6 +237,20 @@ def parseNewOptData(seId, optItems, devData):
     imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xf))
     eday = 0.25 * (data[11] << 8 | data[10])
     temp = 2.0 * struct.unpack("<b", devData[12:13])[0]
+    # Don't have an inverter ID in the data, substitute 0
+    return devDataDict(seId, optItems,
+                       [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp])
+
+def parseS440OptData(seId, optItems, devData):
+    data = bytearray()
+    data.extend(devData)
+    (timeStamp, uptime) = struct.unpack("<LH", devData[0:6])
+    vpan = 0.125 * (data[6] | (data[7] << 8 & 0x300))
+    vopt = 0.125 * (data[7] >> 2 | (data[8] << 6 & 0x3c0))
+    imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xf))
+    # we don't have those fields
+    eday = 0
+    temp = 0
     # Don't have an inverter ID in the data, substitute 0
     return devDataDict(seId, optItems,
                        [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp])
