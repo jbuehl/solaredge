@@ -31,7 +31,7 @@ class SECrypto:
         curtime = datetime.datetime.now()
         mystrtime = curtime.strftime("%Y-%m-%d %H:%M:%S")
         # Create a key by encrypting the data from Solar Edge with our key)
-        enkey1 = bytes(AES.new(key).encrypt(msg0503[:16]))
+        enkey1 = bytes(AES.new(key, AES.MODE_ECB).encrypt(msg0503[:16]))
         # Store the 0503 message in a hex string
         hex_msg0503 = binascii.hexlify(msg0503)
         # Format the line in the last0503.msg file
@@ -40,9 +40,9 @@ class SECrypto:
         # Write the outstr to the last0503.msg file, clobbering the previous (hence 'w' write mode)
         ko = open(LAST0503FILE, "w")
         ko.write(outstr)
-        ko.close
+        ko.close()
         # self.cipher is an AES object
-        self.cipher = AES.new(bytes(list((enkey1[i] ^ msg0503[i + 16] for i in range(16)))))
+        self.cipher = AES.new(bytes(list((enkey1[i] ^ msg0503[i + 16] for i in range(16)))), AES.MODE_ECB)
         self.encrypt_seq = random.randint(0, 0xffff)
 
     def crypt(self, msg003d):
