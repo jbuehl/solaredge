@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # SolarEdge inverter performance monitoring using the SolarEdge protocol
 
