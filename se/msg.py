@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 sleepInterval = .1
 
 # Hard coded last0503.msg file. os module used to find full path to calling msg.py file, then removes the se part so it's essentially the root of solaredge (where semonitor.py lives)
-LAST0503FILE = os.path.dirname(os.path.realpath(__file__)).replace('/'+ __name__.split(".")[0], '') + "/last0503.msg"
+LAST0503FILE = os.path.dirname(os.path.realpath(__file__)).removesuffix(__name__.split(".")[0]) + "last0503.msg"
 
 class SECrypto:
     def __init__(self, key, msg0503):
