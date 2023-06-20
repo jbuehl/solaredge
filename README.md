@@ -2,6 +2,7 @@
 
 [![Lint](https://github.com/centraluniverse/semonitor/actions/workflows/lint.yaml/badge.svg?branch=master)](https://github.com/centraluniverse/semonitor/actions/workflows/lint.yaml)
 [![Tests](https://github.com/centraluniverse/semonitor/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/centraluniverse/semonitor/actions/workflows/tests.yaml)
+[![Build](https://github.com/centraluniverse/semonitor/actions/workflows/build.yaml/badge.svg?branch=master)](https://github.com/centraluniverse/semonitor/actions/workflows/build.yaml)
 
 
 This project enables monitoring the performance data of SolarEdge inverters and

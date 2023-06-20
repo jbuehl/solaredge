@@ -1,0 +1,130 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '**'
+      - '!**/*.md'
+  schedule:
+    - cron: '41 3 * * *'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TEST_TAG: ${{ github.repository }}:${{ github.run_id }}
+
+jobs:
+  tests:
+    permissions:
+      contents: read
+      code-quality: write
+      pull-requests: write
+      checks: write
+    uses: ./.github/workflows/tests.yaml
+
+  build:
+    name: build (${{ matrix.container }})
+    needs: tests
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - container: Containerfile.debian
+            suffix: -debian
+          - container: Containerfile.alpine
+            suffix: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Fetch test data
+        run: git lfs pull --include='test/**'
+
+      - name: Version
+        run: echo "VERSION=$(pipx run setuptools-scm)" >> "${GITHUB_ENV}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and export
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.container }}
+          load: true
+          tags: ${{ env.TEST_TAG }}
+          cache-from: type=gha,scope=${{ matrix.container }}
+          cache-to: type=gha,scope=${{ matrix.container }},mode=max
+          build-args: |
+            VERSION=${{ env.VERSION }}
+
+      - name: Test
+        run: >
+          docker container run \
+            --rm \
+            --volume "$(pwd)/test:/usr/local/src/semonitor/test" \
+            ${{ env.TEST_TAG }} \
+            './test/test.sh'
+
+      - name: Image reference
+        id: image
+        env:
+          PUSH: >-
+            ${{ github.event_name != 'pull_request' ||
+            github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          echo "push=${PUSH}" >> "${GITHUB_OUTPUT}"
+          echo "ref=ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA}${{ matrix.suffix }}" >> "${GITHUB_OUTPUT}"
+
+      - name: Login to Container registry
+        if: ${{ steps.image.outputs.push == 'true' }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build all platforms
+        uses: docker/build-push-action@v7
+        with:
+          platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6
+          context: .
+          file: ${{ matrix.container }}
+          push: ${{ steps.image.outputs.push == 'true' }}
+          tags: ${{ steps.image.outputs.ref }}
+          cache-from: type=gha,scope=${{ matrix.container }}
+          cache-to: type=gha,scope=${{ matrix.container }},mode=max
+          build-args: |
+            VERSION=${{ env.VERSION }}
+
+  cleanup:
+    needs: build
+    if: >-
+      ${{ always() &&
+      contains(fromJSON('["pull_request", "schedule", "workflow_dispatch"]'), github.event_name) &&
+      needs.build.result != 'skipped' &&
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/cleanup.yaml

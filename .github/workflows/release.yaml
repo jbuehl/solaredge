@@ -1,6 +1,11 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - master
+      - 'release/v*'
+      - 'release/**/v*'
   release:
     types:
       - published
@@ -8,33 +13,106 @@ on:
 permissions:
   contents: read
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  tests:
-    uses: ./.github/workflows/tests.yaml
+  build:
     permissions:
       contents: read
       code-quality: write
       pull-requests: write
       checks: write
+      packages: write
+    uses: ./.github/workflows/build.yaml
 
-  attach-coverage:
-    needs: tests
+  release:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta (alpine)
+        id: meta-alpine
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=edge
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          flavor: |
+            latest=auto
+
+      - name: Docker meta (debian)
+        id: meta-debian
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=edge
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          flavor: |
+            latest=false
+            suffix=-debian
+
+      - name: Release the alpine container
+        env:
+          META: ${{ steps.meta-alpine.outputs.json }}
+        run: >
+          docker buildx imagetools create
+          $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "${META}")
+          "${REGISTRY}/${IMAGE_NAME,,}:sha-${GITHUB_SHA}"
+
+      - name: Release the debian container
+        env:
+          META: ${{ steps.meta-debian.outputs.json }}
+        run: >
+          docker buildx imagetools create
+          $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "${META}")
+          "${REGISTRY}/${IMAGE_NAME,,}:sha-${GITHUB_SHA}-debian"
+
       - name: Download HTML coverage
+        if: ${{ github.event_name == 'release' }}
         uses: actions/download-artifact@v8
         with:
           name: coverage-html
           path: htmlcov/
 
       - name: Attach coverage report to release
+        if: ${{ github.event_name == 'release' }}
         run: |
           set -eu
           archive="coverage-html-${GITHUB_REF_NAME}.zip"
           (cd htmlcov && zip --quiet --recurse-paths "../${archive}" .)
           gh release upload "${GITHUB_REF_NAME}" "${archive}" \
             --clobber --repo "${GITHUB_REPOSITORY}"
+
+  cleanup:
+    needs: [build, release]
+    if: ${{ always() && needs.build.result != 'skipped' && needs.release.result != 'success' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/cleanup.yaml

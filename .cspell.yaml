@@ -69,13 +69,19 @@ words:
   - wireshark
   # tools and distribution packaging
   - addopts
+  - adduser
   - codespell
   - containerfile
   - datetimez
+  - dialout
   - errmsg
   - exitfirst
+  - fromdateiso
   - htmlcov
   - junitxml
+  - moreutils
+  - nofile
+  - nologin
   - numprocesses
   - perflint
   - pygrep
@@ -104,6 +110,7 @@ words:
   - ttyname
   - tzset
   - tzutc
+  - ulimits
   - unhexlify
   - usefixtures
   # programs and files of this project

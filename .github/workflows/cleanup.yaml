@@ -1,0 +1,35 @@
+name: Cleanup
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: cleanup (${{ matrix.container }})
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: Containerfile.debian
+            suffix: -debian
+          - container: Containerfile.alpine
+            suffix: ""
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER_TYPE: ${{ github.event.repository.owner.type == 'Organization' && 'orgs' || 'users' }}
+    steps:
+      - name: Delete the temporary image
+        run: |
+          tag="sha-${GITHUB_SHA}${{ matrix.suffix }}"
+          api="/${OWNER_TYPE}/${GITHUB_REPOSITORY_OWNER}/packages/container/${GITHUB_REPOSITORY#*/}/versions"
+          id="$(gh api --paginate "${api}" \
+            --jq ".[] | select(.metadata.container.tags == [\"${tag}\"]) | .id")"
+          if [ -n "${id}" ]; then
+            gh api --method DELETE "${api}/${id}"
+          fi

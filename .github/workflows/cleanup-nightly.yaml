@@ -1,0 +1,34 @@
+name: Nightly cleanup
+
+# Removes temporary `sha-<commit>` images (see build.yaml) that were left behind,
+# e.g. by runs that were canceled before cleanup.yaml could remove them.
+# Only versions that carry nothing but `sha-` tags and are older than a day are
+# deleted, so an image that was promoted to a release tag is never touched.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER_TYPE: ${{ github.event.repository.owner.type == 'Organization' && 'orgs' || 'users' }}
+    steps:
+      - name: Delete temporary images older than a day
+        run: |
+          api="/${OWNER_TYPE}/${GITHUB_REPOSITORY_OWNER}/packages/container/${GITHUB_REPOSITORY#*/}/versions"
+          gh api --paginate "${api}" --jq '
+            .[]
+            | select(.metadata.container.tags | length > 0 and all(startswith("sha-")))
+            | select((.updated_at | fromdateiso8601) < (now - 86400))
+            | .id' | while read -r id; do
+            gh api --method DELETE "${api}/${id}"
+          done
