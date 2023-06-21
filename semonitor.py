@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # SolarEdge inverter performance monitoring using the SolarEdge protocol
 
@@ -108,7 +108,7 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updat
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
             elif function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
-                se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+                se.logutils.setState(state, "masterEvent", masterEvent.is_set())
             if replyFunction:
                 msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 se.msg.sendMsg(dataFile, msg, recFile)
@@ -142,7 +142,7 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     def masterTimerExpire():
         logger.debug("RS485 master ack timeout")
         masterEvent.set()
-        se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+        se.logutils.setState(state, "masterEvent", masterEvent.is_set())
         se.logutils.setState(state, "masterTimer", False)
 
     # start a timeout to release the bus if the slave doesn't respond
@@ -151,9 +151,9 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     se.logutils.setState(state, "masterTimer", True)
     # wait for slave to release the bus
     masterEvent.clear()
-    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     masterEvent.wait()
-    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     # cancel the timeout
     masterTimer.cancel()
     se.logutils.setState(state, "masterTimer", False)
@@ -172,7 +172,7 @@ def doCommands(args, mode, state, dataFile, recFile, outFile):
                           struct.pack(format, *tuple(params))), recFile)
         if mode.masterMode:  # send RS485 master command
             # grant control of the bus to the slave
-            masterGrant(dataFile, recFile, args.slaves[0])
+            masterGrant(state, dataFile, recFile, args.slaves[0])
         # wait for the response to the command
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
         (msgSeq, fromAddr, toAddr, response, data) = se.msg.parseMsg(msg)

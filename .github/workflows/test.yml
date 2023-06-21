@@ -1,0 +1,21 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    - run: pip install -r requirements.txt
+    - run: test/test.sh

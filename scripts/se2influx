@@ -1,0 +1,18 @@
+#!/bin/bash -
+
+set -eu -o pipefail
+
+INVERTERS=012345AB
+USB_DEVICE=/dev/ttyUSB0
+INFLUX_HOST=influxdb
+INFLUX_USER=semonitor
+INFLUX_PASS=XXXXXXXXX
+SEMONITOR_LOG=/var/log/semonitor/semonitor.log
+
+/usr/local/bin/solaredge/semonitor.py -m -t 4 -s $INVERTERS $USB_DEVICE | \
+  /usr/local/bin/solaredge/utilities/se2influx.py \
+    --host $INFLUX_HOST \
+    --username $INFLUX_USER \
+    --password $INFLUX_PASS \
+    --stat_timer_secs 300 \
+    --log_path $SEMONITOR_LOG

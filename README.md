@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/jbuehl/solaredge.svg?style=svg)](https://circleci.com/gh/jbuehl/solaredge)
+![CI](https://github.com/jbuehl/solaredge/actions/workflows/test.yml/badge.svg)
 
 SolarEdge Monitoring
 ====================
