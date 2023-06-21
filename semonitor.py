@@ -108,7 +108,7 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updat
                     (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60)
             elif function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:  # RS485 master release
                 masterEvent.set()
-                se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+                se.logutils.setState(state, "masterEvent", masterEvent.is_set())
             if replyFunction:
                 msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 se.msg.sendMsg(dataFile, msg, recFile)
@@ -142,7 +142,7 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     def masterTimerExpire():
         logger.debug("RS485 master ack timeout")
         masterEvent.set()
-        se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+        se.logutils.setState(state, "masterEvent", masterEvent.is_set())
         se.logutils.setState(state, "masterTimer", False)
 
     # start a timeout to release the bus if the slave doesn't respond
@@ -151,9 +151,9 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     se.logutils.setState(state, "masterTimer", True)
     # wait for slave to release the bus
     masterEvent.clear()
-    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     masterEvent.wait()
-    se.logutils.setState(state, "masterEvent", masterEvent.isSet())
+    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     # cancel the timeout
     masterTimer.cancel()
     se.logutils.setState(state, "masterTimer", False)
