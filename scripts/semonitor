@@ -1,7 +1,7 @@
 #!/bin/bash -
 
-DATADIR=/data/solar/
-STATEDIR=/root/
+DATADIR=/root/solaredge/data/
+STATEDIR=/root/solaredge/
 PREFIX=
 INVERTERS=730A8690,7F104A16
 

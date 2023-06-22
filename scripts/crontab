@@ -1,4 +1,1 @@
-0 0 * * * /usr/bin/systemctl restart secapture
-0 0 * * * /usr/bin/systemctl restart semonitor
-0 0 * * * /root/solaredge/sebackup
-
+0 0 * * * /bin/systemctl restart semonitor
