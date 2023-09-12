@@ -1,13 +1,13 @@
 ![CI](https://github.com/jbuehl/solaredge/actions/workflows/test.yml/badge.svg)
 
-#### !!!!!!!!!!!!!!!!!!!!!!!!!! September 2023 update !!!!!!!!!!!!!!!!!!!!!!!!!!
+#### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  September 2023 update ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! 
 When this project was started ten years ago, SolarEdge inverters communicated with their monitoring server using a proprietary data format that was sent in the clear.  It was possible to reverse engineer most of the messages in order to obtain the optimizer level data which was not otherwise available.  The same data was also available on the RS232 and RS485 interfaces which were provided on their inverters.  A few years later, SolarEdge implemented a homegrown encryption algorithm for the communications to their monitoring server, which prevented access for a while until an effort by a number of contributors to this project was successful in figuring out the algorithm which got it working again.
 
 In the years since then, SolarEdge has introduced new products which no longer support the RS232 interface, and they have dropped their encryption algorithm and are now using the far more secure and mainstream SSL/TLS encryption method which is essentially not hackable.  This means that if you have a newer inverter or if the firmware in your older inverter is up to date, the only way to access performance data is going to be via the RS485 interface.
 
 Also, please note that this software is made available here without any expectation of support.  If you use it and have a problem that you can't solve, you can open an issue, however there may not be a response, given the relatively small number of contributors and the fact that SolarEdge does not support this project in any way.  Contributors are only familiar with the particular SolarEdge equipment that they personally own and are not motivated to maintain the software beyond their particular needs.
 
-#### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 
 SolarEdge Monitoring
 ====================
