@@ -1,0 +1,37 @@
+ARG PYTHON_VERSION="3-slim"
+
+FROM index.docker.io/library/python:${PYTHON_VERSION}
+
+COPY requirements.txt /tmp/
+
+RUN ARCH="$(dpkg --print-architecture | \
+            sed -e 's|armel|rpi|g' -e 's|armhf|armmp|g' -e 's|i386|686|g')" && \
+    BUILD_DEPS=" \
+        gcc \
+        linux-headers-${ARCH} \
+    " && \
+    apt-get update && apt-get install --yes ${BUILD_DEPS:+${BUILD_DEPS}} && \
+    pip --no-cache-dir install --requirement '/tmp/requirements.txt' && \
+    rm '/tmp/requirements.txt' && \
+    apt-get purge --yes ${BUILD_DEPS:+${BUILD_DEPS}} && \
+    apt-get autoremove --yes && \
+    apt-get clean && \
+    rm -f -r '/var/lib/apt' && \
+    install -d -m 0775 '/usr/local/src' && \
+    useradd -d '/usr/local/src/semonitor' -m -r -s '/usr/sbin/nologin' 'semonitor' && \
+    install -d -m 0775 -g 'semonitor' -o 'semonitor' '/var/lib/semonitor'
+
+VOLUME /var/lib/semonitor
+
+WORKDIR /usr/local/src/semonitor/
+
+COPY conversion /usr/local/src/semonitor/conversion
+COPY scripts/semonitor.sh /usr/local/bin/semonitor.sh
+COPY se /usr/local/src/semonitor/se
+COPY semonitor.py /usr/local/src/semonitor/semonitor.py
+COPY services/container-entrypoint.sh /init
+COPY utilities /usr/local/src/semonitor/utilities
+
+USER semonitor
+
+ENTRYPOINT [ "/init" ]
