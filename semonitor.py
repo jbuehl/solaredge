@@ -12,7 +12,6 @@ import se.files
 import se.msg
 import se.data
 import se.commands
-import se.network
 import logging
 from builtins import bytes
 
@@ -41,7 +40,7 @@ def terminate(code=0, msg=b""):
     sys.exit(code)
 
 # process the input data
-def readData(args, mode, state, dataFile, recFile, outFile, keyStr):
+def readData(args, mode, state, dataFile, recFile, outFile):
     eof = False
     updateBuf = list(b"\x00" * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
@@ -62,7 +61,7 @@ def readData(args, mode, state, dataFile, recFile, outFile, keyStr):
             with threadLock:
                 se.logutils.setState(state, "threadLock", True)
                 try:
-                    processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updateBuf)
+                    processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf)
                 except Exception as ex:
                     logger.info("Failed to parse message: "+str(ex))
                     for l in se.logutils.format_data(msg):
@@ -76,9 +75,9 @@ def readData(args, mode, state, dataFile, recFile, outFile, keyStr):
     return
 
 # process a received message
-def processMsg(msg, args, mode, state, dataFile, recFile, outFile, keyStr, updateBuf):
+def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
     # parse the message
-    (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg, keyStr)
+    (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg)
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
@@ -234,19 +233,11 @@ if __name__ == "__main__":
     # open the specified data source
     logger.info("opening %s", args.datasource)
     if args.datasource == "network":
-        if args.interface:
-            # start network services
-            netInterfaceParams = args.interface[2][0]
-            se.network.startDhcp(netInterfaceParams["addr"],
-                netInterfaceParams["netmask"], netInterfaceParams["broadcast"])
-            se.network.startDns(netInterfaceParams["addr"])
         dataFile =  se.files.openDataSocket(args.ports)
     elif mode.serialDevice:
         dataFile =  se.files.openSerial(args.datasource, args.baudrate)
     else:
         dataFile =  se.files.openInFile(args.datasource)
-    # get encryption key
-    keyStr = args.keyfile.read().rstrip(b"\n") if args.keyfile else None
 
     # open the output files
     recFile = se.files.openOutFile(args.record, "ab" if args.append else "wb")
@@ -261,7 +252,7 @@ if __name__ == "__main__":
     # figure out what to do based on the mode of operation
     if mode.passiveMode:  # only reading from file or serial device
         # read until eof then terminate
-        readData(args, mode, state, dataFile, recFile, outFile, keyStr)
+        readData(args, mode, state, dataFile, recFile, outFile)
     else:  # reading and writing to network or serial device
         if args.commands:  # commands were specified
             # perform commands then terminate
@@ -271,7 +262,7 @@ if __name__ == "__main__":
             readThread = threading.Thread(
                 name=READ_THREAD_NAME,
                 target=readData,
-                args=(args, mode, state, dataFile, recFile, outFile, keyStr))
+                args=(args, mode, state, dataFile, recFile, outFile))
             readThread.daemon = True
             readThread.start()
             logger.info("starting %s", READ_THREAD_NAME)

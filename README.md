@@ -1,5 +1,8 @@
 ![CI](https://github.com/jbuehl/solaredge/actions/workflows/test.yml/badge.svg)
 
+#### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  September 2025 update ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+Support for the SolarEdge homegrown encryption has been removed, as has the local DHCP/DNS server.  Ethernet active and passive modes are still supported assuming that the inverter has old firmware that does not do encryption and it is not communicating with the actual SolarEdge server.
+
 #### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  September 2023 update ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 When this project was started ten years ago, SolarEdge inverters communicated with their monitoring server using a proprietary data format that was sent in the clear.  It was possible to reverse engineer most of the messages in order to obtain the optimizer level data which was not otherwise available.  The same data was also available on the RS232 and RS485 interfaces which were provided on their inverters.  A few years later, SolarEdge implemented a homegrown encryption algorithm for the communications to their monitoring server, which prevented access for a while until an effort by a number of contributors to this project was successful in figuring out the algorithm which got it working again.
 
@@ -39,18 +42,14 @@ RS485        active, passive
 The inverter is made to connect to semonitor.py instead of the SolarEdge monitoring
 portal by resolving its hostname (usually prod.solaredge.com) to the IP address of
 the server running semonitor.py.  This may be done by connecting the ethernet interface
-of the inverter to a dedicated ethernet interface on the server running semonitor.py
-and specifying the -n option which will run a simplified DHCP/DNS server that responds
-to the inverter on the dedicated interface.  Alternatively, another DNS server in
-the network could be made to resolve the address, but how to do that is beyond the
-scope of this discussion.
+of the inverter to a dedicated ethernet interface on the server running semonitor.py.  
+The inverter will attempt to connect to the SolarEdge server using a solaredge.com
+hostname, so some method of resolving this name to the address of the server running
+semonitor.py must be implemented.  Details of how to do this are out of scope of this
+project.
 
 In this mode, the inverter will no longer be communicating with the SolarEdge server
 so monitoring services and firmware updates will no longer be available.
-
-The encryption key for the inverter must first be obtained and given to semonitor.py
-using the -k option, or the inverter must be set to unencrypted mode.  Either way,
-this requires temporarily connecting via the RS232 interface.
 
 **Ethernet passive**
 
@@ -65,10 +64,6 @@ Traffic may be captured to a pcap file using wireshark or tcpdump or some other 
 The resulting file must be processed through seextract.py before it is fed into
 semonitor.py.  In this mode, semonitor.py is reading data from a file or stdin and
 isn't actually reading from the network directly.
-
-SolarEdge will place the inverter into encrypted mode, so semonitor.py will need
-to be given the encryption key using the -k option.  The key must be accessed via
-the RS232 interface.
 
 **RS485 active**
 
@@ -235,10 +230,7 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
                          (default: syslog)
     -f                   wait for appended data as the input file grows
                          (as in tail -f)
-    -k keyfile           file containing a hex encoded encryption key
     -m                   function as a RS485 master
-    -n interface         run DHCP and DNS network services on the specified
-                         interface
     -o outfile           write performance data to the specified file in
                          JSON format (default: stdout)
     -p ports             ports to listen on in network mode
@@ -280,17 +272,11 @@ The -t option is used to specify the data source type for non-file input.  If th
 a serial port, the -t option must be included with either the values 2 or 4 to specify
 whether it is connected to the RS232 or RS485 port.  If there is no data source specified and
 -t n is specified, semonitor.py will listen on the port specified in the -p option
-(or port 22222 if it is not specified) for a connection from an inverter.
+(or ports 22222, 22221, and 80 if it is not specified) for a connection from an inverter.
 
 To interact directly with an inverter over the network, semonitor.py must function as the SolarEdge
 monitoring server.  This means that the host running semonitor.py must be connected to the inverter
-over the ethernet interface.  In this configuration, semonitor.py may function as the DHCP server
-and the DNS server to provide an IP address to the inverter and to resolve the hostname of the
-SolarEdge server (usually prod.solaredge.com) to the IP address of the semonitor.py host.  This
-requires that semonitor.py be run with elevated (root) priveleges in order to access the standard
-DHCP and DNS ports.  The -n option specifies the name of the network interface that the inverter
-is connected to.  If the inverter acquires an IP address and is able to resolve the server hostname
-by some other means, the -n option is not required.
+over the ethernet interface.
 
 The -c, -m, and -s options are not vaild if input is from a file or stdin.
 
@@ -340,17 +326,9 @@ Send commands to the inverter 7f101234 to set the value of parameter 0x0329 to 0
 followed by a command to reset the inverter using RS232 serial port /dev/ttyUSB0.
 Display the debug messages on stdout.
 
-    sudo python semonitor.py -o yyyymmdd.json -n eth1 -k 7f101234.key
-
-Start the dhcp and dns services on network interface eth1.  Accept connections
-from inverters and function as a SolarEdge monitoring server.  Use the inverter
-encryption key contained in the file 7f101234.key.  Write performance
-data to the file yyyymmdd.json.  Because the -n option is specified, the -t n option
-is implied.
-
 ### seextract.py
 
-This program was intended to extract the TCP stream contining the SolarEdge data
+This program was intended to extract the TCP stream containing the SolarEdge data
 from a PCAP file.  Because it had issues and there exists a number of open source
 utilities that perform that function it was removed from the project.
 
@@ -398,24 +376,6 @@ Print a subset of data from a file containing JSON performance data.
 
 #### Examples
     python solaredge/seprint.py yyyymmdd.json
-
-### sekey.py
-Create a file containing the encryption key for a SolarEdge inverter.
-
-#### Usage
-    python sekey.py options [inFile]
-
-#### Arguments
-    inFile          File containing the values of the 4 encryption key parameters
-                    of an inverter output from semonitor.py. (default: stdin)
-
-#### Options
-    -o keyFile      File containing the hex encoded key. (Default: stdout)
-
-#### Examples
-    python solaredge/semonitor.py -c 12,H239/12,H23a/12,H23b/12,H23c -s 7f101234 -t 2  /dev/ttyUSB0|python solaredge/sekey.py -o 7f101234.key
-
-Read the parameters 0x0239-0x023c and write the key value to the file 7f101234.key.
 
 ### se2csv.py
 
