@@ -12,7 +12,7 @@ do
 	sleep 1
 done
 
-python /root/solaredge/semonitor.py -vv -t n -p 22222,22221| \
+python /root/solaredge/semonitor.py -v -t n -p 22222,22221| \
 stdbuf -oL uniq | \
 tee ${DATADIR}${PREFIX}`date +%Y%m%d%H%M%S`.json | \
 python /root/solaredge/conversion/se2state.py -i ${INVERTERS} -o ${STATEDIR}solar.json
