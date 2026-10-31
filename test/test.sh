@@ -1,36 +1,32 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -o pipefail
 set -eux
 
 export TZ='US/Pacific'
 
+cleanup()
+{
+	rm -rf "${TMP:-}"
+	exit
+}
+
+TMP="$(mktemp -d)"
+trap cleanup EXIT HUP INT QUIT ABRT ALRM TERM
+
 for rec in test/rec/*.rec; do
-    TMP=$(mktemp -d)
-    if [ ! -d "${TMP}" ]; then
-        echo "Failed to create temporary directory '${TMP}'"
-        break
-    fi
-    TMPSE2CSV="${TMP}/se2csv"
-    SAMPLE="$(basename -s ".rec" "${rec}")"
-    REC_OPTION="-r ${TMP}/${SAMPLE}.rec"
-    OUT_OPTION="-o ${TMP}/${SAMPLE}.json"
+	_sample="$(basename "${rec}" ".rec")"
+	_output="${TMP}/${_sample}"
 
-    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} "test/rec/${SAMPLE}.rec" -v -x
-    diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.json"
-    cmp "test/rec/${SAMPLE}.rec" "${TMP}/${SAMPLE}.rec"
-    mkdir "${TMPSE2CSV}"
-    ./conversion/se2csv.py -p "${TMPSE2CSV}/${SAMPLE}" -t < "test/json/${SAMPLE}.json"
-    diff "test/csv/${SAMPLE}/" "${TMPSE2CSV}/" -w
+	./semonitor.py -v -x -r "${_output}.rec" -o "${_output}.json" "test/rec/${_sample}.rec"
+	diff "test/json/${_sample}.json" "${_output}.json"
+	cmp "test/rec/${_sample}.rec" "${_output}.rec"
 
-    IN_OPTION="test/rec/${SAMPLE}.rec"
-    REC_OPTION="-r ${TMP}/${SAMPLE}.re.rec"
-    OUT_OPTION="-o ${TMP}/${SAMPLE}.re.json"
-    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} -v -x
-    diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.re.json"
-    cmp "test/rec/${SAMPLE}.rec" "${TMP}/${SAMPLE}.re.rec"
+	_tmpse2csv="${_output}.se2csv"
+	mkdir "${_tmpse2csv}"
+	./conversion/se2csv.py -p "${_tmpse2csv}/${_sample}" -t < "test/json/${_sample}.json"
+	diff -w "test/csv/${_sample}/" "${_tmpse2csv}/"
 
-    if [ -d "${TMP}" ] && [ "${TMP#/tmp/tmp.}x" != "${TMP}x" ]; then
-        rm -rf "${TMP}"
-    fi
+	./semonitor.py -v -x -r "${_output}.re.rec" -o "${_output}.re.json" "test/rec/${_sample}.rec"
+	diff "test/json/${_sample}.json" "${_output}.re.json"
+	cmp "test/rec/${_sample}.rec" "${_output}.re.rec"
 done
