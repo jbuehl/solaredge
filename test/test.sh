@@ -15,12 +15,8 @@ for rec in test/rec/*.rec; do
     SAMPLE="$(basename -s ".rec" "${rec}")"
     REC_OPTION="-r ${TMP}/${SAMPLE}.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.json"
-    KEY_OPTION=""
-    if [ -f "test/keys/${SAMPLE}.key" ]; then
-        KEY_OPTION="-k test/keys/${SAMPLE}.key"
-    fi
 
-    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} "test/rec/${SAMPLE}.rec" ${KEY_OPTION} -v -x
+    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} "test/rec/${SAMPLE}.rec" -v -x
     diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.json"
     cmp "test/rec/${SAMPLE}.rec" "${TMP}/${SAMPLE}.rec"
     mkdir "${TMPSE2CSV}"
@@ -30,7 +26,7 @@ for rec in test/rec/*.rec; do
     IN_OPTION="test/rec/${SAMPLE}.rec"
     REC_OPTION="-r ${TMP}/${SAMPLE}.re.rec"
     OUT_OPTION="-o ${TMP}/${SAMPLE}.re.json"
-    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} ${KEY_OPTION} -v -x
+    ./semonitor.py ${REC_OPTION} ${OUT_OPTION} ${IN_OPTION} -v -x
     diff "test/json/${SAMPLE}.json" "${TMP}/${SAMPLE}.re.json"
     cmp "test/rec/${SAMPLE}.rec" "${TMP}/${SAMPLE}.re.rec"
 

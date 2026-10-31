@@ -183,11 +183,7 @@ used to parse the performance data that has been previously captured to a file, 
 interact directly with a SolarEdge inverter over the RS232, RS485, or ethernet interface.
 Performance data is output to a file in JSON format.
 
-**seextract.py** (removed)
-
 **seprint.py** prints a subset of data in human readable form from a file containing JSON performance data.
-
-**sekey.py** is used to extract the unique encryption key from an inverter.
 
 **se2state.py** follows a file containing JSON performance data and outputs a JSON file
 that contains the current state of the inverter and optimizer values.
