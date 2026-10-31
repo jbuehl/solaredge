@@ -2,7 +2,7 @@
 
 set -eux
 
-export TZ='US/Pacific'
+export TZ='UTC0'
 
 cleanup()
 {
