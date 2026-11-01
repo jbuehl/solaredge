@@ -15,7 +15,7 @@ trap cleanup EXIT HUP INT QUIT ABRT ALRM TERM
 
 for rec in test/rec/*.rec; do
 	_sample="$(basename "${rec}" ".rec")"
-	_output="${TMP}/${_sample}"
+	_output="${TMP}/output/${_sample}"
 
 	./semonitor.py -v -x -r "${_output}.rec" -o "${_output}.json" "test/rec/${_sample}.rec"
 	diff "test/json/${_sample}.json" "${_output}.json"

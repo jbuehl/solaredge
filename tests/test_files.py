@@ -140,8 +140,36 @@ def test_open_out_file_write_mode_truncates_an_existing_file(workdir):
     with files.openOutFile("out.json", "wb") as out_file:
         out_file.write(b"new")
 
-    assert (workdir / "out.json").read_bytes() == b"new"
-    assert [path.name for path in workdir.iterdir()] == ["out.json"]
+    assert (workdir / "out.json").read_bytes() == b"old content"
+    assert (workdir / "out.1.json").read_bytes() == b"new"
+    assert sorted(path.name for path in workdir.iterdir()) == [
+        "out.1.json",
+        "out.json",
+    ]
+
+
+def test_open_out_file_write_mode_skips_taken_numbered_names(workdir):
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        (workdir / name).write_bytes(b"old")
+
+    with files.openOutFile("out.json", "wb") as out_file:
+        assert out_file.name == "out.3.json"
+        out_file.write(b"new")
+
+    assert (workdir / "out.3.json").read_bytes() == b"new"
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        assert (workdir / name).read_bytes() == b"old"
+
+
+def test_open_out_file_write_mode_keeps_the_directory_when_renaming(workdir):
+    (workdir / "sub").mkdir()
+    (workdir / "sub" / "out.rec").write_bytes(b"old")
+
+    with files.openOutFile("sub/out.rec", "wb") as out_file:
+        assert out_file.name == "sub/out.1.rec"
+
+    assert (workdir / "sub" / "out.rec").read_bytes() == b"old"
+    assert (workdir / "sub" / "out.1.rec").exists()
 
 
 def test_open_out_file_append_mode_extends_the_same_file(workdir):
@@ -160,13 +188,32 @@ def test_open_out_file_append_mode_creates_a_missing_file(workdir):
     assert (workdir / "out.json").read_bytes() == b""
 
 
-def test_open_out_file_missing_directory_raises(workdir):
-    missing = "missing/out.json"
+@pytest.mark.parametrize("mode", ["wb", "ab"])
+def test_open_out_file_creates_missing_parent_directories(mode, workdir):
+    with files.openOutFile("a/b/out.json", mode) as out_file:
+        assert out_file.name == "a/b/out.json"
+        out_file.write(b"{}")
 
-    with pytest.raises(FileNotFoundError), files.openOutFile(missing):
-        pass
+    assert (workdir / "a" / "b" / "out.json").read_bytes() == b"{}"
 
-    assert list(workdir.iterdir()) == []
+
+def test_open_out_file_existing_parent_directories_are_reused(workdir):
+    (workdir / "a").mkdir()
+    (workdir / "a" / "keep.txt").write_bytes(b"keep")
+
+    files.openOutFile("a/out.json").close()
+
+    assert (workdir / "a" / "keep.txt").read_bytes() == b"keep"
+    assert (workdir / "a" / "out.json").exists()
+
+
+def test_open_out_file_parent_that_is_a_file_raises(workdir):
+    (workdir / "a").write_bytes(b"not a directory")
+
+    with pytest.raises(FileExistsError):
+        files.openOutFile("a/out.json")
+
+    assert [path.name for path in workdir.iterdir()] == ["a"]
 
 
 # --- closeOutFiles -----------------------------------------------------------
