@@ -1,6 +1,7 @@
 import contextlib
 import io
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -194,6 +195,201 @@ def test_open_out_file_append_mode_creates_a_missing_file(workdir):
     files.open_out_file("out.json", "ab").close()
 
     assert (workdir / "out.json").read_bytes() == b""
+
+
+@pytest.fixture
+def today(monkeypatch):
+    # Pin the clock used for __date__, but still run the real strftime on it so
+    # the format string itself is exercised.
+    real_strftime = files.time.strftime
+    current = {"now": (2026, 1, 2, 12, 34, 56)}
+
+    def strftime(fmt, *_):
+        return real_strftime(fmt, (*current["now"], 0, 1, -1))
+
+    monkeypatch.setattr(files.time, "strftime", strftime)
+
+    def set_now(year, month, day, hour=12, minute=34, second=56):
+        current["now"] = (year, month, day, hour, minute, second)
+
+    return set_now
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_date_token_is_replaced_by_the_date(workdir):
+    with files.open_out_file("out.__date__.json") as out_file:
+        assert out_file.name == "out.20260102.json"
+        out_file.write(b"{}")
+
+    assert [path.name for path in workdir.iterdir()] == ["out.20260102.json"]
+    assert (workdir / "out.20260102.json").read_bytes() == b"{}"
+
+
+def test_open_out_file_date_is_zero_padded(today):
+    today(2026, 3, 4)
+
+    with files.open_out_file("out.__date__.json") as out_file:
+        assert out_file.name == "out.20260304.json"
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_without_date_token_keeps_the_name():
+    with files.open_out_file("out.json") as out_file:
+        assert out_file.name == "out.json"
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_every_date_token_is_replaced(workdir):
+    with files.open_out_file("__date__/out.__date__.json") as out_file:
+        assert out_file.name == "20260102/out.20260102.json"
+
+    assert (workdir / "20260102" / "out.20260102.json").exists()
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_date_token_works_in_the_directory_name(workdir):
+    with files.open_out_file("data/__date__/out.rec") as out_file:
+        assert out_file.name == "data/20260102/out.rec"
+
+    assert (workdir / "data" / "20260102" / "out.rec").exists()
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_existing_dated_file_gets_a_counter(workdir):
+    (workdir / "out.20260102.json").write_bytes(b"old")
+
+    with files.open_out_file("out.__date__.json") as out_file:
+        assert out_file.name == "out.20260102.1.json"
+        out_file.write(b"new")
+
+    assert (workdir / "out.20260102.json").read_bytes() == b"old"
+    assert (workdir / "out.20260102.1.json").read_bytes() == b"new"
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_dated_file_counts_up_on_every_run():
+    names = []
+    for _ in range(4):
+        with files.open_out_file("out.__date__.json") as out_file:
+            names.append(out_file.name)
+
+    assert names == [
+        "out.20260102.json",
+        "out.20260102.1.json",
+        "out.20260102.2.json",
+        "out.20260102.3.json",
+    ]
+
+
+def test_open_out_file_a_new_day_starts_again_without_a_counter(today, workdir):
+    files.open_out_file("out.__date__.json").close()
+    files.open_out_file("out.__date__.json").close()
+    today(2026, 1, 3)
+
+    with files.open_out_file("out.__date__.json") as out_file:
+        assert out_file.name == "out.20260103.json"
+
+    assert sorted(path.name for path in workdir.iterdir()) == [
+        "out.20260102.1.json",
+        "out.20260102.json",
+        "out.20260103.json",
+    ]
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_dated_append_mode_extends_the_dated_file(workdir):
+    (workdir / "out.20260102.json").write_bytes(b"old")
+
+    with files.open_out_file("out.__date__.json", "ab") as out_file:
+        assert out_file.name == "out.20260102.json"
+        out_file.write(b"+new")
+
+    assert (workdir / "out.20260102.json").read_bytes() == b"old+new"
+    assert [path.name for path in workdir.iterdir()] == ["out.20260102.json"]
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_dated_append_mode_creates_a_missing_file(workdir):
+    files.open_out_file("out.__date__.json", "ab").close()
+
+    assert (workdir / "out.20260102.json").read_bytes() == b""
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_datetime_token_is_replaced_by_date_and_time(workdir):
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        assert out_file.name == "out.20260102123456.json"
+        out_file.write(b"{}")
+
+    assert [path.name for path in workdir.iterdir()] == [
+        "out.20260102123456.json"
+    ]
+
+
+def test_open_out_file_datetime_is_zero_padded_and_24_hour(today):
+    today(2026, 3, 4, 5, 6, 7)
+
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        assert out_file.name == "out.20260304050607.json"
+
+    today(2026, 3, 4, 17, 6, 7)
+
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        assert out_file.name == "out.20260304170607.json"
+
+
+def test_open_out_file_datetime_is_made_of_digits_only():
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        name = out_file.name
+
+    assert re.fullmatch(r"out\.\d{14}\.json", name)
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_date_and_datetime_tokens_do_not_clash():
+    with files.open_out_file("__date__/out.__datetime__.json") as out_file:
+        assert out_file.name == "20260102/out.20260102123456.json"
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_existing_datetime_file_gets_a_counter(workdir):
+    (workdir / "out.20260102123456.json").write_bytes(b"old")
+
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        assert out_file.name == "out.20260102123456.1.json"
+        out_file.write(b"new")
+
+    assert (workdir / "out.20260102123456.json").read_bytes() == b"old"
+    assert (workdir / "out.20260102123456.1.json").read_bytes() == b"new"
+
+
+def test_open_out_file_another_second_is_another_file_without_counter(today):
+    files.open_out_file("out.__datetime__.json").close()
+    today(2026, 1, 2, 12, 34, 57)
+
+    with files.open_out_file("out.__datetime__.json") as out_file:
+        assert out_file.name == "out.20260102123457.json"
+
+
+@pytest.mark.usefixtures("today")
+def test_open_out_file_datetime_append_mode_extends_the_same_file(workdir):
+    (workdir / "out.20260102123456.json").write_bytes(b"old")
+
+    with files.open_out_file("out.__datetime__.json", "ab") as out_file:
+        assert out_file.name == "out.20260102123456.json"
+        out_file.write(b"+new")
+
+    assert (workdir / "out.20260102123456.json").read_bytes() == b"old+new"
+
+
+def test_open_out_file_the_date_comes_from_the_current_time():
+    before = files.time.strftime("%Y%m%d")
+    with files.open_out_file("out.__date__.json") as out_file:
+        name = out_file.name
+    after = files.time.strftime("%Y%m%d")
+
+    # tolerate the clock ticking over midnight during the test
+    assert name in (f"out.{before}.json", f"out.{after}.json")
 
 
 @pytest.mark.parametrize("mode", ["wb", "ab"])

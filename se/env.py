@@ -127,12 +127,15 @@ def _make_parser():
         "-o",
         dest="outfile",
         default="stdout",
-        help="Write performance data to the specified file in JSON format (default: stdout).",
+        help=(
+            "Write performance data to the specified file in JSON format "
+            "(default: stdout). Supports __date__ and __datetime__."
+        ),
     )
     parser.add_argument(
         "-r",
         dest="record",
-        help="file to record all incoming and outgoing messages to",
+        help="file to record all incoming and outgoing messages to. Supports __date__ and __datetime__.",
     )
     parser.add_argument(
         "-s",

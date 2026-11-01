@@ -2,11 +2,14 @@
 
 import logging
 import sys
+import time
 from pathlib import Path
 
 import serial
 
 logger = logging.getLogger(__name__)
+DATE_PLACEHOLDER = "__date__"
+DATETIME_PLACEHOLDER = "__datetime__"
 
 
 def open_serial(in_file_name, baud_rate):
@@ -36,11 +39,17 @@ def open_out_file(file_name, write_mode="wb"):
     """
     Open the output file in write_mode, or return None if no name is given.
 
-    The parent directories of the file are created when they are missing. An
-    existing file is never overwritten in write mode, the next free name from
-    next_free_file_name() is used instead.
+    The tokens __date__ and __datetime__ in the name are replaced by the
+    current date, and the current date and time. The parent directories of
+    the file are created when they are missing. An existing file is never
+    overwritten in write mode, the next free name from next_free_file_name()
+    is used instead.
     """
     if file_name:
+        file_name = file_name.replace(DATE_PLACEHOLDER, time.strftime("%Y%m%d"))
+        file_name = file_name.replace(
+            DATETIME_PLACEHOLDER, time.strftime("%Y%m%d%H%M%S")
+        )
         path = Path(file_name)
         path.parent.mkdir(parents=True, exist_ok=True)
         if write_mode == "wb":
