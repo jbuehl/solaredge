@@ -152,6 +152,7 @@ def make_args(**changes):
         "xerror": False,
         "commands": [],
         "slaves": [],
+        "nadir": None,
     }
     return SimpleNamespace(**{**args, **changes})
 

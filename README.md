@@ -254,6 +254,9 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
     -f                   wait for appended data as the input file grows
                          (as in tail -f)
     -m                   function as an RS485 master
+    -n HH:MM|default|event
+                         exit once a day at the nadir, when the sun is lowest,
+                         or when the inverter sends its end-of-day event
     -o outfile           write performance data to the specified file in
                          JSON format (default: stdout)
                          __date__ and __datetime__ are replaced with the
@@ -281,6 +284,15 @@ additional data that `semonitor.py` can't interpret. If you wish to read data
 from a pcap file, you should filter out the SolarEdge data using a utility such
 as tshark:
 `tshark -r infile.pcap -T fields -e data | xxd -r -p | ./semonitor.py -`
+
+The `-n` option makes `semonitor.py` exit with status 0 once a day, so the
+output file can be closed and a new one started for the next day. Give a local
+time, `default` (01:40), or `event`: the program then exits as soon as the
+inverter sends its end-of-day event, after that data has been written. The
+exit is intended to be paired with a restarting supervisor, such as systemd
+with `Restart=always` or a docker restart policy, which starts `semonitor.py`
+again for the next day. Use `__date__` or `__datetime__` in the `-o` and `-r`
+names to get a new file for each day.
 
 Debug messages are sent to the system log, unless the `-d` option is specified.
 If an error occurs while processing data, the program will log a message and

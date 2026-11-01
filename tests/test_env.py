@@ -111,6 +111,7 @@ def test_defaults_without_arguments(get_args):
         "follow": False,
         "logfile": "stderr",
         "master": False,
+        "nadir": None,
         "outfile": "stdout",
         "record": None,
         "slaves": [],
@@ -264,7 +265,7 @@ def test_type_rejects_other_values(usage_error, value):
     assert message.startswith("argument -t: invalid choice: ")
 
 
-@pytest.mark.parametrize("option", ["-p", "-n"])
+@pytest.mark.parametrize("option", ["-p"])
 def test_options_of_other_versions_are_gone(usage_error, option):
     message = usage_error(option, "80")
 
@@ -434,6 +435,7 @@ def test_verbose_dumps_the_default_arguments(get_args, capsys):
         "follow: False\n"
         "logfile: stderr\n"
         "master: False\n"
+        "nadir: None\n"
         "outfile: stdout\n"
         "record: None\n"
         "slaves: \n"
@@ -458,6 +460,7 @@ def test_verbose_dumps_all_arguments_sorted_by_name(get_args, capsys):
         "follow: True\n"
         "logfile: stderr\n"
         "master: False\n"
+        "nadir: None\n"
         "outfile: out.json\n"
         "record: rec.bin\n"
         "slaves: 7f\n"
@@ -719,7 +722,6 @@ def test_invalid_serial_combinations_are_usage_errors(
         pytest.param(["-s", "xyz"], "Invalid slave ID: xyz", id="slave"),
         pytest.param(["-t", "x"], "invalid choice", id="type"),
         pytest.param(["-p", "80"], "unrecognized arguments", id="no-ports"),
-        pytest.param(["-n", "01:40"], "unrecognized arguments", id="no-nadir"),
         pytest.param(["-t", "2"], NOT_SERIAL, id="rs232-on-stdin"),
         pytest.param(["-m"], RS485_ONLY, id="master"),
         pytest.param(["-c", "0a"], ONE_SLAVE, id="command"),

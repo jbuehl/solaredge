@@ -3,6 +3,7 @@ Description=SolarEdge monitor
 After=syslog.target
 [Service]
 ExecStart=/root/solaredge/scripts/semonitor.sh
-Restart=on-abort
+Restart=always
+RestartSec=60
 [Install]
 WantedBy=multi-user.target

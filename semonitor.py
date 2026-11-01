@@ -3,6 +3,7 @@
 # SolarEdge inverter performance monitoring using the SolarEdge protocol
 
 import time
+import datetime
 import threading
 import sys
 import struct
@@ -30,6 +31,8 @@ UPDATE_SIZE = 0x80000
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
 masterEvent = threading.Event()  # event to signal RS485 master release
+nadirEpoch = None  # UNIX epoch of the daily exit, None when disabled
+eodEvent = False  # set once the inverter's end-of-day event is received
 
 
 # program termination
@@ -75,6 +78,8 @@ def readData(args, mode, state, dataFile, recFile, outFile):
                     if args.xerror:
                         raise
                 se.logutils.setState(state, "threadLock", False)
+                if eodEvent:  # exit, the main thread terminates
+                    break
     # all finished
     if args.updatefile:  # write the firmware update file
         writeUpdate(updateBuf, args.updatefile)
@@ -83,6 +88,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
 
 # process a received message
 def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
+    global eodEvent
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg)
     if function == 0:
@@ -136,6 +142,17 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
                     msgSeq, toAddr, fromAddr, replyFunction, replyData
                 )
                 se.msg.sendMsg(dataFile, msg, recFile)
+        # the data is written and acknowledged, so the end-of-day event can end the run
+        if (
+            args.nadir == se.env.NADIR_EVENT
+            and function == se.commands.PROT_CMD_SERVER_POST_DATA
+            and data
+            and any(
+                e.get("Type") == 0 for e in msgData.get("events", {}).values()
+            )
+        ):
+            logger.info("nadir event received")
+            eodEvent = True
 
 
 # write firmware image to file
@@ -245,10 +262,14 @@ def startMaster(args):
     logger.info("starting %s", MASTER_THREAD_NAME)
 
 
-# wait until keyboard interrupt
+# wait until keyboard interrupt (or the nadir, if enabled)
 def block(state):
     try:
         while True:
+            if nadirEpoch is not None and time.time() >= nadirEpoch:
+                terminate(0, "Nadir reached, exiting")
+            if eodEvent:
+                terminate(0, "Nadir event received, exiting")
             time.sleep(1)
     except KeyboardInterrupt:
         se.logutils.dumpState(state)
@@ -269,6 +290,19 @@ def nextSeq():
     return seq
 
 
+# Return the UNIX epoch timestamp for the next occurrence of a given
+# local time (nadir), whether that is later today or tomorrow.
+def nextNadirEpoch(nadir, now=None):
+    now = now or datetime.datetime.now()
+    target = datetime.datetime.combine(now.date(), nadir)
+    if now >= target:
+        # build tomorrow from the calendar date, not by adding 24h to the instant
+        target = datetime.datetime.combine(
+            now.date() + datetime.timedelta(days=1), nadir
+        )
+    return target.timestamp()
+
+
 if __name__ == "__main__":
     # create the state variables with timestamps
     state = {}
@@ -280,6 +314,17 @@ if __name__ == "__main__":
 
     # get the command line arguments and run mode
     (args, mode) = se.env.getArgs()
+
+    # calculate the nadir once, only when enabled
+    if args.nadir == se.env.NADIR_EVENT:
+        logger.info("nadir on inverter end-of-day event")
+    elif args.nadir is not None:
+        nadirEpoch = nextNadirEpoch(args.nadir)
+        logger.info(
+            "nadir at epoch %d (%s)",
+            nadirEpoch,
+            datetime.datetime.fromtimestamp(nadirEpoch).isoformat(),
+        )
 
     # open the specified data source
     logger.info("opening %s", args.datasource)

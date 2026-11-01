@@ -4,12 +4,18 @@ import sys
 import serial.tools.list_ports
 import re
 import argparse
+import datetime
 from collections import namedtuple
 import logging
 import logging.handlers
 import se.logutils
 
 logger = logging.getLogger(__name__)
+
+# local time of day for the daily exit when -n is given 'default'
+NADIR_DEFAULT = datetime.time(1, 40)
+# nadir given as 'event': exit on the inverter's end-of-day event instead of a time
+NADIR_EVENT = "event"
 
 # run environment that is derived from the arguments that defines how the program will behave
 RunMode = namedtuple(
@@ -55,6 +61,20 @@ def getArgs():
                 )
             slaves.append(s)
         return slaves
+
+    def validated_nadir(time_str):
+        if time_str.lower() == "default":
+            return NADIR_DEFAULT
+        if time_str.lower() == NADIR_EVENT:
+            return NADIR_EVENT
+        m = re.match(r"^([01]?[0-9]|2[0-3]):([0-5][0-9])$", time_str)
+        if not m:
+            raise argparse.ArgumentTypeError(
+                "Invalid nadir, expected 24h HH:MM, 'default' or 'event': {}".format(
+                    time_str
+                )
+            )
+        return datetime.time(int(m.group(1)), int(m.group(2)))
 
     parser = SeArgumentParser(
         description="Parse Solaredge data to extract inverter and optimizer telemetry",
@@ -112,6 +132,15 @@ def getArgs():
         dest="record",
         help="file to record all incoming and outgoing messages to. Supports __date__ and __datetime__.",
     )
+    parser.add_argument(
+        "-n",
+        dest="nadir",
+        type=validated_nadir,
+        default=None,
+        metavar="HH:MM|default|event",
+        help="exit daily at local HH:MM ('default' 01:40) or on the inverter end-of-day 'event'",
+    )
+
     parser.add_argument(
         "-s",
         dest="slaves",
