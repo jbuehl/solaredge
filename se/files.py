@@ -33,9 +33,15 @@ def close_data(data_file):
 
 
 def open_out_file(file_name, write_mode="wb"):
-    """Open the output file in write_mode, or return None if no name is given."""
+    """
+    Open the output file in write_mode, or return None if no name is given.
+
+    The parent directories of the file are created when they are missing.
+    """
     if file_name:
-        return Path(file_name).open(write_mode)
+        path = Path(file_name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path.open(write_mode)
     return None
 
 

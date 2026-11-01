@@ -160,13 +160,32 @@ def test_open_out_file_append_mode_creates_a_missing_file(workdir):
     assert (workdir / "out.json").read_bytes() == b""
 
 
-def test_open_out_file_missing_directory_raises(workdir):
-    missing = "missing/out.json"
+@pytest.mark.parametrize("mode", ["wb", "ab"])
+def test_open_out_file_creates_missing_parent_directories(mode, workdir):
+    with files.open_out_file("a/b/out.json", mode) as out_file:
+        assert out_file.name == "a/b/out.json"
+        out_file.write(b"{}")
 
-    with pytest.raises(FileNotFoundError), files.open_out_file(missing):
-        pass
+    assert (workdir / "a" / "b" / "out.json").read_bytes() == b"{}"
 
-    assert list(workdir.iterdir()) == []
+
+def test_open_out_file_existing_parent_directories_are_reused(workdir):
+    (workdir / "a").mkdir()
+    (workdir / "a" / "keep.txt").write_bytes(b"keep")
+
+    files.open_out_file("a/out.json").close()
+
+    assert (workdir / "a" / "keep.txt").read_bytes() == b"keep"
+    assert (workdir / "a" / "out.json").exists()
+
+
+def test_open_out_file_parent_that_is_a_file_raises(workdir):
+    (workdir / "a").write_bytes(b"not a directory")
+
+    with pytest.raises(FileExistsError), files.open_out_file("a/out.json"):
+        pytest.fail("open_out_file should not return a file")
+
+    assert [path.name for path in workdir.iterdir()] == ["a"]
 
 
 # --- close_out_files -----------------------------------------------------------
