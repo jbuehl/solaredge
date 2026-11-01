@@ -1,3 +1,4 @@
+import calendar
 import os
 import select
 import signal
@@ -12,6 +13,11 @@ import pytest
 import se.msg
 
 from .conftest import REPO_ROOT, SEMONITOR
+from .test_semonitor import (
+    EOD_RECORDING,
+    messages_with_event,
+    recorded_messages,
+)
 
 fcntl = pytest.importorskip("fcntl")
 termios = pytest.importorskip("termios")
@@ -53,8 +59,14 @@ import os, runpy, sys
 import serial
 import serial.tools.list_ports
 
-ready_fd, port, script, *argv = sys.argv[1:]
+ready_fd, port, script, clock_start, *argv = sys.argv[1:]
 sys.argv[:] = [script, *argv]
+if float(clock_start):
+    import time
+
+    real_start = time.time()
+    real_time = time.time
+    time.time = lambda: float(clock_start) + real_time() - real_start
 serial.tools.list_ports.comports = lambda: [(port, "pty", "n/a")]
 
 
@@ -72,7 +84,7 @@ runpy.run_path(script, run_name="__main__")
 class SerialSemonitor:
     """semonitor.py, in a process of its own, on a pseudo terminal."""
 
-    def __init__(self, workdir, tty_type):
+    def __init__(self, workdir, tty_type, *options, clock_start=0):
         self.workdir = Path(workdir)
         self.active = tty_type == "2"
         self.master, self.slave = os.openpty()
@@ -90,6 +102,7 @@ class SerialSemonitor:
                     str(ready_write),
                     port,
                     str(SEMONITOR),
+                    str(clock_start),
                     "-vvv",
                     "-x",
                     "-t",
@@ -98,6 +111,7 @@ class SerialSemonitor:
                     "out.rec",
                     "-o",
                     "out.json",
+                    *options,
                     port,
                 ],
                 cwd=self.workdir,
@@ -244,8 +258,8 @@ class SerialSemonitor:
 def serial_run(workdir):
     runs = []
 
-    def start(tty_type):
-        runs.append(SerialSemonitor(workdir, tty_type))
+    def start(tty_type, *options, **settings):
+        runs.append(SerialSemonitor(workdir, tty_type, *options, **settings))
         runs[-1].wait_until_open()
         return runs[-1]
 
@@ -616,3 +630,59 @@ def test_a_lost_rs232_port_is_a_failure(serial_run):
     run.unplug()
 
     assert run.wait_for_exit(EXIT_WAIT) not in (None, 0), run.log
+
+
+# The nadir is a time of day, in whole minutes. The clock of semonitor starts
+# at a fixed time, a few seconds before a minute, and runs on from there. RS232
+# is read by the main thread (Issue #12), so the thread that waits for the
+# nadir is only there in master mode.
+CLOCK_START = calendar.timegm((2026, 1, 1, 12, 0, 52))
+NADIR_AHEAD = "12:01"
+NADIR_PASSED = "12:00"
+STILL_RUNNING = 3  # seconds, to see that semonitor does not end
+MASTER = ("-m", "-s", "7f104920")
+
+
+def test_the_nadir_ends_semonitor_without_an_error(serial_run):
+    run = serial_run("4", *MASTER, "-n", NADIR_AHEAD, clock_start=CLOCK_START)
+
+    assert run.wait_for_exit(DEADLINE) == 0, run.log
+    assert "Nadir reached, exiting" in run.log
+    assert "Traceback" not in run.log
+
+
+def test_the_nadir_of_tomorrow_does_not_end_semonitor(serial_run):
+    run = serial_run("4", *MASTER, "-n", NADIR_PASSED, clock_start=CLOCK_START)
+
+    assert run.wait_for_exit(STILL_RUNNING) is None, run.log
+
+
+def test_without_a_nadir_semonitor_does_not_end(serial_run):
+    run = serial_run("4", *MASTER, clock_start=CLOCK_START)
+
+    assert run.wait_for_exit(STILL_RUNNING) is None, run.log
+
+
+def test_the_end_of_day_event_ends_semonitor_without_an_error(serial_run):
+    frames = recorded_messages(EOD_RECORDING)[1:]
+    eod = frames.index(messages_with_event(EOD_RECORDING, 0)[0])
+    run = serial_run("4", *MASTER, "-n", "event")
+
+    # On RS485 a frame ends where the next one starts.
+    run.send(b"".join(MAGIC + frame for frame in frames[: eod + 1]) + MAGIC)
+
+    assert run.wait_for_exit(DEADLINE) == 0, run.log
+    assert "Nadir event received, exiting" in run.log
+    assert b"73124CBA" in (run.workdir / "out.json").read_bytes()
+    assert "Traceback" not in run.log
+
+
+def test_the_events_before_the_end_of_day_do_not_end_semonitor(serial_run):
+    frames = recorded_messages(EOD_RECORDING)[1:]
+    eod = frames.index(messages_with_event(EOD_RECORDING, 0)[0])
+    run = serial_run("4", *MASTER, "-n", "event")
+
+    run.send(b"".join(MAGIC + frame for frame in frames[:eod]) + MAGIC)
+    run.wait_until_taken()
+
+    assert run.wait_for_exit(STILL_RUNNING) is None, run.log

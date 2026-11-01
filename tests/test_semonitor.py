@@ -1,3 +1,4 @@
+import datetime as dt
 import functools
 import importlib.util
 import io
@@ -15,6 +16,7 @@ import serial
 import serial.tools.list_ports
 
 import se.commands
+import se.data
 import se.env
 import se.logutils
 import se.msg
@@ -42,6 +44,14 @@ ENCRYPTION_KEY = 0x0503
 MASTER_ANSWERED_REQUESTS = (POST_DATA, GET_GMT, ENCRYPTION_KEY)
 
 HEADER = struct.Struct("<HHHLLH")
+
+# the recording with the end-of-day event (Type 0) of inverter 73124CBA, in
+# its 7th performance data message
+EOD_RECORDING = "oliv3r-20180218"
+EOD_LINE = 7
+# the recording with wake events (Type 1), and no end-of-day event
+WAKE_RECORDING = "d-tamm-20160809"
+TZ_EUROPE = "CET-1CEST,M3.5.0,M10.5.0/3"  # clocks go back on 2026-10-25
 
 
 class StopLoopError(Exception):
@@ -149,6 +159,7 @@ def make_args(**changes):
         "xerror": False,
         "commands": [],
         "slaves": [],
+        "nadir": None,
     }
     return SimpleNamespace(**{**args, **changes})
 
@@ -204,6 +215,23 @@ def carries_data(msg):
 
 def carries_no_data(msg):
     return not carries_data(msg)
+
+
+def event_types(msg):
+    # the types of the events in a performance data message
+    data = se.msg.parse_msg(msg)[4]
+    events = se.data.parse_data(POST_DATA, data)["events"]
+    return {e.get("Type") for e in events.values()}
+
+
+def messages_with_event(recording, wanted):
+    return [
+        msg
+        for msg in recorded_messages(recording)
+        if function_of(msg) == POST_DATA
+        and carries_data(msg)
+        and wanted in event_types(msg)
+    ]
 
 
 # A reply has the sequence number of its request, and the addresses swapped.
@@ -281,6 +309,17 @@ def set_zone(monkeypatch, zone):
     time.tzset()
 
 
+# The UNIX epoch of a local date and time, given as year, month, day, hour
+# and minute.
+def local_epoch(*local_time):
+    return time.mktime((*local_time, 0, 0, 0, -1))
+
+
+# The local date and time of a UNIX epoch, as year, month, day, hour, minute.
+def local_date_time(epoch):
+    return time.localtime(epoch)[:5]
+
+
 def fake_bus(sm, monkeypatch):
     bus = SimpleNamespace(timers=[], event=FakeEvent())
 
@@ -293,9 +332,10 @@ def fake_bus(sm, monkeypatch):
     return bus
 
 
-def process(sm, msg, files, mode=MASTER_MODE):
+def process(sm, msg, files, mode=MASTER_MODE, **changes):
     sm.process_msg(
         msg,
+        make_args(**changes),
         mode,
         files.state,
         sm.Files(files.line, files.rec, files.out),
@@ -369,6 +409,59 @@ def sm():
 @pytest.fixture
 def files():
     return make_files()
+
+
+# --- -n argument -------------------------------------------------------------
+
+
+@pytest.fixture
+def get_nadir(monkeypatch):
+
+    def run(value):
+        monkeypatch.setattr(sys, "argv", ["semonitor.py", "-n", value])
+        return se.env.get_args()[0].nadir
+
+    return run
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("default", dt.time(1, 40)),
+        ("DEFAULT", dt.time(1, 40)),
+        ("0:00", dt.time(0, 0)),
+        ("04:05", dt.time(4, 5)),
+        ("23:59", dt.time(23, 59)),
+        ("event", se.env.NADIR_EVENT),
+        ("EVENT", se.env.NADIR_EVENT),
+    ],
+)
+def test_nadir_accepts_a_time_default_or_event(get_nadir, value, expected):
+    assert get_nadir(value) == expected
+
+
+@pytest.mark.parametrize("value", ["25:00", "1:60", "1:40am", "reset", ""])
+def test_nadir_rejects_other_values(get_nadir, capsys, value):
+    with pytest.raises(SystemExit) as exit_:
+        get_nadir(value)
+
+    assert exit_.value.code == 2
+    assert "Invalid nadir" in capsys.readouterr().err
+
+
+def test_nadir_needs_a_value(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["semonitor.py", "-n"])
+
+    with pytest.raises(SystemExit) as exit_:
+        se.env.get_args()
+
+    assert exit_.value.code == 2
+
+
+def test_nadir_is_off_by_default(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["semonitor.py"])
+
+    assert se.env.get_args()[0].nadir is None
 
 
 # --- terminate ---------------------------------------------------------------
@@ -558,6 +651,57 @@ def test_other_functions_are_not_answered(sm, files, req, _reply):
 
     assert not files.line.written
     assert not sm.master_event.is_set()
+
+
+# --- process_msg: end-of-day event --------------------------------------------
+
+
+def test_event_mode_starts_without_an_end_of_day_event(sm):
+    assert not sm.eod_event.is_set()
+
+
+def test_end_of_day_event_is_seen_in_event_mode(sm, files):
+    eod = messages_with_event(EOD_RECORDING, 0)[0]
+
+    process(sm, eod, files, nadir=se.env.NADIR_EVENT)
+
+    assert sm.eod_event.is_set()
+
+
+def test_data_is_written_and_acknowledged_before_the_event_exits(sm, files):
+    eod = messages_with_event(EOD_RECORDING, 0)[0]
+
+    process(sm, eod, files, nadir=se.env.NADIR_EVENT)
+
+    assert b"73124CBA" in files.out.getvalue()
+    assert files.line.written  # the ack, in master mode
+    assert sm.eod_event.is_set()
+
+
+def test_wake_events_do_not_end_the_run(sm, files):
+    messages = messages_with_event(WAKE_RECORDING, 1)
+    assert messages
+
+    for msg in messages:
+        process(sm, msg, files, nadir=se.env.NADIR_EVENT)
+
+    assert not sm.eod_event.is_set()
+
+
+def test_other_event_types_do_not_end_the_run(sm, files):
+    # Type 114 is junk that shows up in the recordings
+    for msg in messages_with_event(EOD_RECORDING, 114):
+        process(sm, msg, files, nadir=se.env.NADIR_EVENT)
+
+    assert not sm.eod_event.is_set()
+
+
+def test_end_of_day_event_is_ignored_without_event_mode(sm, files):
+    eod = messages_with_event(EOD_RECORDING, 0)[0]
+
+    process(sm, eod, files)
+
+    assert not sm.eod_event.is_set()
 
 
 # --- read_data ----------------------------------------------------------------
@@ -963,6 +1107,56 @@ def test_block_keeps_waiting_until_it_is_interrupted(sm, files, monkeypatch):
     assert sleeps == [1, 1, 1]
 
 
+def test_block_exits_with_0_once_the_nadir_has_passed(
+    sm, files, monkeypatch, caplog
+):
+    now = [FROZEN_TIME]
+
+    def sleep(seconds):
+        now[0] += seconds
+
+    monkeypatch.setattr(
+        sm, "time", SimpleNamespace(time=lambda: now[0], sleep=sleep)
+    )
+    nadir_epoch = FROZEN_TIME + 3
+
+    with caplog.at_level(logging.INFO), pytest.raises(SystemExit) as exit_:
+        sm.block(files.state, nadir_epoch)
+
+    assert exit_.value.code == 0
+    assert "Nadir reached, exiting" in caplog.text
+
+
+def test_block_keeps_waiting_before_the_nadir(sm, files, monkeypatch):
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        if len(sleeps) == 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(sm, "time", fake_time(sleep=sleep))
+
+    sm.block(files.state, FROZEN_TIME + 3600)
+
+    assert sleeps == [1, 1]
+
+
+def test_block_exits_with_0_on_the_end_of_day_event(
+    sm, files, monkeypatch, caplog
+):
+    sleeps = []
+    monkeypatch.setattr(sm, "time", fake_time(sleep=sleeps.append))
+    sm.eod_event.set()
+
+    with caplog.at_level(logging.INFO), pytest.raises(SystemExit) as exit_:
+        sm.block(files.state)
+
+    assert exit_.value.code == 0
+    assert "Nadir event received, exiting" in caplog.text
+    assert sleeps == []
+
+
 # --- next_seq -----------------------------------------------------------------
 
 
@@ -1002,6 +1196,66 @@ def test_next_sequence_number_restarts_after_a_damaged_file(sm, stored):
 
     assert sm.next_seq() == 1
     assert Path(sm.SEQ_FILE_NAME).read_text() == "1\n"
+
+
+# --- next_nadir_epoch --------------------------------------------------------
+
+
+def test_nadir_is_today_when_it_is_still_to_come(sm):
+    epoch = sm.next_nadir_epoch(dt.time(1, 40), local_epoch(2026, 11, 13, 1, 0))
+
+    assert local_date_time(epoch) == (2026, 11, 13, 1, 40)
+
+
+def test_nadir_is_tomorrow_once_it_has_passed(sm):
+    epoch = sm.next_nadir_epoch(dt.time(1, 40), local_epoch(2026, 11, 13, 2, 0))
+
+    assert local_date_time(epoch) == (2026, 11, 14, 1, 40)
+
+
+def test_nadir_exactly_now_is_tomorrow(sm):
+    epoch = sm.next_nadir_epoch(
+        dt.time(1, 40), local_epoch(2026, 11, 13, 1, 40)
+    )
+
+    assert local_date_time(epoch) == (2026, 11, 14, 1, 40)
+
+
+@pytest.mark.parametrize(
+    ("now", "expected"),
+    [
+        pytest.param((2026, 12, 31, 2, 0), (2027, 1, 1, 1, 40), id="year-end"),
+        pytest.param((2028, 2, 28, 2, 0), (2028, 2, 29, 1, 40), id="leap-day"),
+    ],
+)
+def test_nadir_tomorrow_can_be_in_the_next_month_or_year(sm, now, expected):
+    epoch = sm.next_nadir_epoch(dt.time(1, 40), local_epoch(*now))
+
+    assert local_date_time(epoch) == expected
+
+
+def test_nadir_is_the_next_calendar_day_across_a_dst_change(sm, monkeypatch):
+    # the day the clocks go back is 25 hours long: tomorrow's nadir is at
+    # 01:40 on the calendar, not 24 hours after today's
+    set_zone(monkeypatch, TZ_EUROPE)
+
+    epoch = sm.next_nadir_epoch(
+        dt.time(1, 40), local_epoch(2026, 10, 24, 12, 0)
+    )
+    assert local_date_time(epoch) == (2026, 10, 25, 1, 40)
+
+    epoch = sm.next_nadir_epoch(
+        dt.time(1, 40), local_epoch(2026, 10, 25, 1, 40)
+    )
+    assert local_date_time(epoch) == (2026, 10, 26, 1, 40)
+
+
+def test_nadir_defaults_to_the_current_time(sm, monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: local_epoch(2026, 11, 13, 1, 0))
+
+    epoch = sm.next_nadir_epoch(dt.time(1, 40))
+
+    assert local_date_time(epoch) == (2026, 11, 13, 1, 40)
 
 
 # --- program as a whole ------------------------------------------------------
@@ -1208,3 +1462,31 @@ def test_master_mode_answers_the_traffic_of_a_real_master(
     for text in expected:
         assert text in result.stderr
     assert line.closed
+
+
+def test_event_mode_exits_0_right_after_the_end_of_day_event(
+    run_semonitor, golden
+):
+    recording = golden("rec", EOD_RECORDING)
+
+    plain = run_semonitor("-x", recording)
+    result = run_semonitor("-x", "-n", "event", recording)
+
+    assert result.returncode == 0
+    assert plain.returncode == 0
+    lines = result.stdout.splitlines()
+    assert len(lines) == EOD_LINE
+    assert lines == plain.stdout.splitlines()[:EOD_LINE]
+    assert len(plain.stdout.splitlines()) > EOD_LINE
+
+
+def test_event_mode_keeps_reading_without_an_end_of_day_event(
+    run_semonitor, golden
+):
+    result = run_semonitor("-x", "-n", "event", golden("rec", WAKE_RECORDING))
+
+    assert result.returncode == 0
+    assert (
+        result.stdout
+        == run_semonitor("-x", golden("rec", WAKE_RECORDING)).stdout
+    )
