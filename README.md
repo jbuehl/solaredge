@@ -256,7 +256,11 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
     -m                   function as an RS485 master
     -o outfile           write performance data to the specified file in
                          JSON format (default: stdout)
+                         __date__ and __datetime__ are replaced with the
+                         current date and time, also in folders
+                         (data/__date__/out.json)
     -r recfile           file to record all incoming and outgoing messages to
+                         (supports __date__ and __datetime__ like -o)
     -s inv[,inv,...]     comma delimited list of SolarEdge slave inverter IDs
     -t 2|4               data source type (2=RS232, 4=RS485)
     -u updatefile        file to write firmware update to (experimental)

@@ -16,8 +16,17 @@ trap cleanup EXIT HUP INT QUIT ABRT ALRM TERM
 for rec in test/rec/*.rec; do
 	_sample="$(basename "${rec}" ".rec")"
 	_output="${TMP}/output/${_sample}"
+	_datetime_output="${TMP}/datetime/${_sample}"
 
-	./semonitor.py -v -x -r "${_output}.rec" -o "${_output}.json" "test/rec/${_sample}.rec"
+	./semonitor.py -v -x -r "${_datetime_output}.__datetime__.rec" -o "${_datetime_output}.__datetime__.json" "test/rec/${_sample}.rec"
+	mv "${_datetime_output}."[0-9]*".json" "${_datetime_output}.json"
+	mv "${_datetime_output}."[0-9]*".rec" "${_datetime_output}.rec"
+	diff "test/json/${_sample}.json" "${_datetime_output}.json"
+	cmp "test/rec/${_sample}.rec" "${_datetime_output}.rec"
+
+	./semonitor.py -v -x -r "${_output}.__date__.rec" -o "${_output}.__date__.json" "test/rec/${_sample}.rec"
+	mv "${_output}."[0-9]*".json" "${_output}.json"
+	mv "${_output}."[0-9]*".rec" "${_output}.rec"
 	diff "test/json/${_sample}.json" "${_output}.json"
 	cmp "test/rec/${_sample}.rec" "${_output}.rec"
 
