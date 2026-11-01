@@ -26,14 +26,20 @@ def test_output_defaults_to_stdout(run_semonitor, golden, sample):
     assert result.stdout == golden("json", sample).read_bytes()
 
 
-def test_output_is_overwritten_without_append(run_semonitor, golden, sample):
+def test_output_is_not_overwritten_without_append(
+    run_semonitor, golden, sample
+):
     args = ("-x", "-r", "out.rec", "-o", "out.json", golden("rec", sample))
 
     assert run_semonitor(*args).returncode == 0
     assert run_semonitor(*args).returncode == 0
 
-    assert Path("out.json").read_bytes() == golden("json", sample).read_bytes()
-    assert Path("out.rec").read_bytes() == golden("rec", sample).read_bytes()
+    for name in ("out.json", "out.1.json"):
+        assert Path(name).read_bytes() == golden("json", sample).read_bytes()
+    for name in ("out.rec", "out.1.rec"):
+        assert Path(name).read_bytes() == golden("rec", sample).read_bytes()
+    assert not Path("out.2.json").exists()
+    assert not Path("out.2.rec").exists()
 
 
 def test_append_adds_to_the_existing_output(run_semonitor, golden, sample):

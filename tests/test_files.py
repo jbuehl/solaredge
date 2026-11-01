@@ -134,14 +134,50 @@ def test_open_out_file_defaults_to_write_mode():
         assert out_file.mode == "wb"
 
 
-def test_open_out_file_write_mode_truncates_an_existing_file(workdir):
+def test_open_out_file_write_mode_never_overwrites_an_existing_file(workdir):
     (workdir / "out.json").write_bytes(b"old content")
 
     with files.open_out_file("out.json", "wb") as out_file:
+        assert out_file.name == "out.1.json"
         out_file.write(b"new")
 
-    assert (workdir / "out.json").read_bytes() == b"new"
-    assert [path.name for path in workdir.iterdir()] == ["out.json"]
+    assert (workdir / "out.json").read_bytes() == b"old content"
+    assert (workdir / "out.1.json").read_bytes() == b"new"
+    assert sorted(path.name for path in workdir.iterdir()) == [
+        "out.1.json",
+        "out.json",
+    ]
+
+
+def test_open_out_file_write_mode_skips_taken_numbered_names(workdir):
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        (workdir / name).write_bytes(b"old")
+
+    with files.open_out_file("out.json", "wb") as out_file:
+        assert out_file.name == "out.3.json"
+        out_file.write(b"new")
+
+    assert (workdir / "out.3.json").read_bytes() == b"new"
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        assert (workdir / name).read_bytes() == b"old"
+
+
+def test_open_out_file_write_mode_keeps_the_directory_when_renaming(workdir):
+    (workdir / "sub").mkdir()
+    (workdir / "sub" / "out.rec").write_bytes(b"old")
+
+    with files.open_out_file("sub/out.rec", "wb") as out_file:
+        assert out_file.name == "sub/out.1.rec"
+
+    assert (workdir / "sub" / "out.rec").read_bytes() == b"old"
+    assert (workdir / "sub" / "out.1.rec").exists()
+
+
+def test_open_out_file_write_mode_creates_missing_directories(workdir):
+    with files.open_out_file("a/b/out.json", "wb") as out_file:
+        assert out_file.name == "a/b/out.json"
+
+    assert (workdir / "a" / "b" / "out.json").exists()
 
 
 def test_open_out_file_append_mode_extends_the_same_file(workdir):
@@ -188,7 +224,60 @@ def test_open_out_file_parent_that_is_a_file_raises(workdir):
     assert [path.name for path in workdir.iterdir()] == ["a"]
 
 
-# --- close_out_files -----------------------------------------------------------
+# --- next_free_file_name --------------------------------------------------------
+
+
+def test_next_free_file_name_returns_an_unused_name_unchanged():
+    assert files.next_free_file_name("out.json") == "out.json"
+
+
+def test_next_free_file_name_inserts_the_counter_before_the_extension(workdir):
+    (workdir / "out.json").write_bytes(b"")
+
+    assert files.next_free_file_name("out.json") == "out.1.json"
+
+
+def test_next_free_file_name_counts_up_past_existing_files(workdir):
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        (workdir / name).write_bytes(b"")
+
+    assert files.next_free_file_name("out.json") == "out.3.json"
+
+
+def test_next_free_file_name_fills_no_gaps_before_the_first_free_slot(workdir):
+    for name in ("out.json", "out.2.json"):
+        (workdir / name).write_bytes(b"")
+
+    assert files.next_free_file_name("out.json") == "out.1.json"
+
+
+def test_next_free_file_name_handles_names_without_an_extension(workdir):
+    (workdir / "out").write_bytes(b"")
+
+    assert files.next_free_file_name("out") == "out.1"
+
+
+def test_next_free_file_name_only_splits_the_last_extension(workdir):
+    (workdir / "out.tar.gz").write_bytes(b"")
+
+    assert files.next_free_file_name("out.tar.gz") == "out.tar.1.gz"
+
+
+def test_next_free_file_name_treats_a_directory_as_free(workdir):
+    # only regular files count as taken for the base name itself
+    (workdir / "out.json").mkdir()
+
+    assert files.next_free_file_name("out.json") == "out.json"
+
+
+def test_next_free_file_name_skips_a_directory_at_a_numbered_name(workdir):
+    (workdir / "out.json").write_bytes(b"")
+    (workdir / "out.1.json").mkdir()
+
+    assert files.next_free_file_name("out.json") == "out.2.json"
+
+
+# --- close_out_files ---------------------------------------------------------
 
 
 @pytest.mark.parametrize("with_rec", [False, True], ids=["no-rec", "rec"])

@@ -36,13 +36,33 @@ def open_out_file(file_name, write_mode="wb"):
     """
     Open the output file in write_mode, or return None if no name is given.
 
-    The parent directories of the file are created when they are missing.
+    The parent directories of the file are created when they are missing. An
+    existing file is never overwritten in write mode, the next free name from
+    next_free_file_name() is used instead.
     """
     if file_name:
         path = Path(file_name)
         path.parent.mkdir(parents=True, exist_ok=True)
+        if write_mode == "wb":
+            path = Path(next_free_file_name(file_name))
         return path.open(write_mode)
     return None
+
+
+def next_free_file_name(file_name):
+    """
+    Return file_name, or if that file exists, the first free numbered name.
+
+    The counter is put before the extension: out.json becomes out.1.json,
+    out.2.json and so on.
+    """
+    path = Path(file_name)
+    if not path.is_file():
+        return file_name
+    count = 1
+    while path.with_name(f"{path.stem}.{count}{path.suffix}").exists():
+        count += 1
+    return str(path.with_name(f"{path.stem}.{count}{path.suffix}"))
 
 
 def close_out_files(rec_file, out_file):
