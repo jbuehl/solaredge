@@ -246,7 +246,7 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
 #### Options
 
 ```text
-    -a                   append to output file if the file exists
+    -a                   append to existing output files
     -b                   baud rate for serial data source (default: 115200)
     -c cmd[/cmd/...]     send the specified command functions
     -d debugfile         where to send debug messages (stdout|syslog|filename)

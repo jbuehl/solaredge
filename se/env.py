@@ -65,7 +65,7 @@ def getArgs():
         dest="append",
         action="store_true",
         default=False,
-        help="append to output file if the file exists",
+        help="append to existing output files",
     )
     parser.add_argument(
         "-b",

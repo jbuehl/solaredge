@@ -134,10 +134,11 @@ def test_open_out_file_defaults_to_write_mode(workdir):
         assert out_file.mode == "wb"
 
 
-def test_open_out_file_write_mode_truncates_an_existing_file(workdir):
+def test_open_out_file_write_mode_never_overwrites_an_existing_file(workdir):
     (workdir / "out.json").write_bytes(b"old content")
 
     with files.openOutFile("out.json", "wb") as out_file:
+        assert out_file.name == "out.1.json"
         out_file.write(b"new")
 
     assert (workdir / "out.json").read_bytes() == b"old content"
@@ -170,6 +171,13 @@ def test_open_out_file_write_mode_keeps_the_directory_when_renaming(workdir):
 
     assert (workdir / "sub" / "out.rec").read_bytes() == b"old"
     assert (workdir / "sub" / "out.1.rec").exists()
+
+
+def test_open_out_file_write_mode_creates_missing_directories(workdir):
+    with files.openOutFile("a/b/out.json", "wb") as out_file:
+        assert out_file.name == "a/b/out.json"
+
+    assert (workdir / "a" / "b" / "out.json").exists()
 
 
 def test_open_out_file_append_mode_extends_the_same_file(workdir):
@@ -214,6 +222,59 @@ def test_open_out_file_parent_that_is_a_file_raises(workdir):
         files.openOutFile("a/out.json")
 
     assert [path.name for path in workdir.iterdir()] == ["a"]
+
+
+# --- nextFreeFileName --------------------------------------------------------
+
+
+def test_next_free_file_name_returns_an_unused_name_unchanged(workdir):
+    assert files.nextFreeFileName("out.json") == "out.json"
+
+
+def test_next_free_file_name_inserts_the_counter_before_the_extension(workdir):
+    (workdir / "out.json").write_bytes(b"")
+
+    assert files.nextFreeFileName("out.json") == "out.1.json"
+
+
+def test_next_free_file_name_counts_up_past_existing_files(workdir):
+    for name in ("out.json", "out.1.json", "out.2.json"):
+        (workdir / name).write_bytes(b"")
+
+    assert files.nextFreeFileName("out.json") == "out.3.json"
+
+
+def test_next_free_file_name_fills_no_gaps_before_the_first_free_slot(workdir):
+    for name in ("out.json", "out.2.json"):
+        (workdir / name).write_bytes(b"")
+
+    assert files.nextFreeFileName("out.json") == "out.1.json"
+
+
+def test_next_free_file_name_handles_names_without_an_extension(workdir):
+    (workdir / "out").write_bytes(b"")
+
+    assert files.nextFreeFileName("out") == "out.1"
+
+
+def test_next_free_file_name_only_splits_the_last_extension(workdir):
+    (workdir / "out.tar.gz").write_bytes(b"")
+
+    assert files.nextFreeFileName("out.tar.gz") == "out.tar.1.gz"
+
+
+def test_next_free_file_name_treats_a_directory_as_free(workdir):
+    # only regular files count as taken for the base name itself
+    (workdir / "out.json").mkdir()
+
+    assert files.nextFreeFileName("out.json") == "out.json"
+
+
+def test_next_free_file_name_skips_a_directory_at_a_numbered_name(workdir):
+    (workdir / "out.json").write_bytes(b"")
+    (workdir / "out.1.json").mkdir()
+
+    assert files.nextFreeFileName("out.json") == "out.2.json"
 
 
 # --- closeOutFiles -----------------------------------------------------------
