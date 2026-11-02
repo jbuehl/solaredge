@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Utility to convert a debug log back into a binary data file.
 # The log must have been created by semonitor.py with the -vvvv option which
 # dumps the raw data.

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 A very basic alternative to the (linux world's) syslog module, so I can test semonitor
 or a Windows machine without too much heartache.
