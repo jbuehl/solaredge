@@ -51,7 +51,7 @@ def getArgs():
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
     parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
     parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
-    parser.add_argument("-d", dest="logfile", default="stderr", help="where to write log messages.  either a file name or one of ['stderr', 'syslog']")
+    parser.add_argument("-d", dest="logfile", default="stderr", help="where to write log messages. either a file name or one of ['stderr', 'syslog']")
     parser.add_argument("-f", dest="follow", action="store_true", default=False, help="wait for appended data as the input file grows (as in tail -f)")
     parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")

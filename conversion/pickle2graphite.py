@@ -6,10 +6,10 @@ graphite will accept batches of metrics (in a pickled nested list of tuples form
 2004) as well as individual metric values, one at a time, over the (usually) 2003 port.
 
 The `Pickle2Graphite` class converts a nested dictionary (such as produced by `json.loads` on some solaredge traffic
-that has been processed by semonitor) into the nested list of tuples structure expected by carbon.  The `send` method
+that has been processed by semonitor) into the nested list of tuples structure expected by carbon. The `send` method
 pickles it, adds the requisite header, and sends it to graphite.
 
-You may need to adjust the delay parameter, depending upon the capacity and busyness of the graphite server.  I have
+You may need to adjust the delay parameter, depending upon the capacity and busyness of the graphite server. I have
 found 0.2 works fine **for me** in production mode, when I am "following" some existing metrics in real time, as the
 solaredge inverter emits them, but I needed to increase it to as much as 5.0 the first time I sent a new batch of metrics
 to graphite, otherwise the carbon listener seemed to be swamped and didn't have time to create all the new metrics.
