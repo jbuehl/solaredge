@@ -18,7 +18,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint:
+    uses: ./.github/workflows/lint.yaml
+
   integration:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -43,6 +47,7 @@ jobs:
         run: test/test.sh
 
   pytest:
+    needs: lint
     runs-on: ubuntu-latest
     continue-on-error: true  # Allow the pipeline to pass until all bugfixes are in.
     permissions:

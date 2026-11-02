@@ -6,9 +6,10 @@
 name = "semonitor"
 requires-python = ">=3.14"
 
-# The dependencies of semonitor itself (`run`), and the tools to test it.
-# Installed with `--group NAME`.
+# The dependencies of semonitor itself (`run`), and the tools to develop (`dev`)
+# and to test (`test`) it. Installed with `--group NAME`.
 [dependency-groups]
+dev = ["pre-commit"]
 run = ["pyserial>=3.5"]
 test = [
     { include-group = "run" },
