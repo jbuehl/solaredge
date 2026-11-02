@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Copyright (C) 2026 Olliver Schinagl <oliver@schinagl.nl>
+
+# Set up (or refresh) the venv and hook cache, and run on everything: ./pre-commit.sh
+# Run again, without the set up: .venv/bin/pre-commit run --all-files
+
+# Never touch: golden test data and the verbatim GPLv3 text.
+exclude: ^(LICENSE$|test/(csv|json|pcap|rec)/)
+
+repos:
+  - repo: local
+    hooks:
+      - id: check-added-large-files
+        name: check for added large files
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: check-added-large-files
+      - id: check-executables-have-shebangs
+        name: check that executables have shebangs
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: check-executables-have-shebangs
+        types: [text, executable]
+      - id: check-merge-conflict
+        name: check for merge conflicts
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: check-merge-conflict
+        types: [text]
+      - id: check-shebang-scripts-are-executable
+        name: check that scripts with shebangs are executable
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: check-shebang-scripts-are-executable
+        types: [text]
+      - id: end-of-file-fixer
+        name: fix end of files
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: end-of-file-fixer
+        types: [text]
+      - id: mixed-line-ending
+        name: mixed line ending
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: mixed-line-ending --fix=no
+        types: [text]
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: trailing-whitespace-fixer
+        types: [text]
+      - id: markdown-typewriter-spaces
+        name: markdown typewriter (double) spaces between words or sentences
+        language: unsupported
+        entry: |
+          sh -c '
+          rc=0
+          for f in "${@}"; do
+              out=$(sed \
+                  -e "\|^[[:space:]]*\`\`\`|,\|^[[:space:]]*\`\`\`|s|.*||" \
+                  -e "\|^[[:space:]]*~~~|,\|^[[:space:]]*~~~|s|.*||" \
+                  -e "\|^    |s|.*||" \
+                  -e "\|^[[:cntrl:]]|s|.*||" "${f}" |
+                  grep -n "[^ ] \{2,\}[^ ]" |
+                  grep -v "^[0-9]*:[[:space:]]*|")
+              if [ -n "${out}" ]; then
+                  printf "%s\n" "${out}" | sed "s|^|${f}:|"
+                  rc=1
+              fi
+          done
+          exit "${rc}"
+          ' --
+        types: [markdown]
+      - id: typewriter-spaces
+        name: typewriter (double) spaces in code(-like) files
+        language: pygrep
+        entry: '[a-z)][.!?] {2,}[A-Z]'
+        types: [text]
+        exclude_types: [markdown]

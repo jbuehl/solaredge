@@ -1,0 +1,29 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+[*]
+charset = utf-8
+curly_bracket_next_line = true
+end_of_line = lf
+indent_size = tab
+indent_style = tab
+insert_final_newline = true
+shell_variant = posix
+space_redirects = true
+spaces_around_operators = true
+tab_width = 8
+trim_trailing_whitespace = true
+
+[LICENSE]
+indent_size = unset
+indent_style = unset
+
+[{Dockerfile*,Containerfile*,*.md,*.py,*.{toml,tml}}]
+indent_size = 4
+indent_style = space
+
+[*.{yaml,yml,yamllint}]
+indent_size = 2
+indent_style = space

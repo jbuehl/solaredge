@@ -444,6 +444,38 @@ json lines to be written to) the inFile (yyyymmdd.json) until interrupted
 (Ctrl-C) or otherwise killed.
 
 
+## Development
+
+To develop on semonitor, set up the virtualenv and git hook, and lint all
+files, in one go:
+
+```sh
+    ./pre-commit.sh
+```
+
+Lint all files again, without the set up:
+
+```sh
+    .venv/bin/pre-commit run --all-files
+```
+
+Fix spelling mistakes interactively:
+
+```sh
+    .venv/bin/pre-commit run --hook-stage manual codespell-fix --all-files
+```
+
+Create a branch:
+
+```sh
+    git branch <title>
+```
+
+For an existing issue, the title could be the issue number.
+
+Then commit and open a merge request!
+
+
 ## Testing
 
 There are two kinds of tests, which both run in the pipeline:
