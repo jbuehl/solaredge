@@ -1,0 +1,19 @@
+MD009:  # No trailing whitespace, no 2 space exceptions
+  br_spaces: 0
+
+MD012:  # Allow up to 2 consecutive blank lines globally
+  maximum: 2
+
+MD013:  # Line length configuration
+  line_length: 80
+  strict: false
+  code_blocks: false
+  tables: false
+  headings: false
+
+MD022:  # Require 2 blank lines before a heading, 1 blank line after
+  lines_above: 2
+  lines_below: 1
+
+MD024:  # Allow duplicate headings, as long as they aren't siblings
+  siblings_only: true

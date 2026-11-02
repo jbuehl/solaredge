@@ -80,3 +80,10 @@ repos:
         entry: '[a-z)][.!?] {2,}[A-Z]'
         types: [text]
         exclude_types: [markdown]
+
+      - id: markdownlint-cli2
+        name: markdownlint
+        language: node
+        additional_dependencies: [markdownlint-cli2]
+        entry: markdownlint-cli2 --fix
+        types: [markdown]
