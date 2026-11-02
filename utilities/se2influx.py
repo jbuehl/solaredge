@@ -112,7 +112,7 @@ class Se2Influx:
     def reader(self) -> None:
         """
         Reader method: execute a blocking read on stdin with a timeout, after which
-        we check to see if we need to shutdown.  Any data gets sent to our output queues
+        we check to see if we need to shutdown. Any data gets sent to our output queues
         for ingestion by writer threads.
         """
         try:
@@ -222,7 +222,7 @@ class Se2Influx:
         """
         Logger method:  this just takes our input data (read from stdin and
         written to our input queue) and writes it verbatim out to a file, with
-        options for file rotation and compression.  This is useful if we need
+        options for file rotation and compression. This is useful if we need
         to later replay data and re-insert it into our influx DB (influxDB
         handles duplicate data points by overwriting field data, so this should
         be fine)

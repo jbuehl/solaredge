@@ -27,7 +27,7 @@ def main():
         except:
             print("We could not open %s. Exiting" % ars.infile)
             sys.exit(1)
-        # We always set looper = False for files, even if the args set it to true. 
+        # We always set looper = False for files, even if the args set it to true.
         looper = False
 
     lastwrite = 0
@@ -108,16 +108,15 @@ def getargs():
     parser.add_argument("infile", default="stdin", nargs='?', help="File to process. The Default of stdin is used to pipe data to this script. Otherwise it will just process a single file (provided by -s) and exit)")
 
     defargs = parser.parse_args()
-    if defargs.looper == True and defargs.infile != "stdin": 
+    if defargs.looper == True and defargs.infile != "stdin":
         print("Warning: You have set wait forever (-w) on a infile that is not stdin, we will NOT wait forever")
 
     return defargs
 
 
 
- 
+
 
 
 if __name__ == "__main__":
     main()
-

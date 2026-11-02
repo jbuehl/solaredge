@@ -1,12 +1,12 @@
 def unwrap_metricsDict(mydict):
     """
     A iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,
-    after they have been wrapped in the device type and device id identifiers.  The inverse (sort of) to the
+    after they have been wrapped in the device type and device id identifiers. The inverse (sort of) to the
     ParseDevice.wrap_in_ids method.
 
     Will work equally well on a json.loads dictionary (where the json was created from a parsed device dictionary).
 
-    :param mydict: A nested set of dictionaries, the deepest level of which records the attributes for a device.  "Date"
+    :param mydict: A nested set of dictionaries, the deepest level of which records the attributes for a device. "Date"
      must be one of those device attributes, because that is how the algorithm knows it has reached the bottom of the
      nest.
 
@@ -33,4 +33,3 @@ def unwrap_metricsDict(mydict):
                     yield nice(k2), v2
                 else:
                     yield "{}.{}".format(nice(k), nice(k2)), v2
-
