@@ -118,3 +118,10 @@ repos:
         entry: sh -c 'exec codespell --write-changes --interactive 3 "$@" < /dev/tty > /dev/tty 2>&1' --
         require_serial: true
         types: [text]
+
+      - id: shellcheck
+        name: shellcheck
+        language: python
+        additional_dependencies: [shellcheck-py]
+        entry: shellcheck
+        types: [shell]
