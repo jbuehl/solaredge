@@ -87,3 +87,34 @@ repos:
         additional_dependencies: [markdownlint-cli2]
         entry: markdownlint-cli2 --fix
         types: [markdown]
+
+      - id: cspell
+        name: cspell
+        language: node
+        additional_dependencies: [cspell]
+        entry: cspell lint --no-progress --no-summary --no-must-find-files
+        types: [text]
+
+      - id: cspell-unused-words
+        name: cspell unused words
+        language: node
+        additional_dependencies: [cspell-check-unused-words]
+        entry: cspell-check-unused-words --simple
+        files: ^\.cspell\.yaml$
+        pass_filenames: false
+
+      - id: codespell
+        name: codespell
+        language: python
+        additional_dependencies: [codespell, tomli]
+        entry: codespell
+        types: [text]
+
+      - id: codespell-fix
+        name: codespell (interactive fix)
+        stages: [manual]
+        language: python
+        additional_dependencies: [codespell, tomli]
+        entry: sh -c 'exec codespell --write-changes --interactive 3 "$@" < /dev/tty > /dev/tty 2>&1' --
+        require_serial: true
+        types: [text]

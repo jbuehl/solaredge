@@ -1,0 +1,165 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Copyright (C) 2026 Olliver Schinagl <oliver@schinagl.nl>
+
+version: "0.2"
+language: en-US
+
+dictionaries:
+  - softwareTerms
+  - python
+  - bash
+  - docker
+  - companies
+  - fullstack
+  - filetypes
+
+# What the 'cspell-unused-words' hook spell checks to find unused words.
+files:
+  - "**"
+  - "**/.*"
+  - ".*/**"
+
+useGitignore: true
+
+ignorePaths:
+  - .git/**
+  - .gitignore
+  - LICENSE
+  - test/csv/**
+  - test/json/**
+  - test/pcap/**
+  - test/rec/**
+
+patterns:
+  # Protocol constants and environment variables (PROT_CMD_JUPMNGR_..., STATEDIR,
+  # struct formats such as HHLH) are written in ALL CAPS.
+  - name: AllCaps
+    pattern: /\b[A-Z][A-Z0-9_]{3,}\b/g
+  # Container images, as the names of their users and projects are not ours,
+  # for example docker.io/library/influxdb:1.8 or ghcr.io/jbuehl/solaredge.
+  - name: ContainerImages
+    pattern: /\b(?:[a-z0-9-]+\.)*(?:docker\.io|gcr\.io|ghcr\.io|quay\.io)\/[\w.\/-]+(?::[\w.-]+)?/g
+
+ignoreRegExpList:
+  - AllCaps
+  - ContainerImages
+
+# Keep every group in alphabetical order; the 'cspell-unused-words' hook fails
+# on words that are no longer needed.
+words:
+  # people, projects and terms
+  - chronograf
+  - datagram
+  - geoff
+  - jbuehl
+  - kolkata
+  - mosquitto
+  - oliv
+  - olliver
+  - paho
+  - powerwall
+  - schinagl
+  - socat
+  - subclassing
+  - tamm
+  - tcpdump
+  - tcpflow
+  - tshark
+  - wireshark
+  # tools and distribution packaging
+  - addopts
+  - codespell
+  - containerfile
+  - exitfirst
+  - htmlcov
+  - junitxml
+  - numprocesses
+  - pygrep
+  - testpaths
+  - worksteal
+  # python modules and functions
+  - autouse
+  - caplog
+  - capsys
+  - datadevices
+  - dataparams
+  - dateutil
+  - getdefaulttimeout
+  - getfixturevalue
+  - gettz
+  - gmtime
+  - keepends
+  - logutils
+  - mktime
+  - setdefaulttimeout
+  - syspath
+  - ttyname
+  - tzset
+  - tzutc
+  - unhexlify
+  - usefixtures
+  # programs and files of this project
+  - debugfile
+  - infile
+  - recfile
+  - seextract
+  - selog
+  - semonitor
+  - seprint
+  - seseq
+  - solardata
+  - solaredge
+  # variable names, mostly of the utilities
+  - addrs
+  - baudrate
+  - clientid
+  - cpart
+  - curday
+  - curepoch
+  - curhour
+  - curstore
+  - curstr
+  - curtime
+  - defargs
+  - derivn
+  - devlen
+  - eofs
+  - filebuffersize
+  - lastwrite
+  - lcnt
+  - lreport
+  - mqtt
+  - mqttc
+  - mydict
+  - openfilesecs
+  - retag
+  - tfname
+  - writefilename
+  - xefve
+  - xerror
+  # inverter and optimizer fields
+  - eday
+  - efrom
+  - emon
+  - etot
+  - eyear
+  - irdc
+  - pfrom
+  - pmax
+  - totaloff
+  - undeciphered
+  - vmod
+  - vopt
+  - vpan
+  # struct formats and CRC parameters
+  - calcsum
+  - lfff
+  - lfffff
+  - lffffff
+  - lffffffffffff
+  - refin
+  - refout
+  - xorout
+  # class names
+  - umasked

@@ -47,3 +47,8 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+
+[tool.codespell]
+builtin = "clear,rare,en-GB_to_en-US"
+skip = "*.csv,*.json,*.md,*.msg,*.pcap,*.rec,LICENSE"
+ignore-regex = '\bcancelled\(\)'  # GitHub Actions spells it as `cancelled()`.
