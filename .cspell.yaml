@@ -1,0 +1,160 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Copyright (C) 2026 Olliver Schinagl <oliver@schinagl.nl>
+
+version: "0.2"
+language: en-US
+
+dictionaries:
+  - softwareTerms
+  - python
+  - bash
+  - docker
+  - companies
+  - fullstack
+  - filetypes
+
+# What the 'cspell-unused-words' hook spell checks to find unused words.
+files:
+  - "**"
+  - "**/.*"
+  - ".*/**"
+
+useGitignore: true
+
+ignorePaths:
+  - .git/**
+  - .gitignore
+  - LICENSE
+  - test/csv/**
+  - test/json/**
+  - test/pcap/**
+  - test/rec/**
+
+# Protocol constants and environment variables (PROT_CMD_JUPMNGR_..., STATEDIR,
+# struct formats such as HHLH) are written in ALL CAPS.
+patterns:
+  - name: AllCaps
+    pattern: /\b[A-Z][A-Z0-9_]{3,}\b/g
+
+ignoreRegExpList:
+  - AllCaps
+
+# Keep every group in alphabetical order; the 'cspell-unused-words' hook fails
+# on words that are no longer needed.
+words:
+  # people, projects and terms
+  - datagram
+  - Geoff
+  - jbuehl
+  - Kolkata
+  - Mosquitto
+  - oliv
+  - Olliver
+  - paho
+  - Powerwall
+  - Schinagl
+  - socat
+  - subclassing
+  - tamm
+  - tcpdump
+  - tcpflow
+  - tshark
+  - Wireshark
+  # tools and distribution packaging
+  - addopts
+  - codespell
+  - Containerfile
+  - exitfirst
+  - htmlcov
+  - junitxml
+  - numprocesses
+  - pygrep
+  - testpaths
+  - worksteal
+  # python modules and functions
+  - autouse
+  - caplog
+  - capsys
+  - datadevices
+  - dataparams
+  - dateutil
+  - getdefaulttimeout
+  - gettz
+  - gmtime
+  - keepends
+  - logutils
+  - mktime
+  - setdefaulttimeout
+  - syspath
+  - ttyname
+  - tzset
+  - tzutc
+  - unhexlify
+  - usefixtures
+  # programs and files of this project
+  - debugfile
+  - infile
+  - recfile
+  - seextract
+  - selog
+  - semonitor
+  - seprint
+  - seseq
+  - solardata
+  - solaredge
+  - updatefile
+  # variable names, mostly of the utilities
+  - Addrs
+  - baudrate
+  - clientid
+  - cpart
+  - curday
+  - curepoch
+  - curhour
+  - curstore
+  - curstr
+  - curtime
+  - defargs
+  - defn
+  - derivn
+  - devlen
+  - eofs
+  - filebuffersize
+  - lastwrite
+  - lcnt
+  - lreport
+  - mqtt
+  - mqttc
+  - mydict
+  - openfilesecs
+  - retag
+  - tfname
+  - writefilename
+  - xefve
+  - xerror
+  # inverter and optimizer fields
+  - Eday
+  - Efrom
+  - Emon
+  - Etot
+  - Eyear
+  - Irdc
+  - Pfrom
+  - Pmax
+  - Totaloff
+  - Undeciphered
+  - Vmod
+  - Vopt
+  - vpan
+  # struct formats and CRC parameters
+  - calcsum
+  - Lfff
+  - Lfffff
+  - Lffffff
+  - Lffffffffffff
+  - refin
+  - refout
+  - xorout
+  # class names
+  - Umasked
