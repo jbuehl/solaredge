@@ -125,3 +125,17 @@ repos:
         additional_dependencies: [shellcheck-py]
         entry: shellcheck
         types: [shell]
+
+      - id: yamllint
+        name: yamllint
+        language: python
+        additional_dependencies: [yamllint]
+        entry: yamllint
+        types: [yaml]
+
+      - id: check-yaml
+        name: check yaml
+        language: python
+        additional_dependencies: [pre-commit-hooks]
+        entry: check-yaml
+        types: [yaml]
