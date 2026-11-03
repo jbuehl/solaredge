@@ -116,7 +116,6 @@ words:
   - curstr
   - curtime
   - defargs
-  - defn
   - derivn
   - devlen
   - eofs
