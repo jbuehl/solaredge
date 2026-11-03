@@ -25,6 +25,18 @@ jobs:
       - name: Run pre-commit
         run: ./pre-commit.sh --all-files --show-diff-on-failure --color=always
 
+  ruff:
+    name: ruff (GitHub annotations)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Ruff format
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check --diff
+
   integration:
     runs-on: ubuntu-latest
     steps:

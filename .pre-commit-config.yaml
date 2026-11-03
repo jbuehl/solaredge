@@ -146,3 +146,10 @@ repos:
         additional_dependencies: [pre-commit-hooks]
         entry: check-toml
         types: [toml]
+
+      - id: ruff-format
+        name: ruff format
+        language: python
+        additional_dependencies: [ruff]
+        entry: ruff format
+        types_or: [python, pyi, markdown]

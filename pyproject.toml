@@ -35,4 +35,14 @@ skip_empty = true
 
 [tool.codespell]
 builtin = "clear,rare,en-GB_to_en-US"
-skip = "*.pcap,*.json,*.csv,*.rec,*.msg,LICENSE"
+skip = "*.pcap,*.json,*.csv,*.rec,*.msg,*.md,LICENSE"
+
+[tool.ruff]
+line-length = 80
+extend-exclude = ["test"]
+
+[tool.ruff.lint.per-file-ignores]
+# The tests read the pickles that the script they test made itself.
+"tests/**" = ["S301"]
+
+[tool.ruff.format]
