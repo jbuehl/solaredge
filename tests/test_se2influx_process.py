@@ -10,7 +10,7 @@ pytest.importorskip("dateutil", reason="se2influx needs python-dateutil")
 
 UTILITIES = Path(__file__).resolve().parent.parent / "utilities"
 SCRIPT = UTILITIES / "se2influx.py"
-WRAPPER = Path(__file__).resolve().parent.parent / "scripts" / "se2influx"
+WRAPPER = Path(__file__).resolve().parent.parent / "scripts" / "se2influx.sh"
 
 
 class FakeInfluxClient:
