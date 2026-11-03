@@ -1,0 +1,6 @@
+ignored:
+  - DL3007  # using-latest: pin the image to a release tag (we deliberately track the newest python image)
+  - DL3008  # apt-get-pin-versions: pin versions in apt-get install
+  - DL3013  # pip-pin-versions: pin versions in pip install (the versions are stated in pyproject.toml)
+  - DL3018  # apk-pin-versions: pin versions in apk add
+  - DL3066  # Non-numeric user are cleaner then hardcoding numbers

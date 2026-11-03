@@ -160,3 +160,10 @@ repos:
         additional_dependencies: [ruff]
         entry: ruff check --fix --exit-non-zero-on-fix
         types_or: [python, pyi]
+
+      - id: hadolint
+        name: hadolint
+        language: python
+        additional_dependencies: [hadolint-py]
+        entry: hadolint
+        files: ^Containerfile\.
