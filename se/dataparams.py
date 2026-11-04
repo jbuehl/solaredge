@@ -56,13 +56,39 @@ invInFmtLen = (len(invInFmt) - 1) * 4
 invIdx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 18, 23]
 # device data item names
 invItems = [
-    "Date", "Time", "ID", "Uptime", "Interval", "Temp", "Eday", "Eac", "Vac",
-    "Iac", "Freq", "Vdc", "Etot", "Pmax", "Pac"
+    "Date",
+    "Time",
+    "ID",
+    "Uptime",
+    "Interval",
+    "Temp",
+    "Eday",
+    "Eac",
+    "Vac",
+    "Iac",
+    "Freq",
+    "Vdc",
+    "Etot",
+    "Pmax",
+    "Pac",
 ]
 # device data output file format strings
 invOutFmt = [
-    "%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f",
-    "%f", "%f", "%f"
+    "%s",
+    "%s",
+    "%s",
+    "%d",
+    "%d",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
 ]
 
 # 3 phase inverter data interpretation
@@ -105,25 +131,115 @@ inv3PhInFmt = "<LLLffffffffffffLLfLffLLLfffLfffL"
 # length of data that will be unpacked
 inv3PhInFmtLen = (len(inv3PhInFmt) - 1) * 4
 # mapping of input data to device data items
-#inv3PhIdx = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,19,24,29]
+# inv3PhIdx = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,19,24,29]
 inv3PhIdx = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
 ]
 # device data item names
 inv3PhItems = [
-    "Date", "Time", "ID", "Uptime", "Interval", "Temp", "Eday", "Eac", "Vac1",
-    "Vac2", "Vac3", "Iac1", "Iac2", "Iac3", "Freq1", "Freq2", "Freq3",
-    "EdayDC", "Edc", "Vdc", "Idc", "Etot", "Irdc", "data21", "data22",
-    "data23", "CosPhi1", "CosPhi2", "CosPhi3", "mode", "GndFrR", "data29",
-    "IoutDC", "data31"
+    "Date",
+    "Time",
+    "ID",
+    "Uptime",
+    "Interval",
+    "Temp",
+    "Eday",
+    "Eac",
+    "Vac1",
+    "Vac2",
+    "Vac3",
+    "Iac1",
+    "Iac2",
+    "Iac3",
+    "Freq1",
+    "Freq2",
+    "Freq3",
+    "EdayDC",
+    "Edc",
+    "Vdc",
+    "Idc",
+    "Etot",
+    "Irdc",
+    "data21",
+    "data22",
+    "data23",
+    "CosPhi1",
+    "CosPhi2",
+    "CosPhi3",
+    "mode",
+    "GndFrR",
+    "data29",
+    "IoutDC",
+    "data31",
 ]
 # device data output file format strings
-#inv3PhOutFmt = ["%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f"]
+# inv3PhOutFmt = ["%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f"]
 inv3PhOutFmt = [
-    "%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f",
-    "%f", "%f", "%f", "%f", "%f", "%d", "%d", "%f", "%d", "%f", "%f", "%d",
-    "%d", "%d", "%f", "%f", "%f", "%d", "%f", "%f", "%f", "%d"
+    "%s",
+    "%s",
+    "%s",
+    "%d",
+    "%d",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%f",
+    "%d",
+    "%d",
+    "%f",
+    "%d",
+    "%f",
+    "%f",
+    "%d",
+    "%d",
+    "%d",
+    "%f",
+    "%f",
+    "%f",
+    "%d",
+    "%f",
+    "%f",
+    "%f",
+    "%d",
 ]
 
 # optimizer data interpretation
@@ -145,8 +261,16 @@ optInFmtLen = (len(optInFmt) - 1) * 4
 optIdx = [0, 1, 3, 4, 5, 6, 7, 8]
 # device data item names
 optItems = [
-    "Date", "Time", "ID", "Inverter", "Uptime", "Vmod", "Vopt", "Imod", "Eday",
-    "Temp"
+    "Date",
+    "Time",
+    "ID",
+    "Inverter",
+    "Uptime",
+    "Vmod",
+    "Vopt",
+    "Imod",
+    "Eday",
+    "Temp",
 ]
 # device data output file format strings
 optOutFmt = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]

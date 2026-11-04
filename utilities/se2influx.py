@@ -62,7 +62,9 @@ class Se2Influx:
         self.max_log_size = max_log_size
         self.stat_timer_secs = stat_timer_secs
 
-        self.local_tz = tz.gettz(local_tz) if local_tz is not None else tz.tzlocal()
+        self.local_tz = (
+            tz.gettz(local_tz) if local_tz is not None else tz.tzlocal()
+        )
         if self.local_tz is None:
             sys.exit(f"Time-zone not found: {local_tz}")
 
@@ -117,7 +119,10 @@ class Se2Influx:
         """
         try:
             while True:
-                while sys.stdin in select.select([sys.stdin], [], [], STDIN_TIMEOUT)[0]:
+                while (
+                    sys.stdin
+                    in select.select([sys.stdin], [], [], STDIN_TIMEOUT)[0]
+                ):
                     line = sys.stdin.readline()
                     if not line:
                         raise EndOfFile()
@@ -150,11 +155,14 @@ class Se2Influx:
             available_dbs = [db["name"] for db in db_client.get_list_database()]
             if self.influx_params.database not in available_dbs:
                 logging.info(
-                    "DB %s missing; attempting to create", self.influx_params.database
+                    "DB %s missing; attempting to create",
+                    self.influx_params.database,
                 )
                 db_client.create_database(self.influx_params.database)
         except Exception as e:
-            logging.error("Unable to connect to influxdb host or create DB: %s", e)
+            logging.error(
+                "Unable to connect to influxdb host or create DB: %s", e
+            )
             return
 
         data_points_written = 0
@@ -163,7 +171,9 @@ class Se2Influx:
             if self.stat_timer_secs is not None:
                 now = int(time.time())
                 if now > last_stat_print + self.stat_timer_secs:
-                    logging.info("Data points written to DB: %s", data_points_written)
+                    logging.info(
+                        "Data points written to DB: %s", data_points_written
+                    )
                     data_points_written = 0
                     last_stat_print = now
 
@@ -206,7 +216,9 @@ class Se2Influx:
                 )
 
             except DateError as e:
-                logging.error("Error converting dates in JSON: %s -- %s", se_data, e)
+                logging.error(
+                    "Error converting dates in JSON: %s -- %s", se_data, e
+                )
 
             if not data_out:
                 continue
@@ -256,7 +268,9 @@ class Se2Influx:
                     try:
                         self.rotate_log()
                     except Exception as e:
-                        logging.error("Failed to rotate file: %s, %s", self.log_path, e)
+                        logging.error(
+                            "Failed to rotate file: %s, %s", self.log_path, e
+                        )
                     break
 
     def rotate_log(self) -> None:
@@ -310,9 +324,15 @@ def parse_args() -> argparse.Namespace:
     db_args.add_argument(
         "--host", help="hostname to connect to InfluxDB", default="localhost"
     )
-    db_args.add_argument("--port", help="port to connect to InfluxDB", default=8086)
-    db_args.add_argument("--username", help="username to connect as", default="root")
-    db_args.add_argument("--password", help="password of the user", default="root")
+    db_args.add_argument(
+        "--port", help="port to connect to InfluxDB", default=8086
+    )
+    db_args.add_argument(
+        "--username", help="username to connect as", default="root"
+    )
+    db_args.add_argument(
+        "--password", help="password of the user", default="root"
+    )
     db_args.add_argument(
         "--database", help="database name to connect to", default="semonitor"
     )
@@ -345,7 +365,9 @@ def parse_args() -> argparse.Namespace:
 
     other_args = parser.add_argument_group(description="Control options.")
     other_args.add_argument(
-        "--queue_size", help="size (in lines) to limit buffer queues to", default=10000
+        "--queue_size",
+        help="size (in lines) to limit buffer queues to",
+        default=10000,
     )
     other_args.add_argument(
         "--log_path",

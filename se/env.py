@@ -12,19 +12,25 @@ import se.logutils
 logger = logging.getLogger(__name__)
 
 # run environment that is derived from the arguments that defines how the program will behave
-RunMode = namedtuple("RunMode", ("serialDevice",  # boolean
-                                 "serialType",    # serial device type: "2" or "4"
-                                 "passiveMode",   # boolean
-                                 "masterMode",    # boolean
-                                 "following",     # boolean
-                                 ))
+RunMode = namedtuple(
+    "RunMode",
+    (
+        "serialDevice",  # boolean
+        "serialType",  # serial device type: "2" or "4"
+        "passiveMode",  # boolean
+        "masterMode",  # boolean
+        "following",  # boolean
+    ),
+)
+
 
 # argument parser class
 class SeArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         self.print_usage()
-        sys.stderr.write(message+"\n")
+        sys.stderr.write(message + "\n")
         sys.exit(2)
+
 
 # get arguments from the command line and validate them
 def getArgs():
@@ -34,7 +40,9 @@ def getArgs():
         commands = []
         for c in command_str.split("/"):
             if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
-                raise argparse.ArgumentTypeError("Invalid command: {}".format(c))
+                raise argparse.ArgumentTypeError(
+                    "Invalid command: {}".format(c)
+                )
             commands.append(c.split(","))
         return commands
 
@@ -42,32 +50,111 @@ def getArgs():
         slaves = []
         for s in slave_str.split(","):
             if not re.match(r"^[0-9a-fA-F]+$", s):
-                raise argparse.ArgumentTypeError("Invalid slave ID: {}".format(s))
+                raise argparse.ArgumentTypeError(
+                    "Invalid slave ID: {}".format(s)
+                )
             slaves.append(s)
         return slaves
 
-    parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
-    parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
-    parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
-    parser.add_argument("-d", dest="logfile", default="stderr", help="Where to write log messages: either a file name or one of ['stderr', 'syslog'].")
-    parser.add_argument("-f", dest="follow", action="store_true", default=False, help="Wait for appended data as the input file grows (as in tail -f).")
-    parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as an RS485 master")
-    parser.add_argument("-o", dest="outfile", default="stdout", help="Write performance data to the specified file in JSON format (default: stdout).")
-    parser.add_argument("-r", dest="record", help="file to record all incoming and outgoing messages to")
-    parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma-delimited list of SolarEdge slave inverter IDs")
-    parser.add_argument("-t", dest="type", choices=["2","4"], help="serial data source type (2=RS232, 4=RS485)")
-    parser.add_argument("-u", dest="updatefile", type=argparse.FileType('w'), help="file to write firmware update to (experimental)")
-    parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
-    parser.add_argument("-x", dest="xerror", action="store_true", default=False, help="halt on data exception")
-    parser.add_argument("datasource", default="stdin", nargs='?', help="input filename or serial port")
+    parser = SeArgumentParser(
+        description="Parse Solaredge data to extract inverter and optimizer telemetry",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-a",
+        dest="append",
+        action="store_true",
+        default=False,
+        help="append to output file if the file exists",
+    )
+    parser.add_argument(
+        "-b",
+        dest="baudrate",
+        type=int,
+        default=115200,
+        help="baud rate for serial data source",
+    )
+    parser.add_argument(
+        "-c",
+        dest="commands",
+        type=validated_commands,
+        default=[],
+        help="send the specified command functions",
+    )
+    parser.add_argument(
+        "-d",
+        dest="logfile",
+        default="stderr",
+        help="Where to write log messages: either a file name or one of ['stderr', 'syslog'].",
+    )
+    parser.add_argument(
+        "-f",
+        dest="follow",
+        action="store_true",
+        default=False,
+        help="Wait for appended data as the input file grows (as in tail -f).",
+    )
+    parser.add_argument(
+        "-m",
+        dest="master",
+        action="store_true",
+        default=False,
+        help="function as an RS485 master",
+    )
+    parser.add_argument(
+        "-o",
+        dest="outfile",
+        default="stdout",
+        help="Write performance data to the specified file in JSON format (default: stdout).",
+    )
+    parser.add_argument(
+        "-r",
+        dest="record",
+        help="file to record all incoming and outgoing messages to",
+    )
+    parser.add_argument(
+        "-s",
+        dest="slaves",
+        type=validated_slaves,
+        default=[],
+        help="comma-delimited list of SolarEdge slave inverter IDs",
+    )
+    parser.add_argument(
+        "-t",
+        dest="type",
+        choices=["2", "4"],
+        help="serial data source type (2=RS232, 4=RS485)",
+    )
+    parser.add_argument(
+        "-u",
+        dest="updatefile",
+        type=argparse.FileType("w"),
+        help="file to write firmware update to (experimental)",
+    )
+    parser.add_argument(
+        "-v", dest="verbose", action="count", default=0, help="verbose output"
+    )
+    parser.add_argument(
+        "-x",
+        dest="xerror",
+        action="store_true",
+        default=False,
+        help="halt on data exception",
+    )
+    parser.add_argument(
+        "datasource",
+        default="stdin",
+        nargs="?",
+        help="input filename or serial port",
+    )
 
     args = parser.parse_args()
 
     # configure logging
     stream_formatter = logging.Formatter("%(message)s")
-    file_formatter = logging.Formatter("%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
+    file_formatter = logging.Formatter(
+        "%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"
+    )
 
     if args.logfile == "syslog":
         handler = logging.handlers.SysLogHandler(address="/dev/log")
@@ -79,15 +166,17 @@ def getArgs():
         handler = logging.StreamHandler(stream=sys.stdout)
         handler.setFormatter(stream_formatter)
     elif args.logfile:
-        handler = logging.FileHandler(args.logfile, mode="a" if args.append else "w")
+        handler = logging.FileHandler(
+            args.logfile, mode="a" if args.append else "w"
+        )
         handler.setFormatter(file_formatter)
 
-    level = {                               # -v count -> log level (old option names in the comments)
-            1: logging.INFO,                # -v    debugFiles
-            2: logging.DEBUG,               # -vv   debugMsgs
-            3: se.logutils.LOG_LEVEL_DATA,  # -vvv  debugData
-            4: se.logutils.LOG_LEVEL_RAW,   # -vvvv debugRaw
-            }.get(min(args.verbose, 4), logging.ERROR)
+    level = {  # -v count -> log level (old option names in the comments)
+        1: logging.INFO,  # -v    debugFiles
+        2: logging.DEBUG,  # -vv   debugMsgs
+        3: se.logutils.LOG_LEVEL_DATA,  # -vvv  debugData
+        4: se.logutils.LOG_LEVEL_RAW,  # -vvvv debugRaw
+    }.get(min(args.verbose, 4), logging.ERROR)
 
     # configure the root logger
     root_logger = logging.getLogger()
@@ -104,8 +193,14 @@ def getArgs():
         # figure out the list of valid serial ports on this server
         # this is either a list of tuples or ListPortInfo objects
         serial_ports = serial.tools.list_ports.comports()
-        serial_port_names = map(lambda p: p.device if isinstance(p,
-                                serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
+        serial_port_names = map(
+            lambda p: (
+                p.device
+                if isinstance(p, serial.tools.list_ports_common.ListPortInfo)
+                else p[0]
+            ),
+            serial_ports,
+        )
         serialDevice = args.datasource in serial_port_names
 
     # serial device validation
@@ -115,11 +210,17 @@ def getArgs():
         if args.type == "2":
             passiveMode = False
         elif args.type != "4":
-            parser.error("Input device type 2 or 4 must be specified for serial device")
+            parser.error(
+                "Input device type 2 or 4 must be specified for serial device"
+            )
     else:
         if args.type in ["2", "4"]:
-            parser.error(args.datasource+" is not a valid serial device"+"\n"+
-                         "Input device types 2 and 4 are only valid for a serial device")
+            parser.error(
+                args.datasource
+                + " is not a valid serial device"
+                + "\n"
+                + "Input device types 2 and 4 are only valid for a serial device"
+            )
 
     # master mode validation
     if args.master:
@@ -127,7 +228,9 @@ def getArgs():
         if args.type != "4":
             parser.error("Master mode only allowed with RS485 serial device")
         if len(args.slaves) < 1:
-            parser.error("At least one slave address must be specified for master mode")
+            parser.error(
+                "At least one slave address must be specified for master mode"
+            )
     else:
         passiveMode = True
 
@@ -135,14 +238,19 @@ def getArgs():
     if args.commands:
         passiveMode = False
         if len(args.slaves) != 1:
-            parser.error("Exactly one slave address must be specified for command mode")
+            parser.error(
+                "Exactly one slave address must be specified for command mode"
+            )
 
     # print out the arguments and options
-    for k,v in sorted(vars(args).items()):
+    for k, v in sorted(vars(args).items()):
         if k == "commands":
             v = " ".join(",".join(cpart for cpart in command) for command in v)
         if k == "slaves":
             v = ",".join(slave for slave in v)
         logger.info("%s: %s", k, v)
 
-    return (args, RunMode(serialDevice, args.type, passiveMode, args.master, args.follow))
+    return (
+        args,
+        RunMode(serialDevice, args.type, passiveMode, args.master, args.follow),
+    )

@@ -776,7 +776,7 @@ def test_format_date_time_of_an_invalid_stamp_is_invalid(stamp, caplog):
     caplog.set_level("INFO")
 
     assert se.data.formatDateTime(stamp) == "invalid"
-    assert caplog.messages[0].startswith(f"Invalid time stamp: {stamp} ")
+    assert caplog.messages[0].startswith(f"Invalid timestamp: {stamp} ")
 
 
 @pytest.mark.xfail(strict=True, reason="Issue #38")
@@ -805,7 +805,7 @@ def test_dev_data_dict_of_an_invalid_stamp_has_invalid_date_and_time(caplog):
         "ID": "ABC",
         "One": 5,
     }
-    assert caplog.messages[0].startswith(f"Invalid time stamp: {2**70} ")
+    assert caplog.messages[0].startswith(f"Invalid timestamp: {2**70} ")
 
 
 # Writing the data.

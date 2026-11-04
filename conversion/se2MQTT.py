@@ -8,7 +8,7 @@
 # -s Mosquitto server (DNS or IP address)
 # -t Mosquitto MQTT topic to publish to
 #
-#example:
+# example:
 #
 # python3 se2MQTT.py -c solaredge -u solaredge -p s0lar3dg3 -s mosquitto.domain.local -t /ha/value/solaredge /root/solaredge/performance.json
 #
@@ -50,7 +50,7 @@ while True:
     jsonStr = ""
     # wait for data
     while jsonStr == "":
-        time.sleep(.1)
+        time.sleep(0.1)
         jsonStr = inFile.readline()
     inDict = json.loads(jsonStr)
     # update the state values

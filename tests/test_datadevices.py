@@ -412,7 +412,7 @@ def test_unrepresentable_time_stamp_is_reported_as_invalid(caplog, method):
         assert method(10**20) == "invalid"
 
     assert len(caplog.messages) == 1
-    assert caplog.messages[0].startswith(f"Invalid time stamp: {10**20} ")
+    assert caplog.messages[0].startswith(f"Invalid timestamp: {10**20} ")
 
 
 @pytest.mark.parametrize(
@@ -903,8 +903,8 @@ def test_timestamp_that_cannot_be_formatted_gets_a_placeholder(
     assert dev[key] == placeholder
     assert dev[other] == plain[other]
     assert set(caplog.messages) == {
-        f'"{plain["dateTime"]} is not a valid {what}, '
-        f'changed to "{placeholder}"'
+        f"'{plain['dateTime']}' is not a valid {what}, "
+        f"changed to '{placeholder}'"
     }
 
 
@@ -1063,7 +1063,7 @@ def test_item_defs_describes_every_field_of_a_device():
     assert "ParseDevice_0x0030 / batteries_0x0030 parses data blocks" in text
     assert "seType = 0x0030." in text
     assert "batteryId" in text
-    assert "Identifier for this battery" in text
+    assert "identifier for this battery" in text
     assert "Derived items" not in text
 
 
@@ -1147,7 +1147,7 @@ def test_merge_update_overwrites_changed_value_and_logs_at_debug(caplog):
 
     assert master == {"a": {"x": 2}}
     assert [(r.name, r.levelno, r.getMessage()) for r in caplog.records] == [
-        (LOGGER, logging.DEBUG, "WARNING : For x about to overwrite 1 with 2")
+        (LOGGER, logging.DEBUG, "WARNING: For x about to overwrite 1 with 2")
     ]
 
 
@@ -1215,7 +1215,7 @@ def test_merge_of_a_repeated_device_updates_its_changed_fields(record, caplog):
     ]
     assert merged["E2X"] == new
     assert [m for m in caplog.messages if "E2X" in m] == [
-        f"WARNING : For E2X about to overwrite {old} with {new}"
+        f"WARNING: For E2X about to overwrite {old} with {new}"
     ]
 
 
@@ -1224,7 +1224,10 @@ def test_merge_of_a_repeated_device_updates_its_changed_fields(record, caplog):
     [
         param
         if param.id
-        in ("Geoff99.190801.1135.test-rec5-2", "Geoff99.190801.1135.test-rec5-7")
+        in (
+            "Geoff99.190801.1135.test-rec5-2",
+            "Geoff99.190801.1135.test-rec5-7",
+        )
         else pytest.param(
             *param.values,
             id=param.id,
