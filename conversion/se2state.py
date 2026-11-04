@@ -10,6 +10,7 @@ import sys
 
 initialize = False
 
+
 # return the sum of the specified attribute of the items in the specified dictionary
 # ignore the stats item
 def sumItems(itemDict, itemAttr):
@@ -19,18 +20,21 @@ def sumItems(itemDict, itemAttr):
             itemSum += itemDict[item][itemAttr]
     return itemSum
 
+
 # return the average of the specified attribute of the items in the specified dictionary
 # ignore the stats item
 def avgItems(itemDict, itemAttr):
     try:
-        return sumItems(itemDict, itemAttr)/(len(itemDict) - 1)
+        return sumItems(itemDict, itemAttr) / (len(itemDict) - 1)
     except ZeroDivisionError:
         return 0
+
 
 def writeState(stateDict, outFileName):
     # update the state file
     with open(outFileName, "w") as outFile:
         json.dump(stateDict, outFile)
+
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "i:o:")
@@ -48,12 +52,28 @@ for opt in opts:
 # initialize the state dictionary
 if initialize:
     # zero the statistics
-    stateDict = {"inverters":
-                    {"stats": {"Vac": 0.0, "Pac":0.0, "Eac":0.0, "Eday": 0.0, "Etot": 0.0, "Temp": 0.0}},
-                "optimizers":
-                    {"stats": {"Temp": 0.0}}}
+    stateDict = {
+        "inverters": {
+            "stats": {
+                "Vac": 0.0,
+                "Pac": 0.0,
+                "Eac": 0.0,
+                "Eday": 0.0,
+                "Etot": 0.0,
+                "Temp": 0.0,
+            }
+        },
+        "optimizers": {"stats": {"Temp": 0.0}},
+    }
     for inverter in inverters:
-        stateDict["inverters"]["stats"][inverter] = {"Vac":0.0, "Pac":0.0, "Eac":0.0, "Eday":0.0, "Etot": 0.0, "Temp": 0.0}
+        stateDict["inverters"]["stats"][inverter] = {
+            "Vac": 0.0,
+            "Pac": 0.0,
+            "Eac": 0.0,
+            "Eday": 0.0,
+            "Etot": 0.0,
+            "Temp": 0.0,
+        }
     writeState(stateDict, outFileName)
 else:
     # start with values from the file if it exists
@@ -68,7 +88,7 @@ while True:
     jsonStr = ""
     # wait for data
     while jsonStr == "":
-        time.sleep(.1)
+        time.sleep(0.1)
         jsonStr = inFile.readline()
     inDict = json.loads(jsonStr)
     # update the state values
@@ -77,18 +97,33 @@ while True:
     # compute optimizer power
     for optimizer in stateDict["optimizers"].keys():
         if optimizer != "stats":
-            stateDict["optimizers"][optimizer]["Pdc"] = stateDict["optimizers"][optimizer]["Vmod"] * stateDict["optimizers"][optimizer]["Imod"]
+            stateDict["optimizers"][optimizer]["Pdc"] = (
+                stateDict["optimizers"][optimizer]["Vmod"]
+                * stateDict["optimizers"][optimizer]["Imod"]
+            )
     # compute the stats
-    stateDict["inverters"]["stats"]["Vac"] = avgItems(stateDict["inverters"], "Vac")
-    stateDict["inverters"]["stats"]["Pac"] = sumItems(stateDict["inverters"], "Pac")
-    stateDict["inverters"]["stats"]["Eac"] = sumItems(stateDict["inverters"], "Eac")
+    stateDict["inverters"]["stats"]["Vac"] = avgItems(
+        stateDict["inverters"], "Vac"
+    )
+    stateDict["inverters"]["stats"]["Pac"] = sumItems(
+        stateDict["inverters"], "Pac"
+    )
+    stateDict["inverters"]["stats"]["Eac"] = sumItems(
+        stateDict["inverters"], "Eac"
+    )
     Eday = sumItems(stateDict["inverters"], "Eday")
     # only update Eday if it increases
     if Eday > stateDict["inverters"]["stats"]["Eday"]:
         stateDict["inverters"]["stats"]["Eday"] = Eday
-    stateDict["inverters"]["stats"]["Etot"] = sumItems(stateDict["inverters"], "Etot")
-    stateDict["inverters"]["stats"]["Temp"] = avgItems(stateDict["inverters"], "Temp")
-    stateDict["optimizers"]["stats"]["Temp"] = avgItems(stateDict["optimizers"], "Temp")
+    stateDict["inverters"]["stats"]["Etot"] = sumItems(
+        stateDict["inverters"], "Etot"
+    )
+    stateDict["inverters"]["stats"]["Temp"] = avgItems(
+        stateDict["inverters"], "Temp"
+    )
+    stateDict["optimizers"]["stats"]["Temp"] = avgItems(
+        stateDict["optimizers"], "Temp"
+    )
     # zero current energy and power for devices when an event occurs
     if len(inDict["events"]) != 0:
         for inverter in stateDict["inverters"].keys():

@@ -8,8 +8,8 @@
 ## There are a few configuration parameters.
 ## Originally sourced from the gist at https://gist.github.com/marcelom/4218010
 
-LOG_DIR = 'logFiles'
-LOG_FILE = '{}/syslog.log'.format(LOG_DIR)
+LOG_DIR = "logFiles"
+LOG_FILE = "{}/syslog.log".format(LOG_DIR)
 HOST, PORT = "0.0.0.0", 514
 
 #
@@ -25,10 +25,11 @@ if not os.path.isdir(LOG_DIR):
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(message)s',
-    datefmt='',
+    format="%(message)s",
+    datefmt="",
     filename=LOG_FILE,
-    filemode='a')
+    filemode="a",
+)
 
 
 class SyslogUDPHandler(SocketServer.BaseRequestHandler):
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     try:
         server = SocketServer.UDPServer((HOST, PORT), SyslogUDPHandler)
         server.serve_forever(poll_interval=0.5)
-    except (IOError, SystemExit):
+    except IOError, SystemExit:
         raise
     except KeyboardInterrupt:
         print("Ctrl+C Pressed. Shutting down.")

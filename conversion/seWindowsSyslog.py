@@ -13,8 +13,10 @@ import logging
 import logging.handlers
 import os
 
+
 class TimedRotatingFileHandlerUmasked(
-        logging.handlers.TimedRotatingFileHandler):
+    logging.handlers.TimedRotatingFileHandler
+):
     """
     A modification of the logging.handlers.TimedRotatingFileHandler
 
@@ -37,7 +39,8 @@ class TimedRotatingFileHandlerUmasked(
         except:
             os.umask(prevUmask)
 
-my_logger = logging.getLogger('syslog')
+
+my_logger = logging.getLogger("syslog")
 my_logger.setLevel(logging.DEBUG)
 
 handler = logging.handlers.SysLogHandler()
@@ -47,7 +50,7 @@ handler = logging.handlers.SysLogHandler()
 #             backupCount=3)
 
 # Format each log message like this
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s")
 # Attach the formatter to the handler
 handler.setFormatter(formatter)
 # Attach the handler to the logger
@@ -57,7 +60,6 @@ my_logger.addHandler(handler)
 syslog = my_logger.info
 
 if __name__ == "__main__":
-
-    my_logger.debug('this is debug')
-    my_logger.critical('this is critical')
+    my_logger.debug("this is debug")
+    my_logger.critical("this is critical")
     syslog("This is an emulated syslog message")

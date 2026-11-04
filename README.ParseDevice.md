@@ -317,7 +317,14 @@ fieldDefs = [
     [12, "12s", "batteryId", None, True, "identifier for this battery"],
     [4, "f", "Vdc", None, True, "V, voltage"],
     # ...
-    [4, "hex", "HexConst_52", ParseDevice.hexData, False, "unknown, constant value"],
+    [
+        4,
+        "hex",
+        "HexConst_52",
+        ParseDevice.hexData,
+        False,
+        "unknown, constant value",
+    ],
     # ...
     [
         2,

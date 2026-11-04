@@ -17,8 +17,9 @@ def unwrap_metricsDict(mydict):
         # Remove characters which give Graphite or open (a file) problems.
         # Also remove an extra level of naming (devices) that I don't really need anymore.
         # TODO: tidy up and delete the removal of "devices" when testing is over.
-        return str(k).replace("\x00", '').replace(" ", "_").replace(
-            "devices", "")
+        return (
+            str(k).replace("\x00", "").replace(" ", "_").replace("devices", "")
+        )
 
     for k, v in mydict.items():
         if "Date" in v.keys():

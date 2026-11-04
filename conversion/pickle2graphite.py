@@ -49,7 +49,7 @@ hostName = "localhost"
 # The usual Graphite installation default is 2004.
 port = 2004
 devices = ["inverters", "optimizers"]
-delay = .2
+delay = 0.2
 following = False
 
 # get program arguments and options
@@ -73,7 +73,7 @@ def getJsonStr(inFile, following):
     jsonStr = inFile.readline()
     if jsonStr == "" and following:
         while jsonStr == "":
-            #wait for more data
+            # wait for more data
             time.sleep(delay)
             jsonStr = inFile.readline()
     return jsonStr
@@ -92,18 +92,32 @@ class Pickle2Graphite(list):
                 (year, month, day) = devAttrs["Date"].split("-")
                 (hour, minute, second) = devAttrs["Time"].split(":")
             except KeyError:
-                log("Date or Time is missing or incorrectly formatted for this set of metrics"
-                    )
-                (year, month, day, hour, minute, second) = (1970, 1, 1, 0,
-                                                            1, 1)
+                log(
+                    "Date or Time is missing or incorrectly formatted for this set of metrics"
+                )
+                (year, month, day, hour, minute, second) = (1970, 1, 1, 0, 1, 1)
             # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
             # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
-            timeStamp = time.mktime((int(year), int(month),
-                                     int(day), int(hour), int(minute),
-                                     int(second), 0, 0, -1))
+            timeStamp = time.mktime(
+                (
+                    int(year),
+                    int(month),
+                    int(day),
+                    int(hour),
+                    int(minute),
+                    int(second),
+                    0,
+                    0,
+                    -1,
+                )
+            )
             # Treat every attribute as a metric - except for non-numeric ones!
             for devAttr in devAttrs.keys():
-                if devAttr != "Date" and devAttr != "Time" and devAttr != 'Undeciphered_data':
+                if (
+                    devAttr != "Date"
+                    and devAttr != "Time"
+                    and devAttr != "Undeciphered_data"
+                ):
                     try:
                         # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                         test = float(devAttrs[devAttr])
@@ -111,11 +125,11 @@ class Pickle2Graphite(list):
                             # It's a NaN!
                             pass
                         else:
-                            fullName = "{}{}.{}".format(
-                                base, baseName, devAttr)
+                            fullName = "{}{}.{}".format(base, baseName, devAttr)
                             # A nested tuple as per the expectations of the pickle Graphite interface
-                            self.append((fullName, (timeStamp,
-                                                    str(devAttrs[devAttr]))))
+                            self.append(
+                                (fullName, (timeStamp, str(devAttrs[devAttr])))
+                            )
                     except ValueError:
                         # It is not a numeric metric
                         pass
@@ -143,7 +157,12 @@ if __name__ == "__main__":
             pickle2graphite = Pickle2Graphite(inDict, base=base)
             pickle2graphite.send(graphiteSocket)
         except ValueError:
-            log('WARNING json.loads had a problem with the following jsonStr\n',
-                jsonStr, "\n", "=" * 80, "\n")
+            log(
+                "WARNING json.loads had a problem with the following jsonStr\n",
+                jsonStr,
+                "\n",
+                "=" * 80,
+                "\n",
+            )
         jsonStr = getJsonStr(inFile, following)
     graphiteSocket.close()
