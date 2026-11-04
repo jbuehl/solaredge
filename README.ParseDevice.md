@@ -1,6 +1,7 @@
 # Understanding ParseDevice
 
-### Audience
+
+## Audience
 
 This documentation is intended for people who want to understand how
 `ParseDevice` works, and possibly are interested in extending it to cope
@@ -15,7 +16,8 @@ more like a tutorial or cookbook than a manual.
 
 ---
 
-## A very brief overview of `ParseDevice`.
+
+## A very brief overview of `ParseDevice`
 
 `ParseDevice` is a subclass of a Python dictionary (`dict`) with a
 tailored `__init__` method. Given a block of your data, captured from
@@ -100,7 +102,8 @@ file.
 For more in depth explanations, and a few embellishments ("bells and
 whistles"), read on.
 
-----
+---
+
 
 ## Background and introduction
 
@@ -108,14 +111,14 @@ The `ParsedDevice` class is defined in the seDataDevices.py module. It
 was written using Python 2.7 and would probably need a few minor changes
 to work under Python 3.x
 
-It began as an attempt to write a _parser_ for the messages sent from a
+It began as an attempt to write a *parser* for the messages sent from a
 solareedge inverter to the solaredge website in such a way that new
 devices could be *relatively* easily added to the set of devices that
 can be recognised and decoded.
 
 The approach initially followed the
 proposal for table driven parsing of new devices, given in
-[Issue #22 Table Driven Table driven data interpretation for new devices](https://github.com/jbuehl/solaredge/issues/22) ,
+[Issue #22 Table Driven Table driven data interpretation for new devices][#22],
 and evolved from there.
 
 In that proposal the syntax for describing the data fields/items
@@ -179,7 +182,10 @@ During development a few other minor features were added, mostly to make
 the use of `ParseDevice` less effort. These are described later.
 
 ---
+
+
 ## ParseDevice class in more detail
+
 
 ### A `ParseDevice` is actually a dictionary
 
@@ -192,6 +198,7 @@ definitions) to item values (extracted from the block of data sent to
 Aside re terminology: I tend to use *item*, *field* and *device attribute*
 to mean the same thing, fairly interchangeably, in this explanation and
 in the comments in the Python code itself.
+
 
 ### The `ParseDevice.__new__` method
 
@@ -214,6 +221,7 @@ The `__new__` method for a subclass is not complicated - see for example
         # would lead to the recursion that we are trying to avoid!
         return super(ParseDevice, cls).__new__(cls)
 ```
+
 
 ### Defining the type of data that can be parsed
 
@@ -245,6 +253,7 @@ interpretable to humans, and
 `devType` is a combination of the two that is used as part of the
 complete, fully qualified "name" of any field, when, for example, it is
 saved in json format or sent to graphite.
+
 
 ### Defining fields: `ParseDevice.fieldDefs` and `ParseDevice.parseDevTable`
 
@@ -338,6 +347,7 @@ the field definitions are:
 string) to the end of the list of field definitions, to consume the
 remaining bytes.
 
+
 ### Deriving new fields: `ParseDevice._derivn`
 
 Sometimes more complex manipulations, such as bit shifting, might be
@@ -390,6 +400,7 @@ derived_value for a "derivedParamName", and then
 
 At the moment, the `codeDerivations` methods for subclasses
 `ParseDevice_0x0022` and `ParseDevice_0x0030` are also empty stubs.
+
 
 #### Simple example of a derivation
 
@@ -500,6 +511,7 @@ the value of `self["0_5_PfromX"]` was changed from the default(`"nan"`)
 to whatever value was provided for `self["PfromX]` in the device data
 block.
 
+
 ### `ParseDevice.__init__` and the explore argument
 
 The `ParseDevice.__init__` method, inherited by all subclasses, is quite
@@ -540,6 +552,7 @@ just inheriting `ParseDevice.__init__`).
 To find out about the `checkHypotheses` method, see later, under "bells
 and whistles".
 
+
 ### `ParseDevice.wrap_in_ids`
 
 The purpose of this method was described earlier, in the brief overview
@@ -554,6 +567,7 @@ The highest level wrapping should always be `self.devType`, but after
 that, subclasses can provide whatever additional wrappings they need
 to uniquely identify the specific device (inverter, battery, optimiser,
 etc).
+
 
 ### The JSON lines of semonitor
 
@@ -578,22 +592,23 @@ the device type:
 
 (Shown wrapped, in semonitor.py's output it is a single line.)
 
-- `events`, `inverters` and `optimizers` are always there, and are `{}` when
+* `events`, `inverters` and `optimizers` are always there, and are `{}` when
   empty. Other devices have a section named after their type, such as
   `batteries_0x0030`, `meters_0x0022` or `Unknown_device_0x0017`.
-- A section maps the device ID (the serial number, as upper case hexadecimal)
+* A section maps the device ID (the serial number, as upper case hexadecimal)
   to the device. Some devices have extra levels below their ID, such as
   `meters_0x0022` / `7F1502EE` / `3_Consumption`.
-- The values of a device are in the innermost dictionary. It always has a
+* The values of a device are in the innermost dictionary. It always has a
   `Date` (`YYYY-MM-DD`) and a `Time` (`HH:MM:SS`), in the time zone of the
   inverter, and usually an `ID`. This is how `unwrap_metricsDict` (below)
   tells the values of a device from a level of nesting.
-- A device that is not decoded has its raw data as hexadecimal bytes in
+* A device that is not decoded has its raw data as hexadecimal bytes in
   `Undeciphered_data`, next to `dateTime` (seconds since the epoch), `devLen`,
   `devType`, `seId` and `seType`.
-- Values are numbers or strings. A value that is not valid is `NaN`, it is
+* Values are numbers or strings. A value that is not valid is `NaN`, it is
   not left out. `NaN` is the only deviation from standard JSON, see the
   README.
+
 
 ### `merge_update`
 
@@ -638,7 +653,7 @@ pp.pprint(devsDict)
 
 which produces the following output:
 
-```
+```text
 A demonstration of what merge_update does
 
 Here are wrappedDict1, and wrappedDict2
@@ -687,7 +702,7 @@ for baseName, devAttrs in unwrap_metricsDict(devsDict):
 
 It produces the following output:
 
-```
+```text
 A demonstration of what unwrap_metricsDict does
 
 baseName 1 is  device1.seId1.otherId1
@@ -704,9 +719,11 @@ names (i.e. a dictionary keys) in the deepest level of the
 *nested dictionaries*, because that is how the algorithm knows it has
 reached the lowest level of the nested dictionaries.
 
-----
+---
+
 
 ## Bells and whistles (useful but non-essential parts of `ParseDevice`)
+
 
 ### `_hypotheses` and `ParseDevice.checkHypotheses`
 
@@ -732,7 +749,7 @@ clearer:
 ```
 
 
-### Documenting device fields - the `ParseDevice.itemDefs` method.
+### Documenting device fields - the `ParseDevice.itemDefs` method
 
 Initially, explanations and comments about fields that had been
 deciphered were kept (rather haphazardly) as Python comments in the code
@@ -753,7 +770,7 @@ print ParseDevice.itemDefs()
 
 This is a small extract of the resultant output:
 
-```
+```text
 ...
 ParseDevice_0x0030 / batteries_0x0030 parses data blocks with seType = 0x0030.
 ================================================================================
@@ -789,6 +806,7 @@ ____ (______)   ______ | _________________________
 
 Of course, it can also be used for a specific subclass as well.
 
+
 ### Other `ParseDevice` methods
 
 `ParseDevice` "acquired" a few other methods, mostly for convenience.
@@ -797,13 +815,15 @@ Of course, it can also be used for a specific subclass as well.
  complications (such as circular references) when I tried to import them
 from the original modules. See the code for further details.
 
-----
+---
+
 
 ## Subclasses of `ParseDevice`
 
 To date (May 2017) two subclasses of `ParseDevice` have been written for
 specific device types (for `seType`s 0x0030, and 0x0022), as well as one
 *special* subclass that can do a *maximal* parse of any device type.
+
 
 ### `ParseDevice_0x0030` - batteries
 
@@ -819,6 +839,7 @@ To be precise, it is a SE6000 inverter, with a Tesla Powerwall 1 battery
 attached. Possibly other solaredge inverter / battery hardware or
 software version combinations may require further work - but since I
 have only this one system to work on, I can't do that :-)
+
 
 ### `ParseDevice_0x0022` - import, export and consumption data
 
@@ -856,6 +877,7 @@ significant values that I have been unable to decipher so far. In
 addition there are a number of constant "flag" values whose meaning and
 use is as yet unknown.
 
+
 ### `ParseDevice_Explorer` - parse almost anything, lots of ways
 
 As explained earlier, `ParseDevice_Explorer` is a *special* subclass,
@@ -882,7 +904,8 @@ probably not know the correct length, `devlen`, for the data block!).
 If the correct header is known, this could be corrected by appropriate
 amendments in the subclass's own `__new__` method.
 
-----
+---
+
 
 ## An approach to deciphering the fields for a new device
 
@@ -938,4 +961,6 @@ Wireshark to explore the pcap file as well.
 
 Good luck!
 
-----
+---
+
+[#22]: https://github.com/jbuehl/solaredge/issues/22
