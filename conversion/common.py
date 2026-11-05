@@ -33,4 +33,4 @@ def unwrap_metricsDict(mydict):
                     # Silently drop this extra level of naming
                     yield nice(k2), v2
                 else:
-                    yield "{}.{}".format(nice(k), nice(k2)), v2
+                    yield f"{nice(k)}.{nice(k2)}", v2

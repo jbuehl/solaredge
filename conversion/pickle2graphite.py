@@ -17,13 +17,14 @@ To be completely precise, I had problems when I sent an existing batch of metric
 Graphite / carbon had to create a whole lot of new whisper files all at once.
 """
 
-import json
 import getopt
-import time
-import sys
+import json
+import pickle
 import socket
 import struct
-import pickle
+import sys
+import time
+
 from common import unwrap_metricsDict
 
 try:
@@ -125,7 +126,7 @@ class Pickle2Graphite(list):
                             # It's a NaN!
                             pass
                         else:
-                            fullName = "{}{}.{}".format(base, baseName, devAttr)
+                            fullName = f"{base}{baseName}.{devAttr}"
                             # A nested tuple as per the expectations of the pickle Graphite interface
                             self.append(
                                 (fullName, (timeStamp, str(devAttrs[devAttr])))

@@ -3,10 +3,10 @@
 # Maintain a file containing the current state and selected statistics
 # of SolarEdge inverters and optimizers
 
-import json
 import getopt
-import time
+import json
 import sys
+import time
 
 initialize = False
 
@@ -80,7 +80,7 @@ else:
     try:
         with open(outFileName) as stateFile:
             stateDict = json.load(stateFile)
-    except IOError:
+    except OSError:
         pass
 
 # read the input forever
@@ -113,8 +113,9 @@ while True:
     )
     Eday = sumItems(stateDict["inverters"], "Eday")
     # only update Eday if it increases
-    if Eday > stateDict["inverters"]["stats"]["Eday"]:
-        stateDict["inverters"]["stats"]["Eday"] = Eday
+    stateDict["inverters"]["stats"]["Eday"] = max(
+        stateDict["inverters"]["stats"]["Eday"], Eday
+    )
     stateDict["inverters"]["stats"]["Etot"] = sumItems(
         stateDict["inverters"], "Etot"
     )

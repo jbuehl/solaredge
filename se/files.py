@@ -1,9 +1,9 @@
 # SolarEdge input data and file management
 
-import serial
-import sys
 import logging
-import se.logutils
+import sys
+
+import serial
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,9 @@ def openInFile(inFileName):
     if inFileName == "stdin":
         if sys.version_info >= (3, 0):
             return sys.stdin.buffer
-        else:
-            return sys.stdin
-    else:
-        # Explicitly specify mode rb to keep Windows happy!
-        return open(inFileName, "rb")
+        return sys.stdin
+    # Explicitly specify mode rb to keep Windows happy!
+    return open(inFileName, "rb")
 
 
 # close the data source

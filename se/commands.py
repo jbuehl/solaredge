@@ -840,4 +840,4 @@ function2code = {
 }
 
 # create reverse lookup code to function dictionary
-code2function = dict((function2code[key], key) for key in function2code.keys())
+code2function = dict((function2code[key], key) for key in function2code)

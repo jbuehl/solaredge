@@ -9,7 +9,7 @@
 ## Originally sourced from the gist at https://gist.github.com/marcelom/4218010
 
 LOG_DIR = "logFiles"
-LOG_FILE = "{}/syslog.log".format(LOG_DIR)
+LOG_FILE = f"{LOG_DIR}/syslog.log"
 HOST, PORT = "0.0.0.0", 514
 
 #
@@ -17,8 +17,9 @@ HOST, PORT = "0.0.0.0", 514
 #
 
 import logging
-import SocketServer
 import os.path
+
+import SocketServer
 
 if not os.path.isdir(LOG_DIR):
     os.mkdir(LOG_DIR)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     try:
         server = SocketServer.UDPServer((HOST, PORT), SyslogUDPHandler)
         server.serve_forever(poll_interval=0.5)
-    except IOError, SystemExit:
+    except OSError, SystemExit:
         raise
     except KeyboardInterrupt:
         print("Ctrl+C Pressed. Shutting down.")

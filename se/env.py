@@ -1,12 +1,14 @@
 # SolarEdge command line argument parsing and validation
 
-import sys
-import serial.tools.list_ports
-import re
 import argparse
-from collections import namedtuple
 import logging
 import logging.handlers
+import re
+import sys
+from collections import namedtuple
+
+import serial.tools.list_ports
+
 import se.logutils
 
 logger = logging.getLogger(__name__)
@@ -40,9 +42,7 @@ def getArgs():
         commands = []
         for c in command_str.split("/"):
             if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
-                raise argparse.ArgumentTypeError(
-                    "Invalid command: {}".format(c)
-                )
+                raise argparse.ArgumentTypeError(f"Invalid command: {c}")
             commands.append(c.split(","))
         return commands
 
@@ -50,9 +50,7 @@ def getArgs():
         slaves = []
         for s in slave_str.split(","):
             if not re.match(r"^[0-9a-fA-F]+$", s):
-                raise argparse.ArgumentTypeError(
-                    "Invalid slave ID: {}".format(s)
-                )
+                raise argparse.ArgumentTypeError(f"Invalid slave ID: {s}")
             slaves.append(s)
         return slaves
 
@@ -207,14 +205,13 @@ def getArgs():
             parser.error(
                 "Input device type 2 or 4 must be specified for serial device"
             )
-    else:
-        if args.type in ["2", "4"]:
-            parser.error(
-                args.datasource
-                + " is not a valid serial device"
-                + "\n"
-                + "Input device types 2 and 4 are only valid for a serial device"
-            )
+    elif args.type in ["2", "4"]:
+        parser.error(
+            args.datasource
+            + " is not a valid serial device"
+            + "\n"
+            + "Input device types 2 and 4 are only valid for a serial device"
+        )
 
     # master mode validation
     if args.master:

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import time
+import argparse
+import datetime
 import os
 import sys
-import datetime
-from collections import OrderedDict
-import argparse
+import time
 
 
 def main():
@@ -24,7 +23,7 @@ def main():
         inFile = sys.stdin
     else:
         try:
-            inFile = open(args.infile, "r")
+            inFile = open(args.infile)
         except:
             print("We could not open %s. Exiting" % ars.infile)
             sys.exit(1)

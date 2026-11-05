@@ -18,10 +18,11 @@
 #
 # pipe output from semonitor directly into se2MQTT.py and publish to topic "/ha/value/solaredge" on server "mosquitto.domain.local" with client ID "solaredge" and user "solaredge" and password "s0lar3dg3"
 
-import json
 import getopt
-import time
+import json
 import sys
+import time
+
 import paho.mqtt.client as mqtt
 
 # state values

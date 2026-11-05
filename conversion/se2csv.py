@@ -2,12 +2,11 @@
 
 # Convert SolarEdge inverter performance monitoring data from JSON to CSV
 
-import json
 import argparse
 import csv
+import json
 
 from common import unwrap_metricsDict
-
 
 if __name__ == "__main__":
 
@@ -72,7 +71,7 @@ if __name__ == "__main__":
         ):
             devName, devId = baseName.split(".", 1)
             if devName not in devsFile:
-                devsFileName = "{}.{}.csv".format(args.prefix, devName)
+                devsFileName = f"{args.prefix}.{devName}.csv"
                 itemNames = ["__Identifier__"] + sorted(devAttrs.keys())
                 devsFile[devName] = csv.DictWriter(
                     open(devsFileName, "a" if args.append else "w"), itemNames

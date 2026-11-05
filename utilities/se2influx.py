@@ -13,11 +13,11 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
+from math import isnan
+from typing import Any
 
 import influxdb
 from dateutil import tz
-from math import isnan
 
 STDIN_TIMEOUT = 1
 DB_ERROR_SLEEP = 30
@@ -51,10 +51,10 @@ class Se2Influx:
         self,
         influx_params: InfluxParams,
         queue_size: int,
-        log_path: Optional[str],
+        log_path: str | None,
         max_log_size: int,
-        local_tz: Optional[str],
-        stat_timer_secs: Optional[int],
+        local_tz: str | None,
+        stat_timer_secs: int | None,
     ) -> None:
 
         self.influx_params = influx_params
@@ -78,7 +78,6 @@ class Se2Influx:
         block forever or until one of the threads exits (which should only happen
         if they hit an exception)
         """
-
         logging.info("Starting reader & writer threads")
         reader_thread = threading.Thread(target=self.reader, daemon=True)
         reader_thread.setName("reader")
@@ -125,7 +124,7 @@ class Se2Influx:
                 ):
                     line = sys.stdin.readline()
                     if not line:
-                        raise EndOfFile()
+                        raise EndOfFile
                     self.writer_queue.put(line)
 
                     if self.log_path:
@@ -137,7 +136,7 @@ class Se2Influx:
         except EndOfFile:
             logging.info("Reached end of input")
         except Exception as e:
-            logging.error("Error reading from stdin: %s", e)
+            logging.exception("Error reading from stdin: %s", e)
 
     def writer(self) -> None:
         """
@@ -146,7 +145,6 @@ class Se2Influx:
         the configured retries, we may end up blocking forever on the write if
         the DB is down/unavailable.
         """
-
         logging.info("Connecting to InfluxDB")
         db_client = influxdb.InfluxDBClient(**self.influx_params.__dict__)
 
@@ -160,7 +158,7 @@ class Se2Influx:
                 )
                 db_client.create_database(self.influx_params.database)
         except Exception as e:
-            logging.error(
+            logging.exception(
                 "Unable to connect to influxdb host or create DB: %s", e
             )
             return
@@ -187,7 +185,7 @@ class Se2Influx:
             try:
                 se_data = json.loads(line)
             except json.decoder.JSONDecodeError as e:
-                logging.error("Got bad JSON data; %s -- %s", line, e)
+                logging.exception("Got bad JSON data; %s -- %s", line, e)
                 continue
 
             data_out = []
@@ -211,12 +209,12 @@ class Se2Influx:
                         )
 
             except KeyError as e:
-                logging.error(
+                logging.exception(
                     "Decoded JSON missing required fields: %s -- %s", se_data, e
                 )
 
             except DateError as e:
-                logging.error(
+                logging.exception(
                     "Error converting dates in JSON: %s -- %s", se_data, e
                 )
 
@@ -228,7 +226,7 @@ class Se2Influx:
                 db_client.write_points(data_out)
                 data_points_written += len(data_out)
             except Exception as e:
-                logging.error("Error writing to influx db: %s", e)
+                logging.exception("Error writing to influx db: %s", e)
 
     def logger(self) -> None:
         """
@@ -239,12 +237,11 @@ class Se2Influx:
         handles duplicate data points by overwriting field data, so this should
         be fine)
         """
-
         while True:
             try:
                 log_fh = open(self.log_path, "a")
             except Exception as e:
-                logging.error("Error opening %s: %s", self.log_path, e)
+                logging.exception("Error opening %s: %s", self.log_path, e)
                 return
 
             while True:
@@ -259,7 +256,9 @@ class Se2Influx:
                     log_fh.write(line)
                     log_fh.flush()
                 except Exception as e:
-                    logging.error("Error writing to %s: %s", self.log_path, e)
+                    logging.exception(
+                        "Error writing to %s: %s", self.log_path, e
+                    )
                     return
 
                 size = os.stat(self.log_path).st_size
@@ -268,16 +267,13 @@ class Se2Influx:
                     try:
                         self.rotate_log()
                     except Exception as e:
-                        logging.error(
+                        logging.exception(
                             "Failed to rotate file: %s, %s", self.log_path, e
                         )
                     break
 
     def rotate_log(self) -> None:
-        """
-        Rotate and compress logs once they get too big
-        """
-
+        """Rotate and compress logs once they get too big"""
         ts = datetime.now().strftime("%Y%m%d%H%M%S")
         log_root, sep, log_ext = self.log_path.rpartition(".")
         if not log_root:
@@ -286,21 +282,22 @@ class Se2Influx:
 
         gz_log = f"{log_root}-{ts}{sep}{log_ext}.gz"
 
-        with open(self.log_path, "rb") as f_in:
-            with gzip.open(gz_log, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        with (
+            open(self.log_path, "rb") as f_in,
+            gzip.open(gz_log, "wb") as f_out,
+        ):
+            shutil.copyfileobj(f_in, f_out)
 
         with open(self.log_path, "w"):
             pass
 
-    def pop_utc_date(self, data: Dict[str, Any]) -> str:
+    def pop_utc_date(self, data: dict[str, Any]) -> str:
         """
         Take a semonitor data dict, remove the time and date fields, and then
         convert them (using a user-specified timezone, if specified, or otherwise
         our local machine timezone) to a UTC-based string format required by
         python-influxdb
         """
-
         date = data.pop("Date")
         time = data.pop("Time")
 

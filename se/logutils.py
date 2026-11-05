@@ -1,9 +1,9 @@
 # SolarEdge logging and debugging
 
-import sys
 import logging
-import traceback
+import sys
 import time
+import traceback
 
 LOG_LEVEL_DATA = 9
 LOG_LEVEL_RAW = 8
@@ -48,7 +48,7 @@ def format_data(data):
     line_width = 16
     for i in range(0, len(data), line_width):
         yield "data:       " + " ".join(
-            "{:02x}".format(x) for x in data[i : i + line_width]
+            f"{x:02x}" for x in data[i : i + line_width]
         )
 
 

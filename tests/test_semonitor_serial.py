@@ -182,7 +182,8 @@ class SerialSemonitor:
         return struct.unpack("i", queued)[0]
 
     def wait_until_taken(self):
-        """Wait until the reader has taken all that was sent.
+        """
+        Wait until the reader has taken all that was sent.
 
         What it has not taken is lost when the port is unplugged.
         """

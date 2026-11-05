@@ -1,13 +1,11 @@
 # SolarEdge message protocol
 
-import struct
-import os
-import time
 import logging
-import datetime
-import se.logutils
-import binascii
+import struct
+import time
 from builtins import bytes
+
+import se.logutils
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +71,7 @@ def readBytes(inFile, recFile, length, mode, state):
                     inBuf = inFile.read(length)
         recordMsg(inBuf, recFile)
         se.logutils.setState(
-            state, "lastByteRead", "{:02x}".format(bytearray(inBuf)[-1])
+            state, "lastByteRead", f"{bytearray(inBuf)[-1]:02x}"
         )
         return inBuf
     # treat exceptions as end of file
@@ -89,9 +87,8 @@ def parseMsg(msg):
     ):  # throw out messages that are too short
         logger.data("Threw out a message that was too short")
         return (0, 0, 0, 0, b"")
-    else:
-        (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
-        return (msgSeq, fromAddr, toAddr, function, data)
+    (msgSeq, fromAddr, toAddr, function, data) = validateMsg(msg)
+    return (msgSeq, fromAddr, toAddr, function, data)
 
 
 # parse the header and validate the message

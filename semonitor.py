@@ -2,18 +2,18 @@
 
 # SolarEdge inverter performance monitoring using the SolarEdge protocol
 
-import time
-import threading
-import sys
-import struct
-import se.env
-import se.logutils
-import se.files
-import se.msg
-import se.data
-import se.commands
 import logging
-from builtins import bytes
+import struct
+import sys
+import threading
+import time
+
+import se.commands
+import se.data
+import se.env
+import se.files
+import se.logutils
+import se.msg
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,7 @@ def nextSeq():
         seq += 1
         if seq > 65535:
             seq = 1
-    except IOError:
+    except OSError:
         seq = 1
     with open(SEQ_FILE_NAME, "w") as seqFile:
         seqFile.write(str(seq) + "\n")

@@ -1,14 +1,15 @@
 # SolarEdge data interpretation
 
-import time
-import struct
+import codecs
 import json
 import logging
-import se.logutils
+import struct
+import time
+
 import se.commands
-from se.dataparams import *
+import se.logutils
 from se.datadevices import ParseDevice, merge_update
-import codecs
+from se.dataparams import *
 
 logger = logging.getLogger(__name__)
 
@@ -31,39 +32,36 @@ def parseData(function, data):
     ]:
         # functions with no arguments
         return "".join(x.encode("hex") for x in data)
-    elif function == se.commands.PROT_CMD_SERVER_POST_DATA:
+    if function == se.commands.PROT_CMD_SERVER_POST_DATA:
         return parseDeviceData(data)
-    elif function == se.commands.PROT_RESP_POLESTAR_GET_STATUS:
+    if function == se.commands.PROT_RESP_POLESTAR_GET_STATUS:
         return parseStatus(data)
-    elif function in [
+    if function in [
         se.commands.PROT_CMD_PARAMS_GET_SINGLE,
         se.commands.PROT_CMD_UPGRADE_START,
     ]:
         return parseParam(data)
-    elif function in [
+    if function in [
         se.commands.PROT_CMD_MISC_RESET,
         se.commands.PROT_RESP_PARAMS_SINGLE,
     ]:
         return parseValueType(data)
-    elif function == se.commands.PROT_RESP_MISC_GET_VER:
+    if function == se.commands.PROT_RESP_MISC_GET_VER:
         return parseVersion(data)
-    elif function == se.commands.PROT_CMD_PARAMS_SET_SINGLE:
+    if function == se.commands.PROT_CMD_PARAMS_SET_SINGLE:
         return parseParamValue(data)
-    elif function == se.commands.PROT_CMD_UPGRADE_WRITE:
+    if function == se.commands.PROT_CMD_UPGRADE_WRITE:
         return parseOffsetLength(data)
-    elif function == se.commands.PROT_RESP_UPGRADE_SIZE:
+    if function == se.commands.PROT_RESP_UPGRADE_SIZE:
         return parseLong(data)
-    elif function in [se.commands.PROT_RESP_MISC_GET_TYPE]:
+    if function in [se.commands.PROT_RESP_MISC_GET_TYPE]:
         return parseParam(data)
-    elif function == se.commands.PROT_RESP_SERVER_GMT:
+    if function == se.commands.PROT_RESP_SERVER_GMT:
         return parseTime(data)
-    elif (
-        function == se.commands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS
-    ):
+    if function == se.commands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
         return parseEnergyStats(data)
-    else:
-        # unknown function type
-        logger.info("Unknown function 0x%04x", function)
+    # unknown function type
+    logger.info("Unknown function 0x%04x", function)
     return codecs.encode(data, "hex").decode("ascii")
 
 
@@ -218,7 +216,7 @@ def parseDeviceData(data):
             # appropriate identifiers) to the dictionary of devices
             merge_update(devsDict, parsedDevice.wrap_in_ids())
             logDevice(
-                "{}: ".format(parsedDevice.devType),
+                f"{parsedDevice.devType}: ",
                 seType,
                 seId,
                 devLen,
