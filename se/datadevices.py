@@ -1001,7 +1001,7 @@ def merge_update(dict1, dict2):
     :return: None, but the master dictionary is updated with **only** the new parts of dict2 merged in.
     """
     for k2, v2 in dict2.items():
-        if k2 not in dict1.keys():
+        if k2 not in dict1:
             dict1.update({k2: v2})
         elif isinstance(v2, dict):
             merge_update(dict1[k2], v2)

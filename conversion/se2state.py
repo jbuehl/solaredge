@@ -17,7 +17,7 @@ initialize = False
 # ignore the stats item
 def sumItems(itemDict, itemAttr):
     itemSum = 0
-    for item in itemDict.keys():
+    for item in itemDict:
         if item != "stats":
             itemSum += itemDict[item][itemAttr]
     return itemSum
@@ -95,7 +95,7 @@ with inFile:
         stateDict["inverters"].update(inDict["inverters"])
         stateDict["optimizers"].update(inDict["optimizers"])
         # compute optimizer power
-        for optimizer in stateDict["optimizers"].keys():
+        for optimizer in stateDict["optimizers"]:
             if optimizer != "stats":
                 stateDict["optimizers"][optimizer]["Pdc"] = (
                     stateDict["optimizers"][optimizer]["Vmod"]
@@ -127,10 +127,10 @@ with inFile:
         )
         # zero current energy and power for devices when an event occurs
         if len(inDict["events"]) != 0:
-            for inverter in stateDict["inverters"].keys():
+            for inverter in stateDict["inverters"]:
                 stateDict["inverters"][inverter]["Eac"] = 0.0
                 stateDict["inverters"][inverter]["Pac"] = 0.0
-            for optimizer in stateDict["optimizers"].keys():
+            for optimizer in stateDict["optimizers"]:
                 stateDict["optimizers"][optimizer]["Vmod"] = 0.0
                 stateDict["optimizers"][optimizer]["Vopt"] = 0.0
                 stateDict["optimizers"][optimizer]["Imod"] = 0.0

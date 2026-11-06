@@ -58,7 +58,7 @@ with inFile:
         stateDict["optimizers"].update(inDict["optimizers"])
         # zero current energy and power when an event occurs
         if len(inDict["events"]) != 0:
-            for inverter in stateDict["inverters"].keys():
+            for inverter in stateDict["inverters"]:
                 stateDict["inverters"][inverter]["Eac"] = 0.0
                 stateDict["inverters"][inverter]["Pac"] = 0.0
         # send to MQTT

@@ -84,7 +84,7 @@ if __name__ == "__main__":
                     )
                 )
                 # Treat every attribute as a metric - except for non-numeric ones!
-                for devAttr in devAttrs.keys():
+                for devAttr in devAttrs:
                     if (
                         devAttr != "Date"
                         and devAttr != "Time"

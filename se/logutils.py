@@ -66,7 +66,7 @@ def setState(state, item, value):
 def dumpState(state):
     logger = logging.getLogger(__name__)
     logger.info("state:")
-    for item in state.keys():
+    for item in state:
         logger.info(
             "      "
             + time.strftime("%H:%M:%S", time.localtime(state[item][0]))

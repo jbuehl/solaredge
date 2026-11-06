@@ -49,7 +49,7 @@ def unwrap_metricsDict(mydict):
         )
 
     for k, v in mydict.items():
-        if "Date" in v.keys():
+        if "Date" in v:
             yield nice(k), v
         else:
             for k2, v2 in unwrap_metricsDict(v):
