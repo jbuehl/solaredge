@@ -111,11 +111,7 @@ class Pickle2Graphite(list):
             )
             # Treat every attribute as a metric - except for non-numeric ones!
             for devAttr in devAttrs:
-                if (
-                    devAttr != "Date"
-                    and devAttr != "Time"
-                    and devAttr != "Undeciphered_data"
-                ):
+                if devAttr not in {"Date", "Time", "Undeciphered_data"}:
                     try:
                         # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                         test = float(devAttrs[devAttr])
