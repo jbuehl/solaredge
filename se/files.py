@@ -30,6 +30,7 @@ def closeData(dataFile):
 def openOutFile(fileName, writeMode="wb"):
     if fileName:
         return open(fileName, writeMode)
+    return None
 
 
 # close output files
