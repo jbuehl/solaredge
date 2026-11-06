@@ -68,18 +68,16 @@ def dumpState(state):
     logger.info("state:")
     for item in state:
         logger.info(
-            "      "
-            + time.strftime("%H:%M:%S", time.localtime(state[item][0]))
-            + " "
-            + item
-            + ": "
-            + str(state[item][1])
+            "      %s %s: %s",
+            time.strftime("%H:%M:%S", time.localtime(state[item][0])),
+            item,
+            state[item][1],
         )
     for threadId, stack in sys._current_frames().items():
-        logger.info("ThreadID: %s" % threadId)
+        logger.info("ThreadID: %s", threadId)
         for filename, lineno, name, line in traceback.extract_stack(stack):
             logger.info(
-                '      File: "%s", line %d, in %s' % (filename, lineno, name)
+                '      File: "%s", line %d, in %s', filename, lineno, name
             )
             if line:
-                logger.info("            " + line)
+                logger.info("            %s", line)

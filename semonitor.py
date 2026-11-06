@@ -60,7 +60,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
                         msg, args, mode, state, dataFile, recFile, outFile
                     )
                 except Exception as ex:
-                    logger.info("Failed to parse message: " + str(ex))
+                    logger.info("Failed to parse message: %s", ex)
                     for l in se.logutils.format_data(msg):
                         logger.data(l)
                     if args.xerror:

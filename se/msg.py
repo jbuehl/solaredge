@@ -76,7 +76,7 @@ def readBytes(inFile, recFile, length, mode, state):
         return inBuf
     # treat exceptions as end of file
     except Exception as ex:
-        logger.info("Exception while reading data: " + str(ex))
+        logger.info("Exception while reading data: %s", ex)
         return b""
 
 
@@ -132,7 +132,7 @@ def validateMsg(msg):
     )
     if calcsum != checksum:
         logger.error(
-            "Checksum error. Expected 0x%04x, got 0x%04x" % (checksum, calcsum)
+            "Checksum error. Expected 0x%04x, got 0x%04x", checksum, calcsum
         )
         for l in se.logutils.format_data(msg):
             logger.data(l)

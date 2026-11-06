@@ -310,7 +310,7 @@ def devDataDict(seId, itemNames, itemValues):
         devDict["Date"] = formatDateStamp(itemValues[0])
         devDict["Time"] = formatTimeStamp(itemValues[0])
     except Exception as ex:
-        logger.info("Invalid timestamp: " + str(itemValues[0]) + " " + str(ex))
+        logger.info("Invalid timestamp: %s %s", itemValues[0], ex)
         devDict["Date"] = "invalid"
         devDict["Time"] = "invalid"
     devDict["ID"] = seId
@@ -353,7 +353,7 @@ def formatDateTime(timeStamp):
     except ValueError:
         return "".join(x.encode("hex") for x in struct.pack("<L", timeStamp))
     except Exception as ex:
-        logger.info("Invalid timestamp: " + str(timeStamp) + " " + str(ex))
+        logger.info("Invalid timestamp: %s %s", timeStamp, ex)
         return "invalid"
 
 
