@@ -265,10 +265,7 @@ if __name__ == "__main__":
     # open the output files
     recFile = se.files.openOutFile(args.record, "ab" if args.append else "wb")
     if args.outfile == "stdout":
-        if sys.version_info >= (3, 0):
-            outFile = sys.stdout.buffer
-        else:
-            outFile = sys.stdout
+        outFile = sys.stdout.buffer
     else:
         outFile = se.files.openOutFile(
             args.outfile, "ab" if args.append else "wb"

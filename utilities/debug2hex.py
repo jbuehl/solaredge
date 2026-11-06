@@ -16,7 +16,7 @@ logFile = open(sys.argv[1])
 try:
     datafile = open(sys.argv[2], "wb")
 except IndexError:
-    dataFile = sys.stdout
+    dataFile = sys.stdout.buffer
 
 for line in logFile:
     if line[0:5] == "data:":

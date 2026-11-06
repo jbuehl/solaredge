@@ -15,9 +15,7 @@ def openSerial(inFileName, baudRate):
 
 def openInFile(inFileName):
     if inFileName == "stdin":
-        if sys.version_info >= (3, 0):
-            return sys.stdin.buffer
-        return sys.stdin
+        return sys.stdin.buffer
     # Explicitly specify mode rb to keep Windows happy!
     return open(inFileName, "rb")
 

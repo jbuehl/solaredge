@@ -138,7 +138,6 @@ def test_the_data_file_is_complete_when_the_script_has_ended(
 # --- to stdout ---------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #48")
 def test_without_a_data_file_the_binary_data_goes_to_stdout(
     workdir, monkeypatch
 ):

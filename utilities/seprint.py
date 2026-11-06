@@ -75,6 +75,11 @@ with inFile:
             for event in sorted(inDict["events"].keys()):
                 eventDict = inDict["events"][event]
                 print(
-                    "  " + eventDict["Date"] + " " + eventDict["Time"] + " " + event
+                    "  "
+                    + eventDict["Date"]
+                    + " "
+                    + eventDict["Time"]
+                    + " "
+                    + event
                 )
         jsonStr = inFile.readline()
