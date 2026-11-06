@@ -185,13 +185,13 @@ def getArgs():
         # figure out the list of valid serial ports on this server
         # this is either a list of tuples or ListPortInfo objects
         serial_ports = serial.tools.list_ports.comports()
-        serial_port_names = map(
-            lambda p: (
+        serial_port_names = (
+            (
                 p.device
                 if isinstance(p, serial.tools.list_ports_common.ListPortInfo)
                 else p[0]
-            ),
-            serial_ports,
+            )
+            for p in serial_ports
         )
         serialDevice = args.datasource in serial_port_names
 
