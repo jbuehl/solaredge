@@ -236,7 +236,7 @@ def test_a_broker_that_fails_is_reported_and_does_not_stop_the_converter(
     )
 
     assert len(clients) == 2
-    assert "MQTT Exception" in capsys.readouterr().out
+    assert "MQTT Exception" in capsys.readouterr().err
 
 
 def test_invalid_json_is_an_error(monkeypatch):

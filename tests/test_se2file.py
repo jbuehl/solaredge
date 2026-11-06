@@ -144,14 +144,14 @@ def test_every_option_is_parsed(getargs):
 def test_waiting_forever_on_a_file_is_refused_with_a_warning(getargs, capsys):
     args = getargs("-b", "out", "-w", "in.json")
 
-    assert "Warning" in capsys.readouterr().out
+    assert "Warning" in capsys.readouterr().err
     assert args.infile == "in.json"
 
 
 def test_waiting_forever_on_stdin_gives_no_warning(getargs, capsys):
     getargs("-b", "out", "-w")
 
-    assert capsys.readouterr().out == ""
+    assert capsys.readouterr().err == ""
 
 
 def test_unknown_options_are_refused(getargs):
@@ -403,7 +403,6 @@ def test_the_script_waits_between_blank_reads(se2file, workdir, clock):
 # --- errors ------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #46")
 def test_a_file_that_cannot_be_opened_is_reported_and_ends_with_one(
     se2file, workdir, capsys
 ):
@@ -411,7 +410,7 @@ def test_a_file_that_cannot_be_opened_is_reported_and_ends_with_one(
 
     assert se2file("-b", "out", "missing.json") == 1
 
-    assert "missing.json" in capsys.readouterr().out
+    assert "missing.json" in capsys.readouterr().err
 
 
 def test_a_missing_base_directory_is_an_error_not_silently_ignored(se2file):

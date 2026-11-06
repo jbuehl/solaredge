@@ -25,7 +25,7 @@ def main():
         try:
             inFile = open(args.infile)
         except:
-            print("We could not open %s. Exiting" % ars.infile)
+            sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
             sys.exit(1)
         # We always set looper = False for files, even if the args set it to true.
         looper = False
@@ -48,7 +48,7 @@ def main():
         if jsonStr != "":
             blank_cnt = 0  # If we have data, reset the blank_cnt variable
             if debug:
-                print("Got some data: %s" % jsonStr)
+                sys.stderr.write(f"Got some data: {jsonStr}\n")
             curtime = datetime.datetime.now()
             curday = curtime.strftime("%Y-%m-%d")
             curhour = curtime.strftime("%Y-%m-%d-%H")
@@ -63,9 +63,9 @@ def main():
                 tfname = basedir + "/" + prefix + curstore + ".json"
             if tfname != writefilename:
                 if debug:
-                    print(
-                        "Looks like a new daily output file: Temp Name: %s - Old Name: %s"
-                        % (tfname, writefilename)
+                    sys.stderr.write(
+                        "Looks like a new daily output file: "
+                        f"Temp Name: {tfname} - Old Name: {writefilename}\n"
                     )
                 if writefile is not None:
                     writefile.close()
@@ -85,7 +85,9 @@ def main():
         # Let's not leave output files open if we haven't seen data in a while
         if curepoch - lastwrite > openfilesecs:
             if debug:
-                print("No data for %s seconds, closing file" % openfilesecs)
+                sys.stderr.write(
+                    f"No data for {openfilesecs} seconds, closing file\n"
+                )
             if writefile is not None:
                 writefile.close()
                 writefile = None
@@ -96,7 +98,7 @@ def main():
             if debug:
                 curtime = datetime.datetime.now()
                 curstr = curtime.strftime("%Y-%m-%d-%H:%m:%s")
-                print("Looped %s times at %s" % (lreport, curstr))
+                sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
 
 
 def getargs():
@@ -159,8 +161,9 @@ def getargs():
 
     defargs = parser.parse_args()
     if defargs.looper and defargs.infile != "stdin":
-        print(
-            "Warning: wait forever (-w) only applies to stdin, not waiting for more data from the infile"
+        sys.stderr.write(
+            "Warning: wait forever (-w) only applies to stdin, "
+            "not waiting for more data from the infile\n"
         )
 
     return defargs

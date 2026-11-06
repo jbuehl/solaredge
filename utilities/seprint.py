@@ -39,47 +39,28 @@ with inFile:
     while jsonStr != "":
         inDict = json.loads(jsonStr)
         if inDict["inverters"] != {}:
-            print("Inverters")
+            sys.stdout.write("Inverters\n")
             for inverter in sorted(inDict["inverters"].keys()):
                 invDict = inDict["inverters"][inverter]
-                print(
-                    "  "
-                    + invDict["Date"]
-                    + " "
-                    + invDict["Time"]
-                    + " "
-                    + inverter
-                    + " "
-                    + "Eday:%9.2f" % invDict["Eday"]
-                    + " "
-                    + "Pac:%7.2f" % invDict["Pac"]
-                    + " "
-                    + "Vac:%6.2f" % invDict["Vac"]
+                sys.stdout.write(
+                    f"  {invDict['Date']} {invDict['Time']} {inverter}"
+                    f" Eday:{invDict['Eday']:9.2f}"
+                    f" Pac:{invDict['Pac']:7.2f}"
+                    f" Vac:{invDict['Vac']:6.2f}\n"
                 )
         if inDict["optimizers"] != {}:
-            print("Optimizers")
+            sys.stdout.write("Optimizers\n")
             for optimizer in sorted(inDict["optimizers"].keys()):
                 optDict = inDict["optimizers"][optimizer]
-                print(
-                    "  "
-                    + optDict["Date"]
-                    + " "
-                    + optDict["Time"]
-                    + " "
-                    + optimizer
-                    + " "
-                    + "Eday:%7.2f" % optDict["Eday"]
+                sys.stdout.write(
+                    f"  {optDict['Date']} {optDict['Time']} {optimizer}"
+                    f" Eday:{optDict['Eday']:7.2f}\n"
                 )
         if inDict["events"] != {}:
-            print("Events")
+            sys.stdout.write("Events\n")
             for event in sorted(inDict["events"].keys()):
                 eventDict = inDict["events"][event]
-                print(
-                    "  "
-                    + eventDict["Date"]
-                    + " "
-                    + eventDict["Time"]
-                    + " "
-                    + event
+                sys.stdout.write(
+                    f"  {eventDict['Date']} {eventDict['Time']} {event}\n"
                 )
         jsonStr = inFile.readline()
