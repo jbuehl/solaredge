@@ -83,7 +83,8 @@ def parseParam(data):
 
 
 def parseVersion(data):
-    version = "%04d.%04d" % struct.unpack("<HH", data[0:4])
+    (major, minor) = struct.unpack("<HH", data[0:4])
+    version = f"{major:04d}.{minor:04d}"
     logger.data("version:    %s", version)
     return {"version": version}
 
