@@ -72,7 +72,7 @@ if __name__ == "__main__":
             devName, devId = baseName.split(".", 1)
             if devName not in devsFile:
                 devsFileName = f"{args.prefix}.{devName}.csv"
-                itemNames = ["__Identifier__"] + sorted(devAttrs.keys())
+                itemNames = ["__Identifier__", *sorted(devAttrs.keys())]
                 devsFile[devName] = csv.DictWriter(
                     open(devsFileName, "a" if args.append else "w"), itemNames
                 )
