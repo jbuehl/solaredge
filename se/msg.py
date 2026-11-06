@@ -36,7 +36,7 @@ def readMsg(inFile, recFile, mode, state):
         msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode, state)
         if not msg:  # end of file
             return (msg, True)
-        (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = (
+        (dataLen, _dataLenInv, _msgSeq, _fromAddr, _toAddr, _function) = (
             struct.unpack("<HHHLLH", msg[magicLen:])
         )
         # read the data and checksum
