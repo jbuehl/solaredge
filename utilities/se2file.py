@@ -52,11 +52,8 @@ def main():
             curtime = datetime.datetime.now()
             curday = curtime.strftime("%Y-%m-%d")
             curhour = curtime.strftime("%Y-%m-%d-%H")
-            if store_daily == True:
-                curstore = curday
-            else:
-                curstore = curhour
-            if make_daily_dir == True:
+            curstore = curday if store_daily else curhour
+            if make_daily_dir:
                 if not os.path.isdir(basedir + "/" + curday):
                     os.mkdir(basedir + "/" + curday)
                 tfname = (
@@ -161,7 +158,7 @@ def getargs():
     )
 
     defargs = parser.parse_args()
-    if defargs.looper == True and defargs.infile != "stdin":
+    if defargs.looper and defargs.infile != "stdin":
         print(
             "Warning: wait forever (-w) only applies to stdin, not waiting for more data from the infile"
         )
