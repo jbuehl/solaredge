@@ -662,7 +662,6 @@ def test_failed_hypothesis_is_logged_once(record, caplog):
     assert len(caplog.messages) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #49")
 @pytest.mark.parametrize("record", BATTERIES)
 def test_failed_hypothesis_is_logged_by_the_module_logger(record, caplog):
     with caplog.at_level(logging.WARNING):

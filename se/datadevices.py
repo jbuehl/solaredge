@@ -315,7 +315,7 @@ class ParseDevice(dict):
                     hypothesis,
                     "is not True",
                 ]
-                logging.warning(" ".join(msg))
+                logger.warning(" ".join(msg))
 
     def wrap_in_ids(self):
         """

@@ -22,6 +22,8 @@ from dateutil import tz
 STDIN_TIMEOUT = 1
 DB_ERROR_SLEEP = 30
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class InfluxParams:
@@ -78,7 +80,7 @@ class Se2Influx:
         block forever or until one of the threads exits (which should only happen
         if they hit an exception)
         """
-        logging.info("Starting reader & writer threads")
+        logger.info("Starting reader & writer threads")
         reader_thread = threading.Thread(target=self.reader, daemon=True)
         reader_thread.setName("reader")
         writer_thread = threading.Thread(target=self.writer, daemon=True)
@@ -86,7 +88,7 @@ class Se2Influx:
         threads = [reader_thread, writer_thread]
 
         if self.log_path:
-            logging.info("Starting logger thread")
+            logger.info("Starting logger thread")
             logger_thread = threading.Thread(target=self.logger, daemon=True)
             logger_thread.setName("logger")
             threads.append(logger_thread)
@@ -99,7 +101,7 @@ class Se2Influx:
                 break
             for thread in threads:
                 if not thread.is_alive():
-                    logging.warning("Thread for %s shut down", thread.name)
+                    logger.warning("Thread for %s shut down", thread.name)
                     self.shutdown.set()
 
             time.sleep(1)
@@ -107,8 +109,8 @@ class Se2Influx:
         for thread in threads:
             thread.join()
 
-        logging.info("%s lines left in writer queue", self.writer_queue.qsize())
-        logging.info("%s lines left in logger queue", self.logger_queue.qsize())
+        logger.info("%s lines left in writer queue", self.writer_queue.qsize())
+        logger.info("%s lines left in logger queue", self.logger_queue.qsize())
 
     def reader(self) -> None:
         """
@@ -134,9 +136,9 @@ class Se2Influx:
                     return
 
         except EndOfFile:
-            logging.info("Reached end of input")
+            logger.info("Reached end of input")
         except Exception as e:
-            logging.exception("Error reading from stdin: %s", e)
+            logger.exception("Error reading from stdin: %s", e)
 
     def writer(self) -> None:
         """
@@ -145,20 +147,20 @@ class Se2Influx:
         the configured retries, we may end up blocking forever on the write if
         the DB is down/unavailable.
         """
-        logging.info("Connecting to InfluxDB")
+        logger.info("Connecting to InfluxDB")
         db_client = influxdb.InfluxDBClient(**self.influx_params.__dict__)
 
         # Create the database if it doesn't exist
         try:
             available_dbs = [db["name"] for db in db_client.get_list_database()]
             if self.influx_params.database not in available_dbs:
-                logging.info(
+                logger.info(
                     "DB %s missing; attempting to create",
                     self.influx_params.database,
                 )
                 db_client.create_database(self.influx_params.database)
         except Exception as e:
-            logging.exception(
+            logger.exception(
                 "Unable to connect to influxdb host or create DB: %s", e
             )
             return
@@ -169,7 +171,7 @@ class Se2Influx:
             if self.stat_timer_secs is not None:
                 now = int(time.time())
                 if now > last_stat_print + self.stat_timer_secs:
-                    logging.info(
+                    logger.info(
                         "Data points written to DB: %s", data_points_written
                     )
                     data_points_written = 0
@@ -185,7 +187,7 @@ class Se2Influx:
             try:
                 se_data = json.loads(line)
             except json.decoder.JSONDecodeError as e:
-                logging.exception("Got bad JSON data; %s -- %s", line, e)
+                logger.exception("Got bad JSON data; %s -- %s", line, e)
                 continue
 
             data_out = []
@@ -209,12 +211,12 @@ class Se2Influx:
                         )
 
             except KeyError as e:
-                logging.exception(
+                logger.exception(
                     "Decoded JSON missing required fields: %s -- %s", se_data, e
                 )
 
             except DateError as e:
-                logging.exception(
+                logger.exception(
                     "Error converting dates in JSON: %s -- %s", se_data, e
                 )
 
@@ -222,11 +224,11 @@ class Se2Influx:
                 continue
 
             try:
-                logging.debug("Writing to influxdb: %s", data_out)
+                logger.debug("Writing to influxdb: %s", data_out)
                 db_client.write_points(data_out)
                 data_points_written += len(data_out)
             except Exception as e:
-                logging.exception("Error writing to influx db: %s", e)
+                logger.exception("Error writing to influx db: %s", e)
 
     def logger(self) -> None:
         """
@@ -241,7 +243,7 @@ class Se2Influx:
             try:
                 log_fh = open(self.log_path, "a")
             except Exception as e:
-                logging.exception("Error opening %s: %s", self.log_path, e)
+                logger.exception("Error opening %s: %s", self.log_path, e)
                 return
 
             while True:
@@ -256,7 +258,7 @@ class Se2Influx:
                     log_fh.write(line)
                     log_fh.flush()
                 except Exception as e:
-                    logging.exception(
+                    logger.exception(
                         "Error writing to %s: %s", self.log_path, e
                     )
                     return
@@ -267,7 +269,7 @@ class Se2Influx:
                     try:
                         self.rotate_log()
                     except Exception as e:
-                        logging.exception(
+                        logger.exception(
                             "Failed to rotate file: %s, %s", self.log_path, e
                         )
                     break
