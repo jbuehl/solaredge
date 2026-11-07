@@ -296,7 +296,7 @@ class ParseDevice(dict):
             dataPtr += paramLen
 
     def setDerivationDefaults(self):
-        for paramName, paramDefault, out, comment in self._derivn:
+        for paramName, paramDefault, _out, _comment in self._derivn:
             self[paramName] = eval(paramDefault)
 
     def codeDerivations(self):
