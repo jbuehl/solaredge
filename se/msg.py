@@ -96,8 +96,8 @@ def validateMsg(msg):
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
         logger.error("Message too short")
-        for l in se.logutils.format_data(msg):
-            logger.data(l)
+        for line in se.logutils.format_data(msg):
+            logger.data(line)
         return (0, 0, 0, 0, b"")
     # parse the message header
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack(
@@ -107,22 +107,22 @@ def validateMsg(msg):
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
         logger.error("Data length is too big for the message")
-        for l in se.logutils.format_data(msg):
-            logger.data(l)
+        for line in se.logutils.format_data(msg):
+            logger.data(line)
         return (0, 0, 0, 0, b"")
     # data length must match inverse length
     if dataLen != ~dataLenInv & 0xFFFF:
         logger.error("Data length doesn't match inverse length")
-        for l in se.logutils.format_data(msg):
-            logger.data(l)
+        for line in se.logutils.format_data(msg):
+            logger.data(line)
         return (0, 0, 0, 0, b"")
     data = msg[msgHdrLen : msgHdrLen + dataLen]
     # discard extra bytes after the message
     extraLen = len(msg) - (msgHdrLen + dataLen + checksumLen)
     if extraLen != 0:
         logger.data("Discarding %s extra bytes", extraLen)
-        for l in se.logutils.format_data(msg[-extraLen:]):
-            logger.data(l)
+        for line in se.logutils.format_data(msg[-extraLen:]):
+            logger.data(line)
     # validate the checksum
     checksum = struct.unpack(
         "<H", msg[msgHdrLen + dataLen : msgHdrLen + dataLen + checksumLen]
@@ -134,8 +134,8 @@ def validateMsg(msg):
         logger.error(
             "Checksum error. Expected 0x%04x, got 0x%04x", checksum, calcsum
         )
-        for l in se.logutils.format_data(msg):
-            logger.data(l)
+        for line in se.logutils.format_data(msg):
+            logger.data(line)
         return (0, 0, 0, 0, b"")
     return (msgSeq, fromAddr, toAddr, function, data)
 

@@ -35,8 +35,8 @@ def _message_log(self, direction, seq, msg, endPoint=""):
         (endPoint, direction, seq, len(msg)),
     )
     if self.isEnabledFor(LOG_LEVEL_RAW):
-        for l in format_data(msg):
-            self._log(LOG_LEVEL_RAW, l, ())
+        for line in format_data(msg):
+            self._log(LOG_LEVEL_RAW, line, ())
 
 
 #    if direction == "<--":

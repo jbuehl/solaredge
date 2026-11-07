@@ -61,8 +61,8 @@ def readData(args, mode, state, dataFile, recFile, outFile):
                     )
                 except Exception as ex:
                     logger.info("Failed to parse message: %s", ex)
-                    for l in se.logutils.format_data(msg):
-                        logger.data(l)
+                    for line in se.logutils.format_data(msg):
+                        logger.data(line)
                     if args.xerror:
                         raise
                 se.logutils.setState(state, "threadLock", False)
@@ -76,8 +76,8 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile):
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
-        for l in se.logutils.format_data(data):
-            logger.data(l)
+        for line in se.logutils.format_data(data):
+            logger.data(line)
     else:
         msgData = se.data.parseData(function, data)
         if (
