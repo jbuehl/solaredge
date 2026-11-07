@@ -19,6 +19,7 @@ Graphite / carbon had to create a whole lot of new whisper files all at once.
 
 import getopt
 import json
+import math
 import pickle
 import socket
 import struct
@@ -115,7 +116,7 @@ class Pickle2Graphite(list):
                     try:
                         # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                         test = float(devAttrs[devAttr])
-                        if test != test:
+                        if math.isnan(test):
                             # It's a NaN!
                             pass
                         else:

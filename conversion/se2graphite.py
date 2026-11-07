@@ -4,6 +4,7 @@
 
 import getopt
 import json
+import math
 import socket
 import sys
 import time
@@ -89,7 +90,7 @@ if __name__ == "__main__":
                         try:
                             # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                             test = float(devAttrs[devAttr])
-                            if test != test:
+                            if math.isnan(test):
                                 # It's a NaN!
                                 pass
                             else:
