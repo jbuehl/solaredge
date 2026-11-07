@@ -9,7 +9,23 @@ import time
 import se.commands
 import se.logutils
 from se.datadevices import ParseDevice, merge_update
-from se.dataparams import *
+from se.dataparams import (
+    eventIdx,
+    eventInFmt,
+    eventItems,
+    inv3PhIdx,
+    inv3PhInFmt,
+    inv3PhInFmtLen,
+    inv3PhItems,
+    invIdx,
+    invInFmt,
+    invInFmtLen,
+    invItems,
+    optIdx,
+    optInFmt,
+    optInFmtLen,
+    optItems,
+)
 
 logger = logging.getLogger(__name__)
 
