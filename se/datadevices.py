@@ -420,8 +420,7 @@ class ParseDevice(dict):
                         f"(default={paramDefault}) {comment}",
                     )
                 )
-        for subclass in cls.__subclasses__():
-            msg.append(subclass.itemDefs())
+        msg.extend(subclass.itemDefs() for subclass in cls.__subclasses__())
         return "\n".join(msg)
 
 
