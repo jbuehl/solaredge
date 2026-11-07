@@ -63,12 +63,11 @@ def readBytes(inFile, recFile, length, mode, state):
     se.logutils.setState(state, "readLength", length)
     try:
         inBuf = bytes(inFile.read(length))
-        if not inBuf:  # end of file
-            if mode.following:
-                # wait for more data
-                while not inBuf:
-                    time.sleep(sleepInterval)
-                    inBuf = inFile.read(length)
+        # at the end of file, wait for more data when following
+        if not inBuf and mode.following:
+            while not inBuf:
+                time.sleep(sleepInterval)
+                inBuf = inFile.read(length)
         recordMsg(inBuf, recFile)
         se.logutils.setState(
             state, "lastByteRead", f"{bytearray(inBuf)[-1]:02x}"
