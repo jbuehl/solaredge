@@ -8,6 +8,12 @@
 ## There are a few configuration parameters.
 ## Originally sourced from the gist at https://gist.github.com/marcelom/4218010
 
+import logging
+import os.path
+import sys
+
+import SocketServer
+
 LOG_DIR = "logFiles"
 LOG_FILE = f"{LOG_DIR}/syslog.log"
 HOST, PORT = "0.0.0.0", 514
@@ -15,12 +21,6 @@ HOST, PORT = "0.0.0.0", 514
 #
 # NO USER SERVICEABLE PARTS BELOW HERE...
 #
-
-import logging
-import os.path
-import sys
-
-import SocketServer
 
 if not os.path.isdir(LOG_DIR):
     os.mkdir(LOG_DIR)
