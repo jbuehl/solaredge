@@ -6,17 +6,111 @@ on:
   pull_request:
     branches:
       - master
+  release:
+    types:
+      - published
 jobs:
   integration:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
-      with:
-        lfs: true
-    - uses: actions/setup-python@v6
-      with:
-        python-version: '3.10'
-        cache: 'pip'
-    - run: pip install -r requirements.txt
-    - run: python -m compileall -q .
-    - run: test/test.sh
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: 'pyproject.toml'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q .
+      - run: test/test.sh
+
+  pytest:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Allow the pipeline to pass until all bugfixes are in.
+    permissions:
+      contents: read
+      code-quality: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-tags: true
+          lfs: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: 'pyproject.toml'
+          cache: 'pip'
+      - run: ./run-tests.sh --cov-report html --cov-report xml --junitxml junit.xml
+      - if: always()
+        run: .venv/bin/coverage report --format=markdown --skip-covered --show-missing >> "${GITHUB_STEP_SUMMARY}"
+      - if: >-
+          always() && (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage/pytest
+          fail-on-error: false
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: junit.xml
+      - id: coverage-html
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: htmlcov/
+          if-no-files-found: error
+          retention-days: 14
+      - if: always() && steps.coverage-html.outputs.artifact-url
+        run: |
+          printf '\n[Download the HTML coverage report](%s) (zip, open `index.html`)\n' \
+            "${{ steps.coverage-html.outputs.artifact-url }}" >> "${GITHUB_STEP_SUMMARY}"
+      - if: always() && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: htmlcov/
+
+  pages:
+    needs: pytest
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+      - run: |
+          printf '\n[Browse the HTML coverage report](%s)\n' \
+            "${{ steps.deployment.outputs.page_url }}" >> "${GITHUB_STEP_SUMMARY}"
+
+  release:
+    needs: pytest
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-html
+          path: htmlcov/
+      - run: |
+          set -eu
+          (cd htmlcov && zip --quiet --recurse-paths "../coverage-html-${GITHUB_REF_NAME}.zip" .)
+          gh release upload "${GITHUB_REF_NAME}" "coverage-html-${GITHUB_REF_NAME}.zip" \
+            --clobber --repo "${GITHUB_REPOSITORY}"

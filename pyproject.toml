@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Copyright (C) 2026 Olliver Schinagl <oliver@schinagl.nl>
+
+[project]
+name = "semonitor"
+requires-python = ">=3.15"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--durations=10",
+    "--durations-min=0.5",
+    "--dist=worksteal",
+    "--numprocesses=auto",
+    "--strict-config",
+    "--strict-markers",
+]
+pythonpath = ["."]
+testpaths = ["tests"]
+timeout = 120
+
+[tool.coverage.run]
+branch = true
+patch = ["subprocess"]
+source = ["."]
+omit = [
+    "*/.git/*",
+    "*/.venv/*",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

@@ -1,0 +1,7 @@
+# Test tooling.
+# Deliberately unpinned, nightly CI run will trigger this
+-r requirements.txt
+pytest
+pytest-cov
+pytest-timeout
+pytest-xdist
