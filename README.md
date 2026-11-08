@@ -54,7 +54,7 @@ RS485        active, passive
 The server running semonitor.py is connected to one or more inverters through a
 serial port with an RS485 adapter.  All inverters must be configured as RS485 slaves
 and semonitor.py functions as the RS485 master.  The inverter serial numbers are
-specified to semonitor.py using the -s option and the -m option specifies master mode.  
+specified to semonitor.py using the -s option and the -m option specifies master mode.
 There cannot be another master device on the RS485 bus.
 
 **RS485 passive**
@@ -319,7 +319,7 @@ Maintain a JSON file containing the current state of SolarEdge inverters and opt
 
 #### Options
     -i inverter[,inverter...] Initialize the state file using the specified inverter
-                    IDs rather than using an existing one.  
+                    IDs rather than using an existing one.
     -o stateFile    File containing the current (last read) data values for each
                     inverter and optimizer values from the input file.  It will
                     be overwritten every time that new data is read.
