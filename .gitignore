@@ -1,2 +1,13 @@
 *.pyc
 .DS_Store
+
+# Tests and coverage
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+coverage.xml
+pytest.xml
+
+# Virtualenvs
+.venv*/

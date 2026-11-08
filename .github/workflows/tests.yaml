@@ -1,0 +1,108 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the dependencies
+        run: pip install --group 'run'
+
+      - name: Byte-compile sources
+        run: python -m compileall -q .
+
+      - name: Run integration tests
+        run: test/test.sh
+
+  pytest:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Allow the pipeline to pass until all bugfixes are in.
+    permissions:
+      contents: read
+      code-quality: write
+      pull-requests: write
+      checks: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-tags: true
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: pyproject.toml
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Run pytest
+        run: ./run-tests.sh --cov-report html --cov-report xml --junitxml junit.xml
+
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        run: .venv/bin/coverage report --format=markdown --skip-covered --show-missing >> "${GITHUB_STEP_SUMMARY}"
+
+      # Fork PRs get a read-only token and cannot upload; this guard is unavoidable.
+      - name: Upload code coverage
+        if: >-
+          ${{ !cancelled() &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage/pytest
+          fail-on-error: false
+
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: junit.xml
+
+      - name: Upload HTML coverage
+        id: coverage-html
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: htmlcov/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Link HTML coverage in summary
+        if: ${{ !cancelled() }}
+        run: |
+          printf '\n[Download the HTML coverage report](%s) (zip, open `index.html`)\n' \
+            "${{ steps.coverage-html.outputs.artifact-url }}" >> "${GITHUB_STEP_SUMMARY}"

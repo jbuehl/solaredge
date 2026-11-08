@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yaml
+    permissions:
+      contents: read
+      code-quality: write
+      pull-requests: write
+      checks: write
+
+  attach-coverage:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download HTML coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-html
+          path: htmlcov/
+
+      - name: Attach coverage report to release
+        run: |
+          set -eu
+          archive="coverage-html-${GITHUB_REF_NAME}.zip"
+          (cd htmlcov && zip --quiet --recurse-paths "../${archive}" .)
+          gh release upload "${GITHUB_REF_NAME}" "${archive}" \
+            --clobber --repo "${GITHUB_REPOSITORY}"

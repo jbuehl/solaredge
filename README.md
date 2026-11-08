@@ -1,4 +1,4 @@
-![CI](https://github.com/jbuehl/solaredge/actions/workflows/test.yml/badge.svg)
+[![Tests](https://github.com/centraluniverse/semonitor/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/centraluniverse/semonitor/actions/workflows/tests.yaml)
 
 #### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  November 2026 update ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 The ethernet (network) modes that were kept in September 2025 are now gone as
@@ -422,3 +422,27 @@ In graphite / whisper all metric names will begin with "semonitor."
 If the `-f` option had been included, pickle2graphite.py would follow (wait for new
 json lines to be written to) the inFile (yyyymmdd.json) until interrupted
 (Ctrl-C) or otherwise killed.
+
+
+## Testing
+
+There are two kinds of tests, which both run in the pipeline:
+
+* `test/test.sh` replays the recordings in `test/rec/` and compares the
+  output with the golden data in `test/`. Never change or regenerate the
+  golden data to make a test pass, a change of the output is a deliberate
+  change of the golden data. This is our 'quick integration test'.
+* `tests/` holds the [pytest][pytest] tests, which will try to do broad
+  (unit)testing of all tools and also measures the coverage.
+
+To run tests, use the wrapper script `run-tests.sh` which will pass any supplied
+arguments to `pytest`.
+
+```sh
+./run-tests.sh
+...
+./run-tests.sh -k 'time' --exitfirst
+```
+
+
+[pytest]: https://docs.pytest.org/
