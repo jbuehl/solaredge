@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 # run environment that is derived from the arguments that defines how the program will behave
 RunMode = namedtuple("RunMode", ("serialDevice",  # boolean
-                                 "networkDevice", # boolean
                                  "serialType",    # serial device type: "2" or "4"
                                  "passiveMode",   # boolean
                                  "masterMode",    # boolean
@@ -47,14 +46,6 @@ def getArgs():
             slaves.append(s)
         return slaves
 
-    def validated_ports(ports_str):
-        ports = []
-        for p in ports_str.split(","):
-            if not re.match(r"^[0-9]+$", p):
-                raise argparse.ArgumentTypeError("Invalid port number: {}".format(p))
-            ports.append(int(p))
-        return ports
-
     parser = SeArgumentParser(description='Parse Solaredge data to extract inverter and optimizer telemetry',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
@@ -64,10 +55,9 @@ def getArgs():
     parser.add_argument("-f", dest="follow", action="store_true", default=False, help="wait for appended data as the input file grows (as in tail -f)")
     parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
     parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
-    parser.add_argument("-p", dest="ports", type=validated_ports, default=[22222, 22221, 80], help="ports to listen on in network mode")
     parser.add_argument("-r", dest="record", help="file to record all incoming and outgoing messages to")
     parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma delimited list of SolarEdge slave inverter IDs")
-    parser.add_argument("-t", dest="type", choices=["2","4","n"], help="serial data source type (2=RS232, 4=RS485, n=network)")
+    parser.add_argument("-t", dest="type", choices=["2","4"], help="serial data source type (2=RS232, 4=RS485)")
     parser.add_argument("-u", dest="updatefile", type=argparse.FileType('w'), help="file to write firmware update to (experimental)")
     parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
     parser.add_argument("-x", dest="xerror", action="store_true", default=False, help="halt on data exception")
@@ -105,7 +95,6 @@ def getArgs():
     root_logger.addHandler(handler)
 
     serialDevice = False
-    networkDevice = False
     passiveMode = True
 
     # data source validation
@@ -118,14 +107,6 @@ def getArgs():
         serial_port_names = map(lambda p: p.device if isinstance(p,
                                 serial.tools.list_ports_common.ListPortInfo) else p[0], serial_ports)
         serialDevice = args.datasource in serial_port_names
-
-    # network interface validation
-    if args.type == "n":
-        if args.datasource != "stdin":
-            parser.error("Input file cannot be specified for network mode")
-        args.datasource = "network"
-        networkDevice = True
-        passiveMode = False
 
     # serial device validation
     if serialDevice:
@@ -162,8 +143,6 @@ def getArgs():
             v = " ".join(",".join(cpart for cpart in command) for command in v)
         if k == "slaves":
             v = ",".join(slave for slave in v)
-        if k == "ports":
-            v = ",".join(str(port) for port in v)
         logger.info("%s: %s", k, v)
 
-    return (args, RunMode(serialDevice, networkDevice, args.type, passiveMode, args.master, args.follow))
+    return (args, RunMode(serialDevice, args.type, passiveMode, args.master, args.follow))
