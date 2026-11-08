@@ -25,7 +25,7 @@ import struct
 import sys
 import time
 
-from common import unwrap_metricsDict
+from common import open_input, unwrap_metricsDict
 
 try:
     import syslog
@@ -55,10 +55,7 @@ following = False
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "b:fh:p:")
-try:
-    inFile = open(args[0])
-except:
-    inFile = sys.stdin
+inFile = open_input(args)
 for opt in opts:
     if opt[0] == "-b":
         base = opt[1] + "."
@@ -151,19 +148,20 @@ if __name__ == "__main__":
     graphiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # NB `port` must be the carbon pickle port, usually 2004 is configured by default.
     graphiteSocket.connect((hostName, port))
-    jsonStr = getJsonStr(inFile, following)
-    while jsonStr != "":
-        try:
-            inDict = json.loads(jsonStr)
-            pickle2graphite = Pickle2Graphite(inDict, base=base)
-            pickle2graphite.send(graphiteSocket)
-        except ValueError:
-            log(
-                "WARNING json.loads had a problem with the following jsonStr\n",
-                jsonStr,
-                "\n",
-                "=" * 80,
-                "\n",
-            )
+    with inFile:
         jsonStr = getJsonStr(inFile, following)
+        while jsonStr != "":
+            try:
+                inDict = json.loads(jsonStr)
+                pickle2graphite = Pickle2Graphite(inDict, base=base)
+                pickle2graphite.send(graphiteSocket)
+            except ValueError:
+                log(
+                    "WARNING json.loads had a problem with the following jsonStr\n",
+                    jsonStr,
+                    "\n",
+                    "=" * 80,
+                    "\n",
+                )
+            jsonStr = getJsonStr(inFile, following)
     graphiteSocket.close()

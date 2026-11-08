@@ -1,3 +1,30 @@
+import sys
+
+
+def open_input(args):
+    """
+    Open the input of a conversion script.
+
+    The input is the file named by the first argument, or stdin when there is none. A file that was asked for but
+    cannot be opened is an error, it must not silently turn into reading stdin.
+
+    Args:
+        args: The positional command line arguments. The first one, if there is one, names the input file.
+
+    Returns:
+        The open input file, or sys.stdin when there is no argument.
+
+    Raises:
+        SystemExit: If the named file cannot be opened, with the error written to stderr and exit status 1.
+    """
+    if not args:
+        return sys.stdin
+    try:
+        return open(args[0])
+    except OSError as ex:
+        sys.exit(f"{sys.argv[0]}: {ex}")
+
+
 def unwrap_metricsDict(mydict):
     """
     An iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,

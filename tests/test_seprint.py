@@ -173,7 +173,6 @@ def test_empty_input_prints_nothing(monkeypatch, capsys):
     assert capsys.readouterr().out == ""
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #45")
 def test_a_file_that_does_not_exist_is_an_error_not_a_fallback_to_stdin(
     monkeypatch, capsys
 ):
