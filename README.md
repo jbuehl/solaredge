@@ -1,4 +1,4 @@
-![CI](https://github.com/jbuehl/solaredge/actions/workflows/test.yml/badge.svg)
+[![CI](https://github.com/centraluniverse/semonitor/actions/workflows/test.yml/badge.svg)](https://github.com/centraluniverse/semonitor/actions/workflows/test.yml)
 
 #### ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  September 2025 update ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 Support for the SolarEdge homegrown encryption has been removed, as has the local DHCP/DNS server.  Ethernet active and passive modes are still supported assuming that the inverter has old firmware that does not do encryption and it is not communicating with the actual SolarEdge server.
