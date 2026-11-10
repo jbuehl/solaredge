@@ -493,6 +493,46 @@ that, subclasses can provide whatever additional wrappings they need
 to uniquely identify the specific device (inverter, battery, optimiser,
 etc).
 
+### The JSON lines of semonitor
+
+What `wrap_in_ids` builds is what semonitor.py writes as JSON, one line for
+every message with performance data, with sorted keys.  The highest level is
+the device type:
+
+```json
+{
+  "events": {},
+  "inverters": {
+    "7F104A16": {
+      "Date": "2016-01-01",
+      "ID": "7F104A16",
+      "Pac": 0.0,
+      "Time": "14:49:56"
+    }
+  },
+  "optimizers": {}
+}
+```
+
+(Shown wrapped, in semonitor.py's output it is a single line.)
+
+- `events`, `inverters` and `optimizers` are always there, and are `{}` when
+  empty.  Other devices have a section named after their type, such as
+  `batteries_0x0030`, `meters_0x0022` or `Unknown_device_0x0017`.
+- A section maps the device ID (the serial number, as upper case hexadecimal)
+  to the device.  Some devices have extra levels below their ID, such as
+  `meters_0x0022` / `7F1502EE` / `3_Consumption`.
+- The values of a device are in the innermost dictionary.  It always has a
+  `Date` (`YYYY-MM-DD`) and a `Time` (`HH:MM:SS`), in the time zone of the
+  inverter, and usually an `ID`.  This is how `unwrap_metricsDict` (below)
+  tells the values of a device from a level of nesting.
+- A device that is not decoded has its raw data as hexadecimal bytes in
+  `Undeciphered_data`, next to `dateTime` (seconds since the epoch), `devLen`,
+  `devType`, `seId` and `seType`.
+- Values are numbers or strings.  A value that is not valid is `NaN`, it is
+  not left out.  `NaN` is the only deviation from standard JSON, see the
+  README.
+
 ### `merge_update`
 
 `merge_update` is a utility function added to seData.py to recursively
