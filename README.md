@@ -141,6 +141,23 @@ and send it to a graphite server.  se2graphite.py sends it to the graphite serve
 one metric at a time, while pickle2graphite.py sends it to the graphite server's "pickle listener" port,
 with multiple metrics per transmission.
 
+### JSON format
+
+semonitor.py writes one JSON object per line (JSON Lines) for every message
+that carries performance data, with the keys sorted.  Every line has the
+sections `events`, `inverters` and `optimizers`, which are empty (`{}`) when
+there is nothing to report, and devices that are not (fully) decoded get a
+section of their own, such as `meters_0x0022` or `Unknown_device_0x0017`.  How
+the devices are nested in those sections is described in
+[README.ParseDevice.md](README.ParseDevice.md#the-json-lines-of-semonitor).
+
+The only deviation from standard JSON (RFC 8259) is that numbers can be `NaN`,
+`Infinity` and `-Infinity` (in practice only `NaN` is seen, for values that are
+not valid), which Python's `json` module reads and writes by default
+(`allow_nan=True`).  A strict parser, such as `JSON.parse`, refuses these.  In
+Python, `json.loads(line)` just works, and `json.loads(line,
+parse_constant=...)` can be used to turn them into something else.
+
 ### semonitor.py
 
 SolarEdge inverter performance monitoring using the SolarEdge protocol.
