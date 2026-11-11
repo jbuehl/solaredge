@@ -1,22 +1,22 @@
 def unwrap_metricsDict(mydict):
     """
-    A iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,
+    An iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,
     after they have been wrapped in the device type and device id identifiers. The inverse (sort of) to the
     ParseDevice.wrap_in_ids method.
 
-    Will work equally well on a json.loads dictionary (where the json was created from a parsed device dictionary).
+    Will work equally well on a json.loads dictionary (where the JSON was created from a parsed device dictionary).
 
     :param mydict: A nested set of dictionaries, the deepest level of which records the attributes for a device. "Date"
      must be one of those device attributes, because that is how the algorithm knows it has reached the bottom of the
      nest.
 
-    :return: A graphite style structured name for the device instance, and a {name: value} dictionary of it's attributes.
+    :return: A Graphite-style structured name for the device instance, and a {name: value} dictionary of its attributes.
     """
 
     def nice(k):
-        # Remove characters which give graphite or open (a file) problems.
+        # Remove characters which give Graphite or open (a file) problems.
         # Also remove an extra level of naming (devices) that I don't really need anymore.
-        # Todo tidy up and delete the removal of "devices" when testing is over.
+        # TODO: tidy up and delete the removal of "devices" when testing is over.
         return str(k).replace("\x00", '').replace(" ", "_").replace(
             "devices", "")
 

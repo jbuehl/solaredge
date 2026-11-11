@@ -158,9 +158,9 @@ def parseDeviceData(data):
         elif seType == 0x0010:  # inverter data
             invDict[seId] = parseInvData(seId, invItems,
                                          data[dataPtr:dataPtr + devLen])
-            # Correct odd case where solaredge inverter sends Nan value in opposite byte order to all other float values
-            # ie solaredge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as - 3.402... * 10 ** 38
-            # but b'\xff\x7f\xff\xff' unpacks as Nan, which is the "correct" value when this byte pattern is seen.
+            # Correct odd case where SolarEdge inverter sends NaN value in opposite byte order to all other float values
+            # i.e. SolarEdge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as -3.402... * 10 ** 38
+            # but b'\xff\x7f\xff\xff' unpacks as NaN, which is the "correct" value when this byte pattern is seen.
             if invDict[seId]["Pmax"] < -3 * 10**38:
                 invDict[seId]["Pmax"] = float('nan')
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
@@ -174,11 +174,12 @@ def parseDeviceData(data):
             logDevice("event:         ", seType, seId, devLen, eventDict[seId])
         else:  # unknown device type, or one that ParseDevice can handle
 
-            # In production would usually set explorer to False, to prevent excessively long (and mostly useless) parse
-            # results for unknown device types.
+            # In production you would usually set explorer to False, to prevent excessively long (and mostly useless)
+            # parse results for unknown device types.
             parsedDevice = ParseDevice(
                 data[dataPtr - devHdrLen:dataPtr + devLen], explorer=False)
-            # Add the new device attributes (wrapped in  dictionary of appropriate identifiers) to the dictionary of devices
+            # Add the new device attributes (wrapped in a dictionary of
+            # appropriate identifiers) to the dictionary of devices
             merge_update(devsDict, parsedDevice.wrap_in_ids())
             logDevice("{}: ".format(parsedDevice.devType), seType, seId,
                       devLen, parsedDevice.wrap_in_ids())
@@ -260,7 +261,7 @@ def devDataDict(seId, itemNames, itemValues):
         devDict["Date"] = formatDateStamp(itemValues[0])
         devDict["Time"] = formatTimeStamp(itemValues[0])
     except Exception as ex:
-        logger.info("Invalid time stamp: "+str(itemValues[0])+" "+str(ex))
+        logger.info("Invalid timestamp: "+str(itemValues[0])+" "+str(ex))
         devDict["Date"] = "invalid"
         devDict["Time"] = "invalid"
     devDict["ID"] = seId
@@ -278,7 +279,7 @@ def writeData(msgDict, outFile):
         outFile.write(msg.encode('latin-1') + b"\n")
         outFile.flush()
 
-# remove the extra bit that is sometimes set in a device ID and upcase the letters
+# remove the extra bit that is sometimes set in a device ID and uppercase the letters
 def parseId(seId):
     return ("%x" % (seId & 0xff7fffff)).upper()
 
@@ -298,7 +299,7 @@ def formatDateTime(timeStamp):
     except ValueError:
         return ''.join(x.encode('hex') for x in struct.pack("<L", timeStamp))
     except Exception as ex:
-        logger.info("Invalid time stamp: "+str(timeStamp)+" "+str(ex))
+        logger.info("Invalid timestamp: "+str(timeStamp)+" "+str(ex))
         return "invalid"
 
 # formatted print of device data

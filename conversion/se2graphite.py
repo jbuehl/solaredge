@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# send a SolarEdge performance metrics to Graphite
+# send SolarEdge performance metrics to Graphite
 
 import json
 import getopt
@@ -21,7 +21,7 @@ def log(*args):
     message = args[0] + " "
     for arg in args[1:]:
         message += arg.__str__() + " "
-    # todo : Make this align better with the multiple logging options available elsewhere in semonitor
+    # TODO: Make this align better with the multiple logging options available elsewhere in semonitor
     syslog.syslog(message)
 
 
@@ -71,10 +71,10 @@ if __name__ == "__main__":
             for devAttr in devAttrs.keys():
                 if devAttr != "Date" and devAttr != "Time" and devAttr != 'Undeciphered_data':
                     try:
-                        # Weed out attributes with non numeric values (graphite does this too, but why clog the network?)
+                        # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                         test = float(devAttrs[devAttr])
                         if test != test:
-                            # It's a nan!
+                            # It's a NaN!
                             pass
                         else:
                             fullName = "{}{}.{}".format(

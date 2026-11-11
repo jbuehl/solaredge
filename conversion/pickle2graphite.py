@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Send SolarEdge performance metrics to Graphite via the graphite/carbon pickle listener port.
+Send SolarEdge performance metrics to Graphite via the Graphite/carbon pickle listener port.
 
-graphite will accept batches of metrics (in a pickled nested list of tuples format) over a pickle listener port (usually
+Graphite will accept batches of metrics (in a pickled nested list of tuples format) over a pickle listener port (usually
 2004) as well as individual metric values, one at a time, over the (usually) 2003 port.
 
-The `Pickle2Graphite` class converts a nested dictionary (such as produced by `json.loads` on some solaredge traffic
+The `Pickle2Graphite` class converts a nested dictionary (such as produced by `json.loads` on some SolarEdge traffic
 that has been processed by semonitor) into the nested list of tuples structure expected by carbon. The `send` method
-pickles it, adds the requisite header, and sends it to graphite.
+pickles it, adds the requisite header, and sends it to Graphite.
 
-You may need to adjust the delay parameter, depending upon the capacity and busyness of the graphite server. I have
+You may need to adjust the delay parameter, depending upon the capacity and busyness of the Graphite server. I have
 found 0.2 works fine **for me** in production mode, when I am "following" some existing metrics in real time, as the
-solaredge inverter emits them, but I needed to increase it to as much as 5.0 the first time I sent a new batch of metrics
-to graphite, otherwise the carbon listener seemed to be swamped and didn't have time to create all the new metrics.
-To be completely precise, I had problems when I sent an existing batch of metrics to a new "test"  base, which meant
-graphite / carbon had to create a whole lot of new whisper files all at once.
+SolarEdge inverter emits them, but I needed to increase it to as much as 5.0 the first time I sent a new batch of metrics
+to Graphite, otherwise the carbon listener seemed to be swamped and didn't have time to create all the new metrics.
+To be completely precise, I had problems when I sent an existing batch of metrics to a new "test" base, which meant
+Graphite / carbon had to create a whole lot of new whisper files all at once.
 """
 
 import json
@@ -38,15 +38,15 @@ def log(*args):
     message = args[0] + " "
     for arg in args[1:]:
         message += arg.__str__() + " "
-    # todo : Make this align better with the multiple logging options available elsewhere in semonitor
+    # TODO: Make this align better with the multiple logging options available elsewhere in semonitor
     syslog.syslog(message)
 
 
 # parameter defaults
 base = ""
 hostName = "localhost"
-# Port must be the port which graphite (carbon) has configured to be the pickle listener port.
-# The usual graphite installation default is 2004.
+# Port must be the port which Graphite (carbon) has configured to be the pickle listener port.
+# The usual Graphite installation default is 2004.
 port = 2004
 devices = ["inverters", "optimizers"]
 delay = .2
@@ -82,12 +82,12 @@ def getJsonStr(inFile, following):
 class Pickle2Graphite(list):
     """
     Convert a (json) nested dictionary of dictionaries of metrics into the list of tuples format expected by the
-    graphite (carbon) pickle interface and send them off to carbon's pickle listener port.
+    Graphite (carbon) pickle interface and send them off to carbon's pickle listener port.
     """
 
     def __init__(self, metricsDict, base):
         for baseName, devAttrs in unwrap_metricsDict(metricsDict):
-            # convert date and time to unix time
+            # convert date and time to Unix time
             try:
                 (year, month, day) = devAttrs["Date"].split("-")
                 (hour, minute, second) = devAttrs["Time"].split(":")
@@ -105,15 +105,15 @@ class Pickle2Graphite(list):
             for devAttr in devAttrs.keys():
                 if devAttr != "Date" and devAttr != "Time" and devAttr != 'Undeciphered_data':
                     try:
-                        # Weed out attributes with non numeric values (graphite does this too, but why clog the network?)
+                        # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
                         test = float(devAttrs[devAttr])
                         if test != test:
-                            # It's a nan!
+                            # It's a NaN!
                             pass
                         else:
                             fullName = "{}{}.{}".format(
                                 base, baseName, devAttr)
-                            # A nested tuple as per the expectations of the pickle graphite interface
+                            # A nested tuple as per the expectations of the pickle Graphite interface
                             self.append((fullName, (timeStamp,
                                                     str(devAttrs[devAttr]))))
                     except ValueError:
@@ -131,7 +131,7 @@ class Pickle2Graphite(list):
 
 if __name__ == "__main__":
     # Timeout if no connection after 10 seconds,
-    #   in which case check that graphite is running, and the hostName and port is correct.
+    #   in which case check that Graphite is running, and the hostName and port are correct.
     socket.setdefaulttimeout(10.0)
     graphiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # NB `port` must be the carbon pickle port, usually 2004 is configured by default.

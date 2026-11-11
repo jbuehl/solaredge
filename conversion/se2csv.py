@@ -14,15 +14,15 @@ if __name__ == "__main__":
     def deprecated(s):
         raise argparse.ArgumentTypeError("Deprecated option.")
 
-    parser = argparse.ArgumentParser(description='reads a file containing JSON performance data and outputs a separate comma delimited file for each device type (eg inverter, optimizer, battery) encountered that is suitable for input to a spreadsheet.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description='Read a file containing JSON performance data and output a separate comma-delimited file for each device type (e.g. inverter, optimizer, battery) encountered that is suitable for input to a spreadsheet.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to inverter and optimizer files")
-    parser.add_argument("-d", dest="delimeter", default=",", help="csv file delimiter")
-    parser.add_argument("-t", dest="headers", action="store_true", default=False, help="write column headers to csv files")
-    parser.add_argument("-p", dest="prefix", required=True, help="prefix for all csv filenames")
-    parser.add_argument("-i", type=deprecated, help="The -i option is deprecated, use -p \"csvFileNamePrefix\" instead")
-    parser.add_argument("-o", type=deprecated, help="The -o option is deprecated, use -p \"csvFileNamePrefix\" instead")
-    parser.add_argument("-e", type=deprecated, help="The -e option is deprecated, use -p \"csvFileNamePrefix\" instead")
-    parser.add_argument("infile", type=argparse.FileType('r'), default="-", nargs='?', help="File containing performance data in JSON format")
+    parser.add_argument("-d", dest="delimiter", default=",", help="CSV file delimiter")
+    parser.add_argument("-t", dest="headers", action="store_true", default=False, help="write column headers to CSV files")
+    parser.add_argument("-p", dest="prefix", required=True, help="prefix for all CSV filenames")
+    parser.add_argument("-i", type=deprecated, help="The -i option is deprecated, use -p \"csvFileNamePrefix\" instead.")
+    parser.add_argument("-o", type=deprecated, help="The -o option is deprecated, use -p \"csvFileNamePrefix\" instead.")
+    parser.add_argument("-e", type=deprecated, help="The -e option is deprecated, use -p \"csvFileNamePrefix\" instead.")
+    parser.add_argument("infile", type=argparse.FileType('r'), default="-", nargs='?', help="file containing performance data in JSON format")
 
     args = parser.parse_args()
 

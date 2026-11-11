@@ -6,7 +6,7 @@
 This documentation is intended for people who want to understand how
 `ParseDevice` works, and possibly are interested in extending it to cope
 with a new device type they have encountered in the stream of data sent
-from a solaredge system to the solaredge website. Readers are expected
+from a SolarEdge system to the SolarEdge website. Readers are expected
 to have a reasonable working knowledge of Python, be comfortable
 with how Python classes and subclasses work, and be willing to read the
 code for a definitive understanding of what is happening. It aims to
@@ -21,50 +21,50 @@ more like a tutorial or cookbook than a manual.
 
 `ParseDevice` is a subclass of a Python dictionary (`dict`) with a
 tailored `__init__` method. Given a block of your data, captured from
-messages sent by a solaredge system, it extracts the `seType` from the
+messages sent by a SolarEdge system, it extracts the `seType` from the
 header then uses a list of field definitions to parse the data block,
-and initialises itself with entries which map each field name to the
+and initializes itself with entries which map each field name to the
 corresponding field value found in the data block.
 
-New devices (i.e new `seType` values) can be defined by creating a
+New devices (i.e. new `seType` values) can be defined by creating a
 subclass of `ParseDevice` with an appropriate list of field definitions.
 
-The `ParseDict.__new__` method is *smart*, in that it consults the list
+The `ParseDevice.__new__` method is *smart*, in that it consults the list
 of subclasses which is automatically maintained by Python, and delegates
 the parsing to an appropriate subclass if one exists. Effectively you
 only ever need to try to create a `ParseDevice` instance; new device
 definitions in subclasses are invoked without any further intervention
 necessary.
 
-There is provision in `ParseDict` for subclasses to define a list of
+There is provision in `ParseDevice` for subclasses to define a list of
 derived fields, if required, and to code more complex derivations (for
 example ones requiring bit shifting) via a hook method, `codeDerivations`.
 
-Some devices (eg optimisers, batteries, and the 0x0022 `seType`, which I
-have called meters) send multiple messages for the same timepoint.
+Some devices (e.g. optimizers, batteries, and the 0x0022 `seType`, which I
+have called meters) send multiple messages for the same time point.
 Existing code in seData.py distinguishes such multiple messages by storing
 their parsed values in an appropriately named dictionary. For example,
-parsed messages (device attributes) from different optimisers are kept in
+parsed messages (device attributes) from different optimizers are kept in
 a dictionary, `optDict`, indexed by the `seId` which identifies each
-optimiser.
+optimizer.
 
-`ParseDict` expands and generalises this concept, essentially by
+`ParseDevice` expands and generalizes this concept, essentially by
 introducing a master dictionary (`devsDict`) of device dictionaries. For
 explanatory purposes, you could think of entries in `devsDict` being
 made via code in seData.py something like:
 
 ```python
     devsDict["inverters"] = invDict
-    devsDict["optimisers"] = optDict
+    devsDict["optimizers"] = optDict
     devsDict["events"] = eventDict
 ```
 
 In practice, this is implemented slightly differently. The task of
 "wrapping" the parsed device attributes for a specific instance of a
 device into this *nested dictionaries* type of structure
-is delegated to `ParseDict` (or subclass), by means of a method called
+is delegated to `ParseDevice` (or subclass), by means of a method called
 `wrap_in_ids`. It is most easily understood via the code itself - here
-is the default method from `ParseDict` itself:
+is the default method from `ParseDevice` itself:
 
 ```python
 def wrap_in_ids(self):
@@ -86,7 +86,7 @@ dictionaries into its master dictionary, `devsDict`:
 
 ```python
 parsedDevice = ParseDevice(data[dataPtr - devHdrLen : dataPtr + devLen])
-# Add the new device attributes (wrapped in dictionary of appropriate identifiers) to the dictionary of devices
+# Add the new device attributes (wrapped in a dictionary of appropriate identifiers) to the dictionary of devices
 merge_update(devsDict, parsedDevice.wrap_in_ids())
 ```
 
@@ -96,7 +96,7 @@ details.
 
 There is also an iterator generator function, `unwrap_metricsDict`,
 defined in seDataDevices.py, for when you need to "unwrap" device
-attributes, for example to send them to graphite, or to save in a csv
+attributes, for example to send them to Graphite, or to save in a CSV
 file.
 
 For more in depth explanations, and a few embellishments ("bells and
@@ -107,23 +107,23 @@ whistles"), read on.
 
 ## Background and introduction
 
-The `ParsedDevice` class is defined in the seDataDevices.py module. It
+The `ParseDevice` class is defined in the seDataDevices.py module. It
 was written using Python 2.7 and would probably need a few minor changes
 to work under Python 3.x
 
 It began as an attempt to write a *parser* for the messages sent from a
-solareedge inverter to the solaredge website in such a way that new
+SolarEdge inverter to the SolarEdge website in such a way that new
 devices could be *relatively* easily added to the set of devices that
-can be recognised and decoded.
+can be recognized and decoded.
 
 The approach initially followed the
 proposal for table driven parsing of new devices, given in
-[Issue #22 Table Driven Table driven data interpretation for new devices][#22],
+[Issue #22: Table driven data interpretation for new devices][#22],
 and evolved from there.
 
 In that proposal the syntax for describing the data fields/items
 embedded in a device message looks rather like a nested Python dictionary,
-or something that had been read in from a json file. A bit of thought
+or something that had been read in from a JSON file. A bit of thought
 led to the conclusion that nested lists, rather than nested
 dictionaries would be easier to work with, principally because the
 ordering of the fields is somewhat important :-) At its core, that is
@@ -132,17 +132,17 @@ required to interpret a device.
 
 After a bit more work, it became apparent that some functions were
 required to apply those definitions to a block of device
-data captured from solaredge website traffic. Rather than code these as
+data captured from SolarEdge website traffic. Rather than code these as
 free-standing functions, the `ParseDevice` class was born, and the
 functions became methods of the class.
 
 New devices can be added to the set by subclassing `ParseDevice`, and
 supplying a list of item definitions in the subclass. The subclass by
 its very nature inherits all the methods of `ParseDevice` itself,
-avoiding the need to recode them.
+avoiding the need to reimplement them.
 
 The next addition to the way ParseDevice works was driven by
-the realisation that ideally the code in the `parseDeviceData` function
+the realization that ideally the code in the `parseDeviceData` function
 in seData.py should not need to know the names of the subclasses of
 `ParseDevice`. So the `__new__` method for `ParseDevice` was written as
 a sort of traffic director. When ParseDevice is given a block of data
@@ -150,7 +150,7 @@ to parse, `ParseDevice.__new__` extracts the `seType` from the header,
 and examines all its own subclasses. Subclasses nominate the `seType` they
 are designed to interpret, and if a match is found, the `ParseDevice`
 constructor actually returns an instance of the subclass, rather than an
-an instance of `ParseDevice` itself. `ParseDevice` also has two options
+instance of `ParseDevice` itself. `ParseDevice` also has two options
 (a minimal parse, and a maximal parse) for what to do if no subclass
 has yet been defined for a particular device (aka `seType`).
 Effectively, other code need only ever send a block of data to
@@ -164,7 +164,7 @@ and
 
 2. `ParseDevice_0x0022`, which interprets a data stream including import,
 export and consumption data. I have called this *meters*, for want of
-any better insight into exactly which subsystem of the solaredge
+any better insight into exactly which subsystem of the SolarEdge
 inverter is responsible for sending these `0x0022` messages.
 
 The final *essential* components of the `ParseDevice` suite emerged so
@@ -173,10 +173,10 @@ that:
 * seData.py did not have to be updated every time a new device type was
 added, and
 * devices that had multiple messages for the same time point (e.g.
-optimisers, batteries, and "0x0022") could distinguish them.
+optimizers, batteries, and "0x0022") could distinguish them.
 
 To achieve these objectives, `devsDict` was born and `wrap_in_ids`,
-`unwrap_metricDict` and `merge_update` were developed.
+`unwrap_metricsDict` and `merge_update` were developed.
 
 During development a few other minor features were added, mostly to make
 the use of `ParseDevice` less effort. These are described later.
@@ -190,7 +190,7 @@ the use of `ParseDevice` less effort. These are described later.
 ### A `ParseDevice` is actually a dictionary
 
 `ParseDevice` is itself a subclass of `dict`. Once created and
-initialised from a block of data, an instance of a `ParseDevice` is a
+initialized from a block of data, an instance of a `ParseDevice` is a
 Python dictionary, which maps item names (found from the list of
 definitions) to item values (extracted from the block of data sent to
 `ParseDevice`).
@@ -252,7 +252,7 @@ interpretable to humans, and
 
 `devType` is a combination of the two that is used as part of the
 complete, fully qualified "name" of any field, when, for example, it is
-saved in json format or sent to graphite.
+saved in JSON format or sent to Graphite.
 
 
 ### Defining fields: `ParseDevice.fieldDefs` and `ParseDevice.parseDevTable`
@@ -269,10 +269,10 @@ consisting of exactly 6 entries. The 6 entries are:
 
 2. **paramInFmt** - the format to be used to unpack the field.
 
-   Any format that `struct.unpack` recognises can be used.
+   Any format that `struct.unpack` recognizes can be used.
    (Note that the correct paramLen must be given - this is not checked).
 
-   The special value "hex" is also recognised,
+   The special value "hex" is also recognized,
    in which case the value of the field is simply the raw bytes themselves.
 
 3. **paramName** - the name of the field.
@@ -283,7 +283,7 @@ consisting of exactly 6 entries. The 6 entries are:
 
    But in practice it should be a string without any special characters
    or spaces, since otherwise problems occur when you send the values to
-   graphite.
+   Graphite.
 
 4. **outFormatFn** - a function to convert the parsed value
    into a more useful output format.
@@ -292,7 +292,7 @@ consisting of exactly 6 entries. The 6 entries are:
 
    * "dateTime" is parsed into 2 field entries, "Date" and "Time", both in
      human readable format, and in the local timezone.
-   * `ParseDevice.hexData` is a (staticmethod) utility function, which
+   * `ParseDevice.hexData` is a static method (a utility function) which
      converts raw bytes into a nicely formatted human readable string
      representation. It is mostly used in conjunction with the "hex" paramInFmt.
 
@@ -300,7 +300,7 @@ consisting of exactly 6 entries. The 6 entries are:
    implicit default output format function.
 
 5. **out** - True or False, to signal whether or not this field should
-   be output to csv or graphite. (Not fully implemented yet).
+   be output to CSV or Graphite. (Not fully implemented yet).
 
 6. **comment** - an arbitrary string. While `""` is acceptable, it is
    intended to contain a helpful description of the interpretation of
@@ -312,12 +312,12 @@ To help make this clearer, here is an extract from
 ```python
 fieldDefs = [
     # device specific fields
-    #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
-    [4, "L", "dateTime", "dateTime", False, "Seconds since the epoch"],
-    [12, "12s", "batteryId", None, True, "Identifier for this battery"],
-    [4, "f", "Vdc", None, True, "Volts"],
+    #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to CSV or Graphite) True or False, comment]
+    [4, "L", "dateTime", "dateTime", False, "s, time since the epoch"],
+    [12, "12s", "batteryId", None, True, "identifier for this battery"],
+    [4, "f", "Vdc", None, True, "V, voltage"],
     # ...
-    [4, "hex", "HexConst_52", ParseDevice.hexData, False, "Unknown, constant value"],
+    [4, "hex", "HexConst_52", ParseDevice.hexData, False, "unknown, constant value"],
     # ...
     [
         2,
@@ -328,7 +328,7 @@ fieldDefs = [
         "3=>Charging, 4=>Discharging, 6=>Holding",
     ],
     # ...
-    [4, "L", "EOut", None, True, "Wh, Energy out of battery during interval"],
+    [4, "L", "EOut", None, True, "Wh, energy out of battery during interval"],
 ]
 ```
 
@@ -353,7 +353,7 @@ remaining bytes.
 Sometimes more complex manipulations, such as bit shifting, might be
 required to fully decode some fields in a device data block.
 
-After a bit of contemplation, I realised that trying to design a table
+After a bit of contemplation, I realized that trying to design a table
 driven syntax for such manipulations would, in effect, be rewriting the
 Python language in a table. Or so it seemed to me anyway.
 
@@ -374,12 +374,12 @@ field is a list with 4 elements, namely:
 1. **paramName** - as per `fieldDefs`
 2. **paramDefault** - an initial default value for the field, typically
    `0`, `0.0`, `""` or `float("nan")`
-3. **out** (to csv) True or False - as per `fieldDefs`
+3. **out** (to CSV) True or False - as per `fieldDefs`
 4. **comment** - as per `fieldDefs`
 
 ```python
     _derivn = [
-        # [paramName, paramDefault, out (to csv) True or False, comment]
+        # [paramName, paramDefault, out (to CSV) True or False, comment]
     ]
 ```
 
@@ -388,7 +388,7 @@ simply populates the `ParseDevice` (sub)class dictionary with the
 default `paramName: paramDefault` entries.
 
 The `codeDerivations` method for `ParseDevice` itself is merely an empty
-stub (`pass`). The stub should be overrriden by any subclass that
+stub (`pass`). The stub should be overridden by any subclass that
 requires more complex manipulations. It is responsible for:
 
 * accessing values that have been extracted from the device data block
@@ -404,7 +404,7 @@ At the moment, the `codeDerivations` methods for subclasses
 
 #### Simple example of a derivation
 
-However earlier iterations of `ParseDevice_0x0022` did utilise the
+However earlier iterations of `ParseDevice_0x0022` did utilize the
 `_derivn`, and `codeDerivations` approach successfully, so it has been
 (somewhat) tested. As an example of the approach, here is an extract of
 the relevant code from an earlier (since deleted) version of
@@ -414,15 +414,15 @@ the relevant code from an earlier (since deleted) version of
 ```python
 fieldDefs = [
     # device specific fields
-    #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
-    [4, "L", "dateTime", "dateTime", False, "Seconds since epoch"],
+    #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to CSV or Graphite) True or False, comment]
+    [4, "L", "dateTime", "dateTime", False, "s, time since the epoch"],
     [
         1,
         "b",
         "recType",
         None,
         True,
-        "record Type, determines the interpretation of later fields"
+        "record type, determines the interpretation of later fields"
         + sp
         + "5=Lifetime, 3=Importing?, 7=Battery?, 8=?, 9=2Load?",
     ],
@@ -440,30 +440,30 @@ fieldDefs = [
         "TotalE2Grid",
         None,
         True,
-        "Wh, Lifetime Energy exported to grid (*provided* lifetime flag is set)",
+        "Wh, lifetime energy exported to grid (*provided* lifetime flag is set)",
     ],
     # ...
-    [4, "L", "E2X", None, True, "Wh, Energy to X during the interval"],
-    [4, "L", "EfromX", None, True, "Wh, Energy in from X during interval ?"],
-    [4, "f", "P2X", None, True, "W, Power output to X"],
-    [4, "f", "PfromX", None, True, "W, Power input from X?"],
+    [4, "L", "E2X", None, True, "Wh, energy to X during the interval"],
+    [4, "L", "EfromX", None, True, "Wh, energy in from X during interval ?"],
+    [4, "f", "P2X", None, True, "W, power output to X"],
+    [4, "f", "PfromX", None, True, "W, power input from X?"],
 ]
 
 _derivn = [
-    # [paramName, paramDefault, out (to csv) True or False, comment]
+    # [paramName, paramDefault, out (to CSV) True or False, comment]
     # recType=5 and (only) intervalData=0 (False) is Grid export / import
     [
         "0_5_TotalE2Grid",
         "nan",
         True,
-        "Wh, Total lifetime export to grid" + sp + "matches SE LCD panel value",
+        "Wh, total lifetime export to grid" + sp + "matches SE LCD panel value",
     ],
     # ...
     [
         "0_5_E2X",
         "nan",
         True,
-        "Wh, Energy exported to grid during interval"
+        "Wh, energy exported to grid during interval"
         + sp
         + "whenever TotalE2Grid is static, E2X=0",
     ],
@@ -471,7 +471,7 @@ _derivn = [
         "0_5_EfromX",
         "nan",
         True,
-        "Wh, Energy imported from grid during interval"
+        "Wh, energy imported from grid during interval"
         + sp
         + "whenever TotalEfromGrid is static, EfromX=0",
     ],
@@ -479,7 +479,7 @@ _derivn = [
         "0_5_P2X",
         "nan",
         True,
-        "W, Power to grid (at end of?) interval"
+        "W, power to grid (at end of?) interval"
         + sp
         + "whenever TotalE2Grid is static, P2X=0",
     ],
@@ -487,7 +487,7 @@ _derivn = [
         "0_5_PfromX",
         "nan",
         True,
-        "W, Power from grid (at end of?) interval"
+        "W, power from grid (at end of?) interval"
         + sp
         + "whenever TotalEfromGrid is static, PfromX=0",
     ],
@@ -507,12 +507,12 @@ In this example the *derivation* consisted of copying the raw value,
 read from the data block, into a new field with a similar name, but prefixed
 by the value of two other fields (`intervalData` and `recType`) - so if
 for example `self["intervalData"] == 0` and `self["recType"] == 5`, then
-the value of `self["0_5_PfromX"]` was changed from the default(`"nan"`)
-to whatever value was provided for `self["PfromX]` in the device data
+the value of `self["0_5_PfromX"]` was changed from the default (`"nan"`)
+to whatever value was provided for `self["PfromX"]` in the device data
 block.
 
 
-### `ParseDevice.__init__` and the explore argument
+### `ParseDevice.__init__` and the explorer argument
 
 The `ParseDevice.__init__` method, inherited by all subclasses, is quite
 simple:
@@ -560,12 +560,12 @@ section towards the top of this document.
 
 It wraps the `ParseDevice` (or subclass) dictionary inside a
 *nested dictionary* structure, so that different device types
-(inverters, batteries, optimisers etc.), and different instances of
-specific devices (optimiser1, optimiser2 etc) can be distinguished.
+(inverters, batteries, optimizers etc.), and different instances of
+specific devices (optimizer1, optimizer2 etc) can be distinguished.
 
 The highest level wrapping should always be `self.devType`, but after
 that, subclasses can provide whatever additional wrappings they need
-to uniquely identify the specific device (inverter, battery, optimiser,
+to uniquely identify the specific device (inverter, battery, optimizer,
 etc).
 
 
@@ -617,7 +617,7 @@ add **only** the "new" parts of the nested dictionaries into `devsDict`.
 
 In plain words, it exists to avoid a problem that would occur if you
 simply used `devsDict.update(parsedDevice.wrap_in_ids())`, namely that
-later batteries (or optimisers, etc) would overwrite earlier ones.
+later batteries (or optimizers, etc) would overwrite earlier ones.
 
 To illustrate, consider the following example:
 
@@ -673,14 +673,14 @@ Updating devsDict using merge_update retains both seId1 and seId2
 
 `unwrap_metricsDict` is an iterator generator function, defined in
 seDataDevices.py, for when you need to "unwrap" device
-attributes, for example to send them to graphite, or to save in a csv
+attributes, for example to send them to Graphite, or to save in a CSV
 file.
 
 It can be thought of as an inverse (of sorts) to the
 `ParseDevice.wrap_in_ids` method.
 
 It will work equally well on a dictionary produced by `json.loads`
-(where the source json was created from a parsed device dictionary).
+(where the source JSON was created from a parsed device dictionary).
 
 It unwraps recursively, so that the depth of nesting is essentially
 arbitrary, and indeed can vary from one device type to another.
@@ -759,7 +759,7 @@ documenting by incorporating an explicit **comment** in each
 definition.
 
 The `itemDefs` method returns a prettily formatted report on all the
-the item definitions parsed by `ParseDevice`, and its subclasses.
+item definitions parsed by `ParseDevice`, and its subclasses.
 
 It can be used quite simply:
 
@@ -782,25 +782,25 @@ ____ (______)   ______ | _________________________
                         : ________________________________________
 
 0    (  4   )   0.0    | dateTime
-                        : Seconds since the epoch
+                        : s, time since the epoch
 
 4    (  12  )   1.0    | batteryId
-                        : Identifier for this battery
+                        : identifier for this battery
 
 16   (  4   )   4.0    | Vdc
-                        : Volts
+                        : V, voltage
 
 20   (  4   )   5.0    | Idc
-                        : Amps
+                        : A, current
 
 24   (  4   )   6.0    | BattCapacityNom
-                        : Wh, Nameplate Energy Capacity
+                        : Wh, nameplate energy capacity
 
 28   (  4   )   7.0    | BattCapacityActual
-                        : Wh, Actual Battery Capacity now
+                        : Wh, actual battery capacity now
 
 32   (  4   )   8.0    | BattCharge
-                        : Wh, Energy Stored now
+                        : Wh, energy stored now
 ...
 ```
 
@@ -828,15 +828,15 @@ specific device types (for `seType`s 0x0030, and 0x0022), as well as one
 ### `ParseDevice_0x0030` - batteries
 
 `seType` 0x0030 relays information about the status of a battery. Use
-`print ParseDevice_0x0030.itemDefs()` to obtain uptodate documentation
+`print ParseDevice_0x0030.itemDefs()` to obtain up-to-date documentation
 about the fields and their interpretation.
 
 The field interpretations were deciphered by comparing values produced
 by (early versions of) `ParseDevice_0x0030` with information from the
-LCD display on a solaredge inverter.
+LCD display on a SolarEdge inverter.
 
 To be precise, it is a SE6000 inverter, with a Tesla Powerwall 1 battery
-attached. Possibly other solaredge inverter / battery hardware or
+attached. Possibly other SolarEdge inverter / battery hardware or
 software version combinations may require further work - but since I
 have only this one system to work on, I can't do that :-)
 
@@ -844,13 +844,13 @@ have only this one system to work on, I can't do that :-)
 ### `ParseDevice_0x0022` - import, export and consumption data
 
 `seType` 0x0022 relays an assortment of summary information about the
-status of a solaredge system. Amongst the fields are ones which report
+status of a SolarEdge system. Among the fields are ones which report
 current interval import, export and consumption data.
 
 For want of a better name, I have called an 0x0022 message a "meters"
 message.
 
-Use `print ParseDevice_0x0022.itemDefs()` to obtain uptodate
+Use `print ParseDevice_0x0022.itemDefs()` to obtain up-to-date
 documentation about the fields and their interpretation.
 
 The trickiest part of deciphering the 0x0022 data block was discovering
@@ -859,17 +859,17 @@ interpretation of subsequent fields changes, depending upon the value of
 the record type. Full details are available in the `itemDefs()` report.
 
 Field interpretations were deciphered by comparing values against
-information that can be downloaded in csv format from the solaredge
-website. Using graphite to look at the behaviour of field values over
+information that can be downloaded in CSV format from the SolarEdge
+website. Using Graphite to look at the behavior of field values over
 the course of a day or two was a quick way of figuring out what type of
-solareedge website data to compare against.
+SolarEdge website data to compare against.
 
-For some fields (eg energy into the battery - `E2X` when `recType` = 7)
+For some fields (e.g. energy into the battery - `E2X` when `recType` = 7)
 it was also possible to check against information from another `seType`.
-There are occasionally very slight value differences (eg 1 or 2 Wh), or
-timing differences (eg PV production beginning one time slot earlier or
+There are occasionally very slight value differences (e.g. 1 or 2 Wh), or
+timing differences (e.g. PV production beginning one time slot earlier or
 later) when exact numerical comparisons are made this way, but nothing
-that is perceptible at the level of a graphite graph, so I am reasonably
+that is perceptible at the level of a Graphite graph, so I am reasonably
 comfortable that the interpretations are correct.
 
 There do remain a couple of fields which contain data with apparently
@@ -916,8 +916,8 @@ involves trial and (usually quite a lot of) error.
 1. Capture a day or two's worth of traffic into a pcap file using
 tcpdump.
 2. Process the pcap file using semonitor.py, with
-`ParseDevice(data, explorer=True)`, and save the json output.
-3. Convert the json output to csv, and (beginning from the start of the
+`ParseDevice(data, explorer=True)`, and save the JSON output.
+3. Convert the JSON output to CSV, and (beginning from the start of the
 data block) eliminate parsings which are invalid, or contain values
 which are clearly nonsense.
 4. Draft a new subclass, specific to the `seType` with a list of field
@@ -931,11 +931,11 @@ the data block which make little sense. At a minimum you must supply:
    * `fieldDefs` (the list of field definitions)
 5. Run semonitor.py over the pcap file again (you may as well set
 `ParseDevice(data, explorer=False)` once a draft subclass exists), save
-the json output, convert to csv, and start to look for values which are
-recognisable. Obvious hints include:
+the JSON output, convert to CSV, and start to look for values which are
+recognizable. Obvious hints include:
    * Interval Power values tend to be larger than Energy ones!
    * Total lifetime values are even larger!
-6. Try sending the information to graphite, and look at the behaviour
+6. Try sending the information to Graphite, and look at the behavior
 over time. Obvious hints include:
    * PV production only happens during the day
    * Consumption happens day and night.
@@ -952,7 +952,7 @@ part of the field definitions to record deductions, evidence,
 conjectures etc as you proceed), and repeat steps 5 and 6.
 8. Try, try and try again.
 9. When you feel you are getting close, try running
-`tcpdump | semonitor.py | tee "ajsonfile" | se2graphite` (with
+`tcpdump | semonitor.py | tee "a.json" | se2graphite` (with
 appropriate runtime parameters) for a few days, to validate the
 interpretations.
 

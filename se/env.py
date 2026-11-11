@@ -51,17 +51,17 @@ def getArgs():
     parser.add_argument("-a", dest="append", action="store_true", default=False, help="append to output file if the file exists")
     parser.add_argument("-b", dest="baudrate", type=int, default=115200, help="baud rate for serial data source")
     parser.add_argument("-c", dest="commands", type=validated_commands, default=[], help="send the specified command functions")
-    parser.add_argument("-d", dest="logfile", default="stderr", help="where to write log messages. either a file name or one of ['stderr', 'syslog']")
-    parser.add_argument("-f", dest="follow", action="store_true", default=False, help="wait for appended data as the input file grows (as in tail -f)")
-    parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as a RS485 master")
-    parser.add_argument("-o", dest="outfile", default="stdout", help="write performance data to the specified file in JSON format (default: stdout)")
+    parser.add_argument("-d", dest="logfile", default="stderr", help="Where to write log messages: either a file name or one of ['stderr', 'syslog'].")
+    parser.add_argument("-f", dest="follow", action="store_true", default=False, help="Wait for appended data as the input file grows (as in tail -f).")
+    parser.add_argument("-m", dest="master", action="store_true", default=False, help="function as an RS485 master")
+    parser.add_argument("-o", dest="outfile", default="stdout", help="Write performance data to the specified file in JSON format (default: stdout).")
     parser.add_argument("-r", dest="record", help="file to record all incoming and outgoing messages to")
-    parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma delimited list of SolarEdge slave inverter IDs")
+    parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma-delimited list of SolarEdge slave inverter IDs")
     parser.add_argument("-t", dest="type", choices=["2","4"], help="serial data source type (2=RS232, 4=RS485)")
     parser.add_argument("-u", dest="updatefile", type=argparse.FileType('w'), help="file to write firmware update to (experimental)")
     parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
     parser.add_argument("-x", dest="xerror", action="store_true", default=False, help="halt on data exception")
-    parser.add_argument("datasource", default="stdin", nargs='?', help="Input filename or serial port")
+    parser.add_argument("datasource", default="stdin", nargs='?', help="input filename or serial port")
 
     args = parser.parse_args()
 
@@ -82,7 +82,7 @@ def getArgs():
         handler = logging.FileHandler(args.logfile, mode="a" if args.append else "w")
         handler.setFormatter(file_formatter)
 
-    level = {                               # previously:
+    level = {                               # -v count -> log level (old option names in the comments)
             1: logging.INFO,                # -v    debugFiles
             2: logging.DEBUG,               # -vv   debugMsgs
             3: se.logutils.LOG_LEVEL_DATA,  # -vvv  debugData
@@ -137,7 +137,7 @@ def getArgs():
         if len(args.slaves) != 1:
             parser.error("Exactly one slave address must be specified for command mode")
 
-    # print out the arguments and option
+    # print out the arguments and options
     for k,v in sorted(vars(args).items()):
         if k == "commands":
             v = " ".join(",".join(cpart for cpart in command) for command in v)

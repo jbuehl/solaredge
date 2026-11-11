@@ -183,7 +183,7 @@ def doCommands(args, mode, state, dataFile, recFile, outFile):
 
 # start RS485 master thread
 def startMaster(args):
-    # start a thread to poll for data
+    # start a thread to send RS485 master commands
     masterThread = threading.Thread(
         name=MASTER_THREAD_NAME, target=masterCommands, args=args)
     masterThread.daemon = True

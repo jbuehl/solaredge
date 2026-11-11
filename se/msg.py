@@ -32,7 +32,7 @@ def readMsg(inFile, recFile, mode, state):
     msg = b""
     eof = False
     if not mode.passiveMode and (mode.serialType != "4"):
-        # active mode that is not rs485
+        # active mode that is not RS485
         # read the magic number and header
         msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode, state)
         if not msg:   # end of file
@@ -43,7 +43,7 @@ def readMsg(inFile, recFile, mode, state):
         msg += readBytes(inFile, recFile, dataLen + checksumLen, mode, state)
         msg = msg[magicLen:]    # strip the magic number from the beginning
     else:
-        # passive mode or rs485
+        # passive mode or RS485
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
             nextByte = readBytes(inFile, recFile, 1, mode, state)
@@ -149,7 +149,7 @@ def recordMsg(msg, recFile):
         recFile.write(msg)
         recFile.flush()
 
-# crc calculation
+# CRC calculation
 #
 # CRC-16 with the following parameters:
 #
@@ -193,7 +193,7 @@ def calcCrc(data):
         crc = crcTable[(crc ^ d) & 0xff] ^ (crc >> 8)
     return crc
 
-# formatted print a message header
+# print a formatted message header
 def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):
     logger.data("dataLen:    %04x", dataLen)
     logger.data("dataLenInv: %04x", dataLenInv)
