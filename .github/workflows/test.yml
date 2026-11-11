@@ -18,4 +18,5 @@ jobs:
         python-version: '3.10'
         cache: 'pip'
     - run: pip install -r requirements.txt
+    - run: python -m compileall -q .
     - run: test/test.sh
