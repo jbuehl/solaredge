@@ -18,7 +18,7 @@ def openInFile(inFileName):
         else:
             return sys.stdin
     else:
-        # Explicitly specify mode rb to keep windows happy!
+        # Explicitly specify mode rb to keep Windows happy!
         return open(inFileName, 'rb')
 
 # close the data source
@@ -26,7 +26,7 @@ def closeData(dataFile):
     logger.info("closing %s", dataFile.name)
     dataFile.close()
 
-# open in output file if it is specified
+# open the output file if it is specified
 def openOutFile(fileName, writeMode="wb"):
     if fileName:
         return open(fileName, writeMode)
