@@ -54,7 +54,7 @@ class ParseDevice(dict):
 
     _dev = 0xffff  # dummy value, I hope.  Should be overwritten in subclasses.
     _devName = 'Unknown_device'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = '{}_{:#06x}'.format(_devName, _dev)
 
     # DEFINITIONS for items in new devices, filled in for subclasses of ParseDevice.
     #
@@ -196,10 +196,10 @@ class ParseDevice(dict):
          devLen) = struct.unpack("<HLH", data[dataPtr:dataPtr + devHdrLen])
         dataPtr += devHdrLen
 
-        # For (almost) all subclasses, _devType will already have this value.
+        # For (almost) all subclasses, devType will already have this value.
         # This is necessary only when a default catchall parse is happening, because a specific parser for seType has
         # not been defined.
-        self._devType = '{}_{:#06x}'.format(self._devName, seType)
+        self.devType = '{}_{:#06x}'.format(self._devName, seType)
         # Store seId as an attribute for later use as part of the standard "dictionary of dictionaries" wrapper when
         # a parsed instance is converted to json.
         self._seId = self.parseId(seId)
@@ -208,7 +208,7 @@ class ParseDevice(dict):
             'seType': '{:#06x}'.format(seType),
             'seId': self._seId,
             'devLen': devLen,
-            'devType': self._devType
+            'devType': self.devType
         })
 
         if self.defnLen > devLen:
@@ -297,7 +297,7 @@ class ParseDevice(dict):
         :return: The (parsed) device attributes, "wrapped" in dictionary of dictionaries based on device type and device
           identifiers.
         """
-        return {self._devType: {self._seId: self}}
+        return {self.devType: {self._seId: self}}
 
     @classmethod
     def itemNames(cls):
@@ -340,7 +340,7 @@ class ParseDevice(dict):
         """
         msg = [
             "\n\n{} / {} parses data blocks with seType = {:#06x}.\n{}".format(
-                cls.__name__, cls._devType, cls._dev, "=" * 80)
+                cls.__name__, cls.devType, cls._dev, "=" * 80)
         ]
         msg.append("Items are:")
         itemLine = "{:<4} ({:^6})   {:<6} | {:<25} \n\t\t\t\t\t\t: {:<0}\n"
@@ -379,7 +379,7 @@ class ParseDevice_0x0030(ParseDevice):
 
     _dev = 0x0030
     _devName = 'batteries'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = [
         # device specific fields
         #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
@@ -450,7 +450,7 @@ class ParseDevice_0x0030(ParseDevice):
         :return: The (parsed) device attributes, "wrapped" in dictionary of dictionaries base on device type and device
           identifiers.
         """
-        return {self._devType: {self._seId: {self["batteryId"]: self}}}
+        return {self.devType: {self._seId: {self["batteryId"]: self}}}
 
 class ParseDevice_0x0022(ParseDevice):
     def __new__(cls, data):
@@ -462,7 +462,7 @@ class ParseDevice_0x0022(ParseDevice):
 
     _dev = 0x0022
     _devName = 'meters'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = [
         # device specific fields
         #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
@@ -625,7 +625,7 @@ class ParseDevice_0x0022(ParseDevice):
         recTypeLabel = recTypeLabels.get(self["recType"],
                                          "{}_UnrecognisedRecType".format(
                                              self["recType"]))
-        return {self._devType: {self._seId: {recTypeLabel: self}}}
+        return {self.devType: {self._seId: {recTypeLabel: self}}}
 
 class ParseDevice_Explorer(ParseDevice):
     """ A special parser which tries out several different ways of interpreting each item in the data message, and
@@ -646,7 +646,7 @@ class ParseDevice_Explorer(ParseDevice):
 
     _dev = 0xffff  # dummy value since ParseDevice_Explorer will "parse" any seType (albeit overly enthusiastically!)
     _devName = 'explore'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = '{}_{:#06x}'.format(_devName, _dev)
     _defn = []
     _itemNames = ["seType", "seId", "devLen", "devType"]
     _defnLen = 0
@@ -669,11 +669,11 @@ class ParseDevice_Explorer(ParseDevice):
 
         self._dev = seType
         self._defnLen = devLen
-        # For standard subclasses, _devType will already have this value.
+        # For standard subclasses, devType will already have this value.
         # However ParseDevice_Explorer can be used as a default parser, when a new device is encountered, in which case
         # the actual instance value of seType would be unknown when the seDataDevices module was imported (or in other
         # words, ParseDevice_Explorer._dev will contain a nonsense value which must be corrected when real data is read)
-        self._devType = '{}_{:#06x}'.format(self._devName, seType)
+        self.devType = '{}_{:#06x}'.format(self._devName, seType)
         self._seId = seId
 
         dataPtr += devHdrLen
@@ -681,7 +681,7 @@ class ParseDevice_Explorer(ParseDevice):
             'seType': '{:#06x}'.format(seType),
             'seId': self.parseId(seId),
             'devLen': devLen,
-            'devType': self._devType
+            'devType': self.devType
         })
 
         # First, dump a hex version of the whole block into one field
@@ -766,7 +766,7 @@ class ParseDevice_Explorer(ParseDevice):
     def itemDefs(cls):
         msg = [
             "\n\n{} / {} parses data blocks with any unrecognised seType.\n{}".
-            format(cls.__name__, cls._devType, "=" * 80), """\
+            format(cls.__name__, cls.devType, "=" * 80), """\
 Each pair/quadruple of bytes is parsed multiple times, using a number of different fields types.
 Item names are generated automatically, signalling the offset where the bytes began
 and the Python field type they have been parsed as.

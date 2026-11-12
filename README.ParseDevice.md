@@ -66,7 +66,7 @@ is the default method from `ParseDict` itself :
 
 ```python
     def wrap_in_ids(self):
-        return {self._devType: {self._seId : self}}
+        return {self.devType: {self._seId: self}}
 ```
 
 Subclasses which require additional identifiers simply define a
@@ -76,7 +76,7 @@ enough to need to distinguish attributes from more that one battery!),
 
 ```python
     def wrap_in_ids(self):
-        return {self._devType: {self._seId: {self["batteryId"]: self}}}
+        return {self.devType: {self._seId: {self["batteryId"]: self}}}
 ```
 
 All that seData.py then has to do is merge the "wrapped" dictionary of
@@ -225,7 +225,7 @@ For `ParseDevice` itself, these are essentially dummy placeholders :
 ```python
     _dev = 0xffff # dummy value, I hope.  Should be overwritten in subclasses.
     _devName = 'Unknown_device'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = "{}_{:#06x}".format(_devName, _dev)
 ```
 
 For a subclass such as `ParseDevice_0x0030` they are more meaningful :
@@ -233,7 +233,7 @@ For a subclass such as `ParseDevice_0x0030` they are more meaningful :
 ```python
     _dev =0x0030
     _devName = 'batteries'
-    _devType = '{}_{:#06x}'.format(_devName, _dev)
+    devType = "{}_{:#06x}".format(_devName, _dev)
 ```
 
 `_dev` must match the `seType` that appears at the start of the data
@@ -242,7 +242,7 @@ block that the subclass can parse.
 `_devName` is an informative label used to make the `seType` more
 interpretable to humans, and
 
-`_devType` is a combination of the two that is used as part of the
+`devType` is a combination of the two that is used as part of the
 complete, fully qualified "name" of any field, when, for example, it is
 saved in json format or sent to graphite.
 
@@ -488,7 +488,7 @@ It wraps the `ParseDevice` (or subclass) dictionary inside a
 (inverters, batteries, optimisers etc.), and different instances of
 specific devices (optimiser1, optimiser2 etc) can be distinguished.
 
-The highest level wrapping should always be `self._devType`, but after
+The highest level wrapping should always be `self.devType`, but after
 that, subclasses can provide whatever additional wrappings they need
 to uniquely identify the specific device (inverter, battery, optimiser,
 etc).
@@ -841,7 +841,7 @@ special format "hex" if necessary to (temporarily) jump over sections of
 the data block which make little sense. At a minimum you must supply:
    * `_dev` (the `seType` to be parsed)
    * `_devName` (an informative name)
-   * `_devType` (I recommend `_devType = '{}_{:#06x}'.format(_devName, _dev)`
+   * `devType` (I recommend `devType = '{}_{:#06x}'.format(_devName, _dev)`
    and
    * `_defn` (the list of field definitions)
 5. Run semonitor.py over the pcap file again (you may as well set

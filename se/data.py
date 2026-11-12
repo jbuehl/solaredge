@@ -132,7 +132,7 @@ def parseDeviceData(data):
     invDict = {}
     optDict = {}
     eventDict = {}
-    # Add a master dictionary, to store anything parsed by ParseDevice, indexed by the `_devType`
+    # Add a master dictionary, to store anything parsed by ParseDevice, indexed by the `devType`
     devsDict = {}
 
     dataPtr = 0
@@ -180,7 +180,7 @@ def parseDeviceData(data):
                 data[dataPtr - devHdrLen:dataPtr + devLen], explorer=False)
             # Add the new device attributes (wrapped in  dictionary of appropriate identifiers) to the dictionary of devices
             merge_update(devsDict, parsedDevice.wrap_in_ids())
-            logDevice("{}: ".format(parsedDevice._devType), seType, seId,
+            logDevice("{}: ".format(parsedDevice.devType), seType, seId,
                       devLen, parsedDevice.wrap_in_ids())
 
         dataPtr += devLen
