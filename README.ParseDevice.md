@@ -246,14 +246,14 @@ interpretable to humans, and
 complete, fully qualified "name" of any field, when, for example, it is
 saved in json format or sent to graphite.
 
-### Defining fields : `ParseDevice._defn` and `ParseDevice.parseDevTable`
+### Defining fields : `ParseDevice.fieldDefs` and `ParseDevice.parseDevTable`
 
-`ParseDevice._defn` is the core component of the `ParseDevice`
+`ParseDevice.fieldDefs` is the core component of the `ParseDevice`
 class. It is a list of definitions of fields.
 
-`ParseDevice` itself does not define any fields, so `_defn = []`.
+`ParseDevice` itself does not define any fields, so `fieldDefs = []`.
 
-In general however, each field definition in `_defn` is itself a list,
+In general however, each field definition in `fieldDefs` is itself a list,
 consisting of exactly 6 entries.  The 6 entries are :
 
 1. **paramLen** - the length in bytes of the field.
@@ -298,10 +298,10 @@ consisting of exactly 6 entries.  The 6 entries are :
    the field.
 
 To help make this clearer, here is an extract from
-`ParseDevice_0x0030._defn` :
+`ParseDevice_0x0030.fieldDefs` :
 
 ```python
-    _defn = [
+    fieldDefs = [
         # device specific fields
         #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
         [4, 'L', "dateTime", "dateTime", False, "Seconds since the epoch"],
@@ -318,7 +318,7 @@ To help make this clearer, here is an extract from
 
 
 The `ParseDevice.parseDevTable` method is responsible for parsing a
-block of data using the definitions in `_defn` and storing the results
+block of data using the definitions in `fieldDefs` and storing the results
 as `name : value` entries in the ParseDevice dictionary.  It is called
 by `ParseDevice.__init__`.
 
@@ -348,17 +348,17 @@ code.  The hooks are :
 * `setDerivationDefaults`, and
 * `codeDerivations`
 
-`_derivn` is (essentially) a cut down version of `_defn`. It is a list
+`_derivn` is (essentially) a cut down version of `fieldDefs`. It is a list
 of (partial) definitions for new fields that are to be calculated and
 added to the `ParseDevice` dictionary, once all the data block fields
 have been read and parsed.  To be precise each definition of a derived
 field is a list with 4 elements, namely :
 
-1. **paramName** - as per `_defn`
+1. **paramName** - as per `fieldDefs`
 2. **paramDefault** - an initial default value for the field, typically
    `0`, `0.0`, `""` or `float("nan")`
-3. **out** (to csv) True or False - as per `_defn`
-4. **comment** - as per `_defn`
+3. **out** (to csv) True or False - as per `fieldDefs`
+4. **comment** - as per `fieldDefs`
 
 ```python
     _derivn = [
@@ -394,7 +394,7 @@ the relevant code from an earlier (since deleted) version of
 
 
 ```python
-    _defn = [
+    fieldDefs = [
         # device specific fields
         #  [paramLen, paramInFmt, paramName, outFormatFn (can be None), out (to csv or graphite) True or False, comment]
         [4, 'L', "dateTime", "dateTime", False, "Seconds since epoch"],
@@ -675,7 +675,7 @@ clearer :
 Initially, explanations and comments about fields that had been
 deciphered were kept (rather haphazardly) as Python comments in the code
 for subclasses of `ParseDevice`.  After a few iterations, I decided to
-make the field definitions (entries in `ParseDevice._defn`) self
+make the field definitions (entries in `ParseDevice.fieldDefs`) self
 documenting by incorporating an explicit **comment** in each
 definition.
 
@@ -843,7 +843,7 @@ the data block which make little sense. At a minimum you must supply:
    * `_devName` (an informative name)
    * `devType` (I recommend `devType = '{}_{:#06x}'.format(_devName, _dev)`
    and
-   * `_defn` (the list of field definitions)
+   * `fieldDefs` (the list of field definitions)
 5. Run semonitor.py over the pcap file again (you may as well set
 `ParseDevice(data, explorer=False)` once a draft subclass exists), save
 the json output, convert to csv, and start to look for values which are
