@@ -190,7 +190,7 @@ class Se2Influx:
                             for k, v in hw_data.items()
                             if not (isinstance(v, float) and isnan(v))
                         }
-                        utc_date = self._pop_utc_date(hw_data)
+                        utc_date = self.pop_utc_date(hw_data)
                         data_out.append(
                             {
                                 "measurement": hw_type,
@@ -254,12 +254,12 @@ class Se2Influx:
                 if self.max_log_size and size > self.max_log_size:
                     log_fh.close()
                     try:
-                        self._rotate_log()
+                        self.rotate_log()
                     except Exception as e:
                         logging.error("Failed to rotate file: %s, %s", self.log_path, e)
                     break
 
-    def _rotate_log(self) -> None:
+    def rotate_log(self) -> None:
         """
         Rotate and copress logs once they get too big
         """
@@ -279,7 +279,7 @@ class Se2Influx:
         with open(self.log_path, "w"):
             pass
 
-    def _pop_utc_date(self, data: Dict[str, Any]) -> str:
+    def pop_utc_date(self, data: Dict[str, Any]) -> str:
         """
         Take a semonitor data strict, remove the time and date fields, and then
         convert them (using a user-specified timezone, if existant, or otherwise
