@@ -35,6 +35,7 @@ timeout = 120
 [tool.coverage.run]
 branch = true
 patch = ["subprocess"]
+sigterm = true
 source = ["."]
 omit = [
     "*/.git/*",
