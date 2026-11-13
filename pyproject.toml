@@ -41,6 +41,13 @@ skip = "*.pcap,*.json,*.csv,*.rec,*.msg,*.md,LICENSE"
 line-length = 80
 extend-exclude = ["test"]
 
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.pycodestyle]
+# The formatter wraps at 80; E501 only flags lines beyond 120.
+max-line-length = 120
+
 [tool.ruff.lint.per-file-ignores]
 # The tests read the pickles that the script they test made itself.
 "tests/**" = ["S301"]
