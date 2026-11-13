@@ -254,6 +254,25 @@ monotonically increasing sequence number which is used as a transaction ID.  A f
 seseq.dat will be created to persist the
 value of this sequence number across multiple executions of semonitor.py.
 
+A recording can also be read through a serial port, without an inverter, to try
+`semonitor.py` the way it runs in production. `socat` can make a pseudo
+terminal for this. `semonitor.py` only accepts a port that the operating system
+lists as a serial port, which are the names that start with `/dev/ttyS`,
+`/dev/ttyUSB` or `/dev/ttyACM`, so the pseudo terminal has to be linked under
+such a name in `/dev`, which needs root. Use a name that no real port has, such
+as `/dev/ttySE0`:
+
+```sh
+    socat -u 'SYSTEM:sleep 5; cat recording.rec; sleep 10' \
+        pty,raw,echo=0,link=/dev/ttySE0
+```
+
+Start `semonitor.py -t 4 /dev/ttySE0` within those 5 seconds. Data that arrives
+before the port is opened is thrown away, and so is data that has not been read
+yet when `socat` ends, so the last `sleep` has to be long enough for all of it
+to be read.
+
+
 #### Examples
     python semonitor.py -o yyyymmdd.json yyyymmdd.dat
 
