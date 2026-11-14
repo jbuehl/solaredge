@@ -6,13 +6,11 @@ from pathlib import Path
 
 import pytest
 
-CONVERSION = Path(__file__).resolve().parent.parent / "conversion"
-SCRIPT = CONVERSION / "se2csv.py"
+CLI = Path(__file__).resolve().parent.parent / "src" / "se"
+SCRIPT = CLI / "se2csv.py"
 
 
 def run_se2csv(monkeypatch, *args, stdin=""):
-    monkeypatch.syspath_prepend(str(CONVERSION))
-    monkeypatch.delitem(sys.modules, "common", raising=False)
     monkeypatch.setattr(sys, "argv", [str(SCRIPT), *map(str, args)])
     monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
     code = 0

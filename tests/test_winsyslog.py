@@ -8,9 +8,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = (
-    Path(__file__).resolve().parent.parent / "conversion" / "seWindowsSyslog.py"
-)
+SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "winsyslog.py"
 
 
 # The hook that logging calls to open the file of the handler.
@@ -51,7 +49,7 @@ def module(monkeypatch):
     handlers = logger.handlers[:]
     level = logger.level
     spec = importlib.util.spec_from_file_location(
-        "seWindowsSyslog_under_test", SCRIPT
+        "winsyslog_under_test", SCRIPT
     )
     loaded = importlib.util.module_from_spec(spec)
     try:

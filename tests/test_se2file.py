@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parent.parent / "utilities" / "se2file.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "se2file.py"
 CLOCK_START = dt.datetime(2016, 1, 1, 12, 30, 0, tzinfo=dt.UTC)
 
 

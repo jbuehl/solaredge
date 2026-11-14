@@ -1,12 +1,7 @@
 import json
-import runpy
-import sys
-import types
-from pathlib import Path
 
-import pytest
+from se import se2csv, seprint
 
-ROOT = Path(__file__).resolve().parent.parent
 DEVICE = {
     "Date": "2020-01-01",
     "Time": "10:00:00",
@@ -17,29 +12,10 @@ DEVICE = {
 DATA = {"inverters": {"I1": DEVICE}, "optimizers": {}, "events": {}}
 
 
-def load(monkeypatch, directory, name):
-    # The commands are not part of a package yet, so load one as a script is,
-    # but without running it as __main__.
-    path = ROOT / directory / f"{name}.py"
-    monkeypatch.syspath_prepend(str(path.parent))
-    monkeypatch.delitem(sys.modules, "common", raising=False)
-    return types.SimpleNamespace(**runpy.run_path(str(path), run_name=name))
-
-
-@pytest.fixture
-def seprint(monkeypatch):
-    return load(monkeypatch, "utilities", "seprint")
-
-
-@pytest.fixture
-def se2csv(monkeypatch):
-    return load(monkeypatch, "conversion", "se2csv")
-
-
 # The entry points call main() without arguments, so main() has to take the
 # arguments of the process then. Giving it arguments has to work as well, and
 # has to ignore those of the process.
-def test_seprint_main_reads_the_file_it_is_given(seprint, tmp_path, capsys):
+def test_seprint_main_reads_the_file_it_is_given(tmp_path, capsys):
     path = tmp_path / "in.json"
     path.write_text(json.dumps(DATA) + "\n")
 
@@ -49,7 +25,7 @@ def test_seprint_main_reads_the_file_it_is_given(seprint, tmp_path, capsys):
 
 
 def test_seprint_main_defaults_to_the_arguments_of_the_process(
-    seprint, tmp_path, capsys, monkeypatch
+    tmp_path, capsys, monkeypatch
 ):
     path = tmp_path / "in.json"
     path.write_text(json.dumps(DATA) + "\n")
@@ -60,9 +36,7 @@ def test_seprint_main_defaults_to_the_arguments_of_the_process(
     assert capsys.readouterr().out.splitlines()[0] == "Inverters"
 
 
-def test_se2csv_main_uses_the_arguments_it_is_given(
-    se2csv, tmp_path, monkeypatch
-):
+def test_se2csv_main_uses_the_arguments_it_is_given(tmp_path, monkeypatch):
     path = tmp_path / "in.json"
     path.write_text(json.dumps(DATA) + "\n")
     monkeypatch.setattr("sys.argv", ["se2csv", "--no-such-option"])

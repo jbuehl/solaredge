@@ -7,7 +7,7 @@ import pytest
 
 import se.logutils
 
-SCRIPT = Path(__file__).resolve().parent.parent / "utilities" / "debug2hex.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "debug2hex.py"
 
 
 class Stdout(io.TextIOWrapper):

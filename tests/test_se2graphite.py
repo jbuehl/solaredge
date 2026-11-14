@@ -11,8 +11,8 @@ from typing import ClassVar
 
 import pytest
 
-CONVERSION = Path(__file__).resolve().parent.parent / "conversion"
-SCRIPT = CONVERSION / "se2graphite.py"
+CLI = Path(__file__).resolve().parent.parent / "src" / "se"
+SCRIPT = CLI / "se2graphite.py"
 METRIC = re.compile(
     rb"^(?P<name>\S+) (?P<value>\S+) (?P<stamp>\d+(?:\.\d+)?)\n$"
 )
@@ -63,8 +63,6 @@ def env(monkeypatch):
     monkeypatch.setitem(sys.modules, "syslog", fake_syslog)
     monkeypatch.setattr(socket, "socket", FakeSocket)
     monkeypatch.setattr(time, "sleep", state.sleeps.append)
-    monkeypatch.syspath_prepend(str(CONVERSION))
-    monkeypatch.delitem(sys.modules, "common", raising=False)
     return state
 
 

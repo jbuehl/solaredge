@@ -11,7 +11,7 @@ import sys
 import time
 from pathlib import Path
 
-from common import open_input
+from se.metrics import open_input
 
 
 def sum_items(item_dict, item_attr):

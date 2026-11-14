@@ -8,8 +8,8 @@ from typing import ClassVar
 
 import pytest
 
-CONVERSION = Path(__file__).resolve().parent.parent / "conversion"
-SCRIPT = CONVERSION / "se2MQTT.py"
+CLI = Path(__file__).resolve().parent.parent / "src" / "se"
+SCRIPT = CLI / "se2mqtt.py"
 ALL_OPTIONS = (
     "-c",
     "client",
@@ -91,13 +91,6 @@ def broker(monkeypatch):
     monkeypatch.setitem(sys.modules, "paho.mqtt.client", client)
     monkeypatch.setattr(time, "sleep", lambda _seconds: None)
     return FakeClient
-
-
-@pytest.fixture(autouse=True)
-def conversion_on_the_path(monkeypatch):
-    # A script finds its common.py next to itself, runpy does not add that.
-    monkeypatch.syspath_prepend(str(CONVERSION))
-    monkeypatch.delitem(sys.modules, "common", raising=False)
 
 
 def run_se2mqtt(monkeypatch, lines, *args):

@@ -32,7 +32,8 @@ import sys
 import time
 
 import paho.mqtt.client as mqtt
-from common import open_input
+
+from se.metrics import open_input
 
 
 def update_state(state_dict, in_dict):

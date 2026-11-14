@@ -29,7 +29,7 @@ def run(workdir, *args, listed_port=None):
     return subprocess.run(
         command,
         cwd=workdir,
-        env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,

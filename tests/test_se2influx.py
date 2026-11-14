@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("dateutil", reason="se2influx needs python-dateutil")
 
-SCRIPT = Path(__file__).resolve().parent.parent / "utilities" / "se2influx.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "se2influx.py"
 # The time of the fixed_now fixture, as it is in the names of the archives.
 FIXED_NOW_STAMP = "20160101123000"
 

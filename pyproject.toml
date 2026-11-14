@@ -29,7 +29,7 @@ addopts = [
     "--strict-config",
     "--strict-markers",
 ]
-pythonpath = ["."]
+pythonpath = ["src"]
 testpaths = ["tests"]
 timeout = 120
 
@@ -37,7 +37,7 @@ timeout = 120
 branch = true
 patch = ["subprocess"]
 sigterm = true
-source = ["."]
+source = ["src"]
 omit = [
     "*/.git/*",
     "*/.venv/*",

@@ -26,13 +26,13 @@ import struct
 import sys
 import time
 
-from common import open_input, unwrap_metrics_dict
+from se.metrics import open_input, unwrap_metrics_dict
 
 try:
     import syslog
 except ImportError:
     # Allow for the fact that syslog is not (to my knowledge) available on Windows
-    import seWindowsSyslog as syslog
+    from se import winsyslog as syslog
 
 
 def log(*args):

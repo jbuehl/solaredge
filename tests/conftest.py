@@ -9,7 +9,7 @@ from typing import NamedTuple
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SEMONITOR = REPO_ROOT / "semonitor.py"
+SEMONITOR = REPO_ROOT / "src" / "se" / "semonitor.py"
 
 # The golden data, test/<kind>/<sample>.<ext>, and is shared with test/test.sh.
 GOLDEN_DIR = REPO_ROOT / "test"

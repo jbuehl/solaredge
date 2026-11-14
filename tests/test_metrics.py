@@ -1,18 +1,13 @@
-import importlib.util
 import json
-from pathlib import Path
 
 import pytest
 
-COMMON = Path(__file__).resolve().parent.parent / "conversion" / "common.py"
+from se import metrics
 
 
 @pytest.fixture(scope="module")
 def unwrap():
-    spec = importlib.util.spec_from_file_location("conversion_common", COMMON)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.unwrap_metrics_dict
+    return metrics.unwrap_metrics_dict
 
 
 def device(**extra):

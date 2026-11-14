@@ -115,7 +115,7 @@ class SerialSemonitor:
                     port,
                 ],
                 cwd=self.workdir,
-                env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},
+                env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=self.log_file,
