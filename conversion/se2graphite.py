@@ -26,25 +26,92 @@ def log(*args):
     syslog.syslog(message)
 
 
-# parameter defaults
-base = ""
-host_name = "localhost"
-port = 2003
-devices = ["inverters", "optimizers"]
-delay = 0.1
+def send_metrics(graphite_socket, base, base_name, dev_attrs, delay):
+    """
+    Send the numeric attributes of a device to Graphite, as metrics.
 
-# get program arguments and options
-(opts, args) = getopt.getopt(sys.argv[1:], "b:h:p:")
-in_file = open_input(args)
-for opt in opts:
-    if opt[0] == "-b":
-        base = opt[1] + "."
-    if opt[0] == "-h":
-        host_name = opt[1]
-    if opt[0] == "-p":
-        port = int(opt[1])
+    The time of the metrics is the date and time of the device, or the
+    epoch plus a little when those are missing.
+    """
+    # convert date and time to unix time
+    try:
+        (year, month, day) = dev_attrs["Date"].split("-")
+        (hour, minute, second) = dev_attrs["Time"].split(":")
+    except KeyError:
+        log(
+            "Date or Time is missing or incorrectly formatted for this set of metrics"
+        )
+        (year, month, day, hour, minute, second) = (
+            1970,
+            1,
+            1,
+            0,
+            1,
+            1,
+        )
+    # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
+    # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
+    time_stamp = time.mktime(
+        (
+            int(year),
+            int(month),
+            int(day),
+            int(hour),
+            int(minute),
+            int(second),
+            0,
+            0,
+            -1,
+        )
+    )
+    # Treat every attribute as a metric - except for non-numeric ones!
+    for dev_attr in dev_attrs:
+        if dev_attr not in {"Date", "Time", "Undeciphered_data"}:
+            try:
+                # Weed out attributes with non numeric values (Graphite does this too, but why clog the
+                # network?)
+                test = float(dev_attrs[dev_attr])
+                if math.isnan(test):
+                    # It's a NaN!
+                    pass
+                else:
+                    full_name = f"{base}{base_name}.{dev_attr}"
+                    metric = (
+                        f"{full_name} {dev_attrs[dev_attr]!s} {time_stamp}\n"
+                    )
+                    graphite_socket.send(metric)
+                    time.sleep(delay)
+            except ValueError:
+                # It's not a numeric metric, ignore it
+                pass
 
-if __name__ == "__main__":
+
+def main(argv=None):
+    """
+    Send the metrics read from the input to Graphite, one metric per line.
+
+    Args:
+        argv: The command line arguments to use, or None for those of the process.
+    """
+    # parameter defaults
+    base = ""
+    host_name = "localhost"
+    port = 2003
+    delay = 0.1
+
+    # get program arguments and options
+    (opts, args) = getopt.getopt(
+        sys.argv[1:] if argv is None else argv, "b:h:p:"
+    )
+    in_file = open_input(args)
+    for opt in opts:
+        if opt[0] == "-b":
+            base = opt[1] + "."
+        if opt[0] == "-h":
+            host_name = opt[1]
+        if opt[0] == "-p":
+            port = int(opt[1])
+
     graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     graphite_socket.connect((host_name, port))
     with in_file:
@@ -52,54 +119,10 @@ if __name__ == "__main__":
         while json_str != "":
             in_dict = json.loads(json_str)
             for base_name, dev_attrs in unwrap_metrics_dict(in_dict):
-                # convert date and time to unix time
-                try:
-                    (year, month, day) = dev_attrs["Date"].split("-")
-                    (hour, minute, second) = dev_attrs["Time"].split(":")
-                except KeyError:
-                    log(
-                        "Date or Time is missing or incorrectly formatted for this set of metrics"
-                    )
-                    (year, month, day, hour, minute, second) = (
-                        1970,
-                        1,
-                        1,
-                        0,
-                        1,
-                        1,
-                    )
-                # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
-                # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
-                time_stamp = time.mktime(
-                    (
-                        int(year),
-                        int(month),
-                        int(day),
-                        int(hour),
-                        int(minute),
-                        int(second),
-                        0,
-                        0,
-                        -1,
-                    )
-                )
-                # Treat every attribute as a metric - except for non-numeric ones!
-                for dev_attr in dev_attrs:
-                    if dev_attr not in {"Date", "Time", "Undeciphered_data"}:
-                        try:
-                            # Weed out attributes with non numeric values (Graphite does this too, but why clog the
-                            # network?)
-                            test = float(dev_attrs[dev_attr])
-                            if math.isnan(test):
-                                # It's a NaN!
-                                pass
-                            else:
-                                full_name = f"{base}{base_name}.{dev_attr}"
-                                metric = f"{full_name} {dev_attrs[dev_attr]!s} {time_stamp}\n"
-                                graphite_socket.send(metric)
-                                time.sleep(delay)
-                        except ValueError:
-                            # It's not a numeric metric, ignore it
-                            pass
+                send_metrics(graphite_socket, base, base_name, dev_attrs, delay)
             json_str = in_file.readline()
     graphite_socket.close()
+
+
+if __name__ == "__main__":
+    main()

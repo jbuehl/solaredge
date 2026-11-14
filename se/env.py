@@ -319,18 +319,21 @@ def _log_arguments(args):
         logger.info("%s: %s", k, shown)
 
 
-def get_args():
+def get_args(argv=None):
     """
-    Get the arguments from the command line and validate them.
+    Get the arguments from the command line, or argv, and validate them.
 
     Also configures logging from the verbosity option.
+
+    Args:
+        argv: The arguments to parse, those of the process when not given.
 
     Returns:
         A tuple (args, mode), where args is the parsed namespace and mode is
         the RunMode derived from it.
     """
     parser = _make_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     _configure_logging(args)
     serial_device = _is_serial_device(args)
     _validate_serial(parser, args, serial_device=serial_device)

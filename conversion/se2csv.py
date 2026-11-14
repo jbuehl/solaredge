@@ -9,13 +9,20 @@ from pathlib import Path
 
 from common import unwrap_metrics_dict
 
-if __name__ == "__main__":
 
-    def deprecated(_s):
-        """Reject a deprecated command line option with an error."""
-        msg = "Deprecated option."
-        raise argparse.ArgumentTypeError(msg)
+def deprecated(_s):
+    """Reject a deprecated command line option with an error."""
+    msg = "Deprecated option."
+    raise argparse.ArgumentTypeError(msg)
 
+
+def main(argv=None):
+    """
+    Write a CSV file per device type from the JSON performance data read.
+
+    Args:
+        argv: The command line arguments to use, or None for those of the process.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Read a file containing JSON performance data and output a "
@@ -68,7 +75,7 @@ if __name__ == "__main__":
         help="file containing performance data in JSON format",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     devs_file = {}
 
@@ -95,3 +102,7 @@ if __name__ == "__main__":
 
                 dev_attrs["__Identifier__"] = dev_id
                 devs_file[dev_name].writerow(dev_attrs)
+
+
+if __name__ == "__main__":
+    main()

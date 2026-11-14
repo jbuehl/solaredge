@@ -727,3 +727,24 @@ def test_semonitor_exits_with_2_on_bad_arguments(run_semonitor, argv, message):
     assert result.returncode == 2
     assert result.stdout.startswith(b"usage: ")
     assert message in result.stderr
+
+
+# main() of the commands passes its own arguments, which is how the entry
+# points call it (without any), and how a program can call it with some.
+def test_the_arguments_can_be_given_instead_of_those_of_the_process(
+    monkeypatch,
+):
+    root = logging.getLogger()
+    handlers = root.handlers[:]
+    level = root.level
+    monkeypatch.setattr(sys, "argv", ["semonitor.py", "--no-such-option"])
+    try:
+        args, _ = se.env.get_args(["-x", "in.rec"])
+    finally:
+        for handler in root.handlers[:]:
+            if handler not in handlers:
+                root.removeHandler(handler)
+                handler.close()
+        root.setLevel(level)
+
+    assert args.datasource == "in.rec"

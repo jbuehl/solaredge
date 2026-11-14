@@ -43,10 +43,10 @@ def _output_path(args, curtime):
     return args.basedir + "/" + args.prefix + curstore + ".json"
 
 
-def main():
+def main(argv=None):
     """Copy semonitor output lines into JSON files named by day and hour."""
     # parse the command line arguments
-    args = getargs()
+    args = getargs(argv)
 
     # Since we want to work on files and stdin. We will count the number of lines that are blank. If we process 10 blank
     # lines and we are not doing stdin, we will assume that the file is done
@@ -110,7 +110,7 @@ def main():
                     sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
 
 
-def getargs():
+def getargs(argv=None):
     """Parse and return the command line arguments."""
     parser = argparse.ArgumentParser(
         description=(
@@ -180,7 +180,7 @@ def getargs():
         help="File to process, then exit; the default, stdin, reads piped data.",
     )
 
-    defargs = parser.parse_args()
+    defargs = parser.parse_args(argv)
     if defargs.looper and defargs.infile != "stdin":
         sys.stderr.write(
             "Warning: wait forever (-w) only applies to stdin, "
