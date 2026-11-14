@@ -15,6 +15,7 @@ import threading
 import time
 from pathlib import Path
 
+import se.clock
 import se.commands
 import se.data
 import se.env
@@ -90,7 +91,6 @@ def read_data(args, mode, state, files):
                 se.logutils.set_state(state, "threadLock", value=False)
                 if eod_event.is_set():  # exit, the main thread terminates
                     break
-    return
 
 
 def process_msg(msg, args, mode, state, files):
@@ -343,6 +343,13 @@ if __name__ == "__main__":
 
     # get the command line arguments and run mode
     (args, mode) = se.env.get_args()
+
+    # do not read, and so not write, data with a time that is not valid yet
+    if mode.serialDevice:
+        try:
+            se.clock.wait_for_valid_time()
+        except se.clock.ClockError as ex:
+            terminate(1, str(ex))
 
     # calculate the nadir once, only when enabled
     nadir_epoch = None

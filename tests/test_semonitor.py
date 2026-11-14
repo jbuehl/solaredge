@@ -1490,3 +1490,48 @@ def test_event_mode_keeps_reading_without_an_end_of_day_event(
         result.stdout
         == run_semonitor("-x", golden("rec", WAKE_RECORDING)).stdout
     )
+
+
+# --- waiting for a valid time ------------------------------------------------
+
+
+def test_a_serial_device_is_not_opened_when_the_time_is_not_valid(
+    run_semonitor, golden, monkeypatch, sample
+):
+    line = FakeSerialLine(golden("rec", sample).read_bytes(), DEVICE)
+    opened = install_serial(monkeypatch, line)
+    monkeypatch.setenv("SE_START_EPOCH", "2099-01-01")
+    monkeypatch.setenv("SE_START_TIMEOUT", "0")
+
+    result = run_semonitor("-t", "4", "-o", "out.json", DEVICE)
+
+    assert result.returncode == 1
+    assert "System time still invalid after 0 seconds" in result.stderr
+    assert opened == []
+    assert not Path("out.json").exists()
+
+
+def test_the_start_has_to_be_valid_to_read_from_a_serial_device(
+    run_semonitor, golden, monkeypatch, sample
+):
+    line = FakeSerialLine(golden("rec", sample).read_bytes(), DEVICE)
+    opened = install_serial(monkeypatch, line)
+    monkeypatch.setenv("SE_START_EPOCH", "nonsense")
+
+    result = run_semonitor("-t", "4", "-o", "out.json", DEVICE)
+
+    assert result.returncode == 1
+    assert "Invalid 'SE_START_EPOCH' 'nonsense'" in result.stderr
+    assert opened == []
+
+
+def test_a_file_is_read_without_waiting_for_a_valid_time(
+    run_semonitor, golden, monkeypatch, sample
+):
+    monkeypatch.setenv("SE_START_EPOCH", "2099-01-01")
+    monkeypatch.setenv("SE_START_TIMEOUT", "0")
+
+    result = run_semonitor("-x", "-o", "out.json", golden("rec", sample))
+
+    assert result.returncode == 0
+    assert Path("out.json").read_bytes() == golden("json", sample).read_bytes()

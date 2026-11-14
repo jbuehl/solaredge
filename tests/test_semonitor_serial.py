@@ -633,10 +633,11 @@ def test_a_lost_rs232_port_is_a_failure(serial_run):
 
 
 # The nadir is a time of day, in whole minutes. The clock of semonitor starts
-# at a fixed time, a few seconds before a minute, and runs on from there. RS232
-# is read by the main thread (Issue #12), so the thread that waits for the
-# nadir is only there in master mode.
-CLOCK_START = calendar.timegm((2026, 1, 1, 12, 0, 52))
+# at a fixed time, a few seconds before a minute, and runs on from there. That
+# is far in the future, as semonitor waits for the time to be at least that of
+# its installation. RS232 is read by the main thread (Issue #12), so the thread
+# that waits for the nadir is only there in master mode.
+CLOCK_START = calendar.timegm((2200, 1, 1, 12, 0, 52))
 NADIR_AHEAD = "12:01"
 NADIR_PASSED = "12:00"
 STILL_RUNNING = 3  # seconds, to see that semonitor does not end
