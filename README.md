@@ -248,11 +248,10 @@ JSON file that contains the current state of the inverter and optimizer values.
 separate comma-delimited file for each device type (e.g. inverter, optimizer,
 battery) encountered that is suitable for input to a spreadsheet.
 
-`se2graphite.py` and `pickle2graphite.py` both read a file containing JSON
-performance data and send it to a graphite server. `se2graphite.py` sends it to
-the graphite server's "text listener" port one metric at a time, while
-`pickle2graphite.py` sends it to the graphite server's "pickle listener" port,
-with multiple metrics per transmission.
+`se2graphite` reads a file containing JSON performance data and sends it to a
+graphite server's "pickle listener" port, with multiple metrics per
+transmission. With `-t` it sends it to the "text listener" port instead, one
+metric at a time.
 
 
 ### JSON format
@@ -575,58 +574,14 @@ device type encountered (e.g. optimizers, inverters, batteries), to files called
 
 ### se2graphite
 
-Send SolarEdge performance monitoring data from JSON to a graphite text port.
+Send SolarEdge performance monitoring data from JSON to a graphite pickle
+listener port, or with `-t`, to a graphite text listener port.
 
 
 #### Usage
 
 ```sh
     se2graphite options [inFile]
-```
-
-
-#### Arguments
-
-```text
-    inFile          File containing performance data in JSON format. (default:
-                    stdin)
-```
-
-
-#### Options
-
-```text
-    -b base         base prefix for the names of the metrics sent to graphite
-    -h host         the host url or IP address of the graphite server (default: "localhost")
-    -p port         the port number of the graphite / carbon text listener port (default: 2003)
-```
-
-
-#### Examples
-
-```sh
-    python se2graphite.py -b "semonitor" yyyymmdd.json
-```
-
-Send all numeric metric data for each device encountered in `yyyymmdd.json` to
-the graphite server whose "text" port is listening on "localhost:2003".
-
-Metrics are sent one value at a time, with a short delay (default 0.1 sec)
-between each transmission.
-
-In graphite / whisper all metric names will begin with "semonitor."
-
-
-### pickle2graphite.py
-
-Send SolarEdge performance monitoring data from JSON to a graphite pickle
-listener port.
-
-
-#### Usage
-
-```sh
-    python pickle2graphite.py options [inFile]
 ```
 
 
@@ -642,7 +597,8 @@ listener port.
 ```text
     -b base         base prefix for the names of the metrics sent to graphite
     -h host         the host url or IP address of the graphite server (default: "localhost")
-    -p port         the port number of the graphite / carbon pickle listener port (default: 2004)
+    -p port         the port number of the graphite / carbon listener port (default: 2004, or 2003 with -t)
+    -t              send the metrics to the text listener port, one metric at a time, instead of the pickle listener port
     -f              follow (wait for new data to be written to) the JSON inFile
 ```
 
@@ -666,7 +622,7 @@ graphite, the server may be swamped, and some metrics may be dropped. Any of:
 
 * just rerun `se2graphite` again, or
 * temporarily adjust the delay to say 5.0 secs, or
-* even use `se2graphite -t` once,
+* even use `se2graphite` once,
 
 any of which should allow the graphite server enough time to create new whisper
 files, before the next batch of metrics from the next line in the JSON file
@@ -674,9 +630,19 @@ arrives.
 
 In graphite / whisper all metric names will begin with "semonitor."
 
-If the `-f` option had been included, `pickle2graphite.py` would follow (wait
-for new JSON lines to be written to) the inFile (`yyyymmdd.json`) until
-interrupted (Ctrl-C) or otherwise killed.
+```sh
+    se2graphite -t -b "semonitor" yyyymmdd.json
+```
+
+Send all numeric metric data for each device encountered in `yyyymmdd.json` to
+the graphite server whose "text" port is listening on "localhost:2003".
+
+Metrics are sent one value at a time, with a short delay (default 0.1 sec)
+between each transmission.
+
+If the `-f` option had been included, `se2graphite` would follow (wait for new
+JSON lines to be written to) the inFile (`yyyymmdd.json`) until interrupted
+(Ctrl-C) or otherwise killed.
 
 
 ## Development
@@ -821,7 +787,7 @@ Use `pee` to pipe `stdout` concurrently to run multiple outputs simultaneously.
 ```sh
 semonitor <your-semonitor-args> | pee \
   "se2mqtt -c solaredge -u dummy -p dummy -s localhost -t /ha/value/solaredge" \
-  "se2graphite -h localhost -p 2003 -b solaredge" \
+  "se2graphite -t -h localhost -b solaredge" \
   "se2influx --host localhost --port 8086 --database solaredge" \
   "se2state -i <inverter-serials> -o /tmp/solar.json" \
   "cat"

@@ -227,32 +227,28 @@ def main(argv=None):
     """
     options = parse_options(sys.argv[1:] if argv is None else argv)
 
-    if not options.text:
-        # Timeout if no connection after 10 seconds,
-        #   in which case check that Graphite is running, and the host name and port are correct.
-        socket.setdefaulttimeout(10.0)
+    # Timeout if no connection after 10 seconds,
+    #   in which case check that Graphite is running, and the host name and port are correct.
+    socket.setdefaulttimeout(10.0)
     graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     graphite_socket.connect((options.host_name, options.port))
     with options.in_file:
         json_str = get_json_str(options.in_file, options.following)
         while json_str != "":
-            if options.text:
-                Metrics(json.loads(json_str), base=options.base).send_text(
-                    graphite_socket
+            try:
+                metrics = Metrics(json.loads(json_str), base=options.base)
+                if options.text:
+                    metrics.send_text(graphite_socket)
+                else:
+                    metrics.send_pickle(graphite_socket)
+            except ValueError:
+                log(
+                    "WARNING json.loads had a problem with the following jsonStr\n",
+                    json_str,
+                    "\n",
+                    "=" * 80,
+                    "\n",
                 )
-            else:
-                try:
-                    Metrics(
-                        json.loads(json_str), base=options.base
-                    ).send_pickle(graphite_socket)
-                except ValueError:
-                    log(
-                        "WARNING json.loads had a problem with the following jsonStr\n",
-                        json_str,
-                        "\n",
-                        "=" * 80,
-                        "\n",
-                    )
             json_str = get_json_str(options.in_file, options.following)
     graphite_socket.close()
 

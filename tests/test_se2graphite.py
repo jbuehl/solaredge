@@ -164,6 +164,14 @@ def test_unknown_options_are_an_error(monkeypatch):
         run_se2graphite(monkeypatch, "-z")
 
 
+def test_connecting_to_a_dead_graphite_times_out_after_ten_seconds_in_text(
+    monkeypatch,
+):
+    run_se2graphite(monkeypatch)
+
+    assert socket.getdefaulttimeout() == 10.0
+
+
 # --- metrics (text) ---
 
 
@@ -342,7 +350,6 @@ def test_a_badly_formatted_date_is_logged_not_fatal(env, monkeypatch):
     assert len(connection.sent) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #26")
 def test_invalid_json_is_logged_and_the_rest_is_still_sent(env, monkeypatch):
     stdin = "this is not json\n" + line(inverters={"I1": device(Pac=1)})
 
