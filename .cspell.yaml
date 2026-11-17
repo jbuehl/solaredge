@@ -71,12 +71,18 @@ words:
   - addopts
   - codespell
   - containerfile
+  - datetimez
+  - errmsg
   - exitfirst
   - htmlcov
   - junitxml
   - numprocesses
+  - perflint
   - pygrep
+  - pyupgrade
+  - refurb
   - testpaths
+  - tryceratops
   - worksteal
   # python modules and functions
   - autouse

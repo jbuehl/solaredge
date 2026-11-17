@@ -34,3 +34,8 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           args: format --check --diff
+
+      - name: Ruff check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --output-format=github

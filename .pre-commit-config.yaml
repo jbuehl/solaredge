@@ -153,3 +153,10 @@ repos:
         additional_dependencies: [ruff]
         entry: ruff format
         types_or: [python, pyi, markdown]
+
+      - id: ruff-check
+        name: ruff check
+        language: python
+        additional_dependencies: [ruff]
+        entry: ruff check --fix --exit-non-zero-on-fix
+        types_or: [python, pyi]
