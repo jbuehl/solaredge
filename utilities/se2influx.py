@@ -188,18 +188,18 @@ class Se2Influx:
                 for hw_type in ("inverters", "optimizers"):
                     for serial, hw_data in se_data[hw_type].items():
                         # InfluxDB does not like NaN floats, so we filter them out
-                        hw_data = {
+                        fields = {
                             k: v
                             for k, v in hw_data.items()
                             if not (isinstance(v, float) and isnan(v))
                         }
-                        utc_date = self.pop_utc_date(hw_data)
+                        utc_date = self.pop_utc_date(fields)
                         data_out.append(
                             {
                                 "measurement": hw_type,
                                 "tags": {"serial": serial},
                                 "time": utc_date,
-                                "fields": hw_data,
+                                "fields": fields,
                             }
                         )
 

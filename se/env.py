@@ -235,11 +235,14 @@ def getArgs():
 
     # print out the arguments and options
     for k, v in sorted(vars(args).items()):
+        shown = v
         if k == "commands":
-            v = " ".join(",".join(cpart for cpart in command) for command in v)
+            shown = " ".join(
+                ",".join(cpart for cpart in command) for command in v
+            )
         if k == "slaves":
-            v = ",".join(slave for slave in v)
-        logger.info("%s: %s", k, v)
+            shown = ",".join(slave for slave in v)
+        logger.info("%s: %s", k, shown)
 
     return (
         args,
