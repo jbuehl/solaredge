@@ -41,7 +41,7 @@ class Seq:
     data_out = 0
 
 
-def readMsg(in_file, rec_file, mode, state):
+def read_msg(in_file, rec_file, mode, state):
     """
     Read the next message from the input file.
 
@@ -61,20 +61,22 @@ def readMsg(in_file, rec_file, mode, state):
     if not mode.passiveMode and (mode.serialType != "4"):
         # active mode that is not RS485
         # read the magic number and header
-        msg = readBytes(in_file, rec_file, magicLen + msgHdrLen, mode, state)
+        msg = read_bytes(in_file, rec_file, magicLen + msgHdrLen, mode, state)
         if not msg:  # end of file
             return (msg, True)
         (data_len, _data_len_inv, _msg_seq, _from_addr, _to_addr, _function) = (
             struct.unpack("<HHHLLH", msg[magicLen:])
         )
         # read the data and checksum
-        msg += readBytes(in_file, rec_file, data_len + checksumLen, mode, state)
+        msg += read_bytes(
+            in_file, rec_file, data_len + checksumLen, mode, state
+        )
         msg = msg[magicLen:]  # strip the magic number from the beginning
     else:
         # passive mode or RS485
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            next_byte = readBytes(in_file, rec_file, 1, mode, state)
+            next_byte = read_bytes(in_file, rec_file, 1, mode, state)
             if not next_byte:  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
@@ -86,7 +88,7 @@ def readMsg(in_file, rec_file, mode, state):
     return (msg, eof)
 
 
-def readBytes(in_file, rec_file, length, mode, state):
+def read_bytes(in_file, rec_file, length, mode, state):
     """
     Read the specified number of bytes from the input file.
 
@@ -105,7 +107,7 @@ def readBytes(in_file, rec_file, length, mode, state):
             while not in_buf:
                 time.sleep(sleepInterval)
                 in_buf = in_file.read(length)
-        recordMsg(in_buf, rec_file)
+        record_msg(in_buf, rec_file)
         se.logutils.setState(
             state, "lastByteRead", f"{bytearray(in_buf)[-1]:02x}"
         )
@@ -117,7 +119,7 @@ def readBytes(in_file, rec_file, length, mode, state):
         return in_buf
 
 
-def parseMsg(msg):
+def parse_msg(msg):
     """
     Parse a message into its sequence, addresses, function and data.
 
@@ -132,11 +134,11 @@ def parseMsg(msg):
     ):  # throw out messages that are too short
         logger.data("Threw out a message that was too short")
         return (0, 0, 0, 0, b"")
-    (msg_seq, from_addr, to_addr, function, data) = validateMsg(msg)
+    (msg_seq, from_addr, to_addr, function, data) = validate_msg(msg)
     return (msg_seq, from_addr, to_addr, function, data)
 
 
-def rejectMsg(msg, reason, *args):
+def reject_msg(msg, reason, *args):
     """
     Log why a message is rejected and dump the message data.
 
@@ -149,7 +151,7 @@ def rejectMsg(msg, reason, *args):
     return (0, 0, 0, 0, b"")
 
 
-def validateMsg(msg):
+def validate_msg(msg):
     """
     Parse the header of a message and check its lengths and checksum.
 
@@ -157,24 +159,24 @@ def validateMsg(msg):
 
     Returns:
         A tuple (msgSeq, fromAddr, toAddr, function, data), or the rejected
-        message tuple from rejectMsg if the message is invalid.
+        message tuple from reject_msg if the message is invalid.
     """
     # message must be at least a header and checksum
     if len(msg) < msgHdrLen + checksumLen:
-        return rejectMsg(msg, "Message too short")
+        return reject_msg(msg, "Message too short")
     # parse the message header
     (data_len, data_len_inv, msg_seq, from_addr, to_addr, function) = (
         struct.unpack("<HHHLLH", msg[0:msgHdrLen])
     )
-    logMsgHdr(
+    log_msg_hdr(
         MsgHdr(data_len, data_len_inv, msg_seq, from_addr, to_addr, function)
     )
     # header + data + checksum can't be longer than the message
     if msgHdrLen + data_len + checksumLen > len(msg):
-        return rejectMsg(msg, "Data length is too big for the message")
+        return reject_msg(msg, "Data length is too big for the message")
     # data length must match inverse length
     if data_len != ~data_len_inv & 0xFFFF:
-        return rejectMsg(msg, "Data length doesn't match inverse length")
+        return reject_msg(msg, "Data length doesn't match inverse length")
     data = msg[msgHdrLen : msgHdrLen + data_len]
     # discard extra bytes after the message
     extra_len = len(msg) - (msgHdrLen + data_len + checksumLen)
@@ -186,11 +188,11 @@ def validateMsg(msg):
     checksum = struct.unpack(
         "<H", msg[msgHdrLen + data_len : msgHdrLen + data_len + checksumLen]
     )[0]
-    calcsum = calcCrc(
+    calcsum = calc_crc(
         struct.pack(">HLLH", msg_seq, from_addr, to_addr, function) + data
     )
     if calcsum != checksum:
-        return rejectMsg(
+        return reject_msg(
             msg,
             "Checksum error. Expected 0x%04x, got 0x%04x",
             checksum,
@@ -199,14 +201,14 @@ def validateMsg(msg):
     return (msg_seq, from_addr, to_addr, function, data)
 
 
-def formatMsg(msg_seq, from_addr, to_addr, function, data=b""):
+def format_msg(msg_seq, from_addr, to_addr, function, data=b""):
     """
     Build a complete message, with its length fields and checksum.
 
     Returns:
         The message as a bytearray, without the magic number.
     """
-    checksum = calcCrc(
+    checksum = calc_crc(
         bytearray(struct.pack(">HLLH", msg_seq, from_addr, to_addr, function))
         + data
     )
@@ -223,7 +225,7 @@ def formatMsg(msg_seq, from_addr, to_addr, function, data=b""):
         + data
         + struct.pack("<H", checksum)
     )
-    logMsgHdr(
+    log_msg_hdr(
         MsgHdr(
             len(data),
             ~len(data) & 0xFFFF,
@@ -236,16 +238,16 @@ def formatMsg(msg_seq, from_addr, to_addr, function, data=b""):
     return msg
 
 
-def sendMsg(data_file, msg, rec_file):
+def send_msg(data_file, msg, rec_file):
     """Write a message, prefixed with the magic number, to the data file."""
     Seq.data_out += 1
     logger.message("<--", Seq.data_out, magic + msg, data_file.name)
     data_file.write(magic + msg)
     data_file.flush()
-    recordMsg(magic + msg, rec_file)
+    record_msg(magic + msg, rec_file)
 
 
-def recordMsg(msg, rec_file):
+def record_msg(msg, rec_file):
     """Write a message to the record file, if one is open."""
     if rec_file:
         rec_file.write(msg)
@@ -518,7 +520,7 @@ crcTable = [
 ]
 
 
-def calcCrc(data):
+def calc_crc(data):
     """Return the CRC-16 checksum of data, using the table above."""
     crc = 0x5A5A  # initial value
     for d in data:
@@ -526,7 +528,7 @@ def calcCrc(data):
     return crc
 
 
-def logMsgHdr(hdr):
+def log_msg_hdr(hdr):
     """Log each field of a message header at the data log level."""
     logger.data("dataLen:    %04x", hdr.data_len)
     logger.data("dataLenInv: %04x", hdr.data_len_inv)

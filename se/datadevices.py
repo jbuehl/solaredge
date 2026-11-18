@@ -65,7 +65,7 @@ class ParseDevice(dict):
 
     Its main purposes are:
 
-        to provide a suite of standard methods shared by all the subclasses (and in particular the parseDevTable method
+        to provide a suite of standard methods shared by all the subclasses (and in particular the parse_dev_table method
         which given a fieldDefs list, will parse the seData block accordingly); and
         to have a 'clever' __new__ method, which redirects the creation of a ParseDevice to the creation of a subclass
         of a ParseDevice which specializes in the particular seType encountered in the current block of seData
@@ -97,7 +97,7 @@ class ParseDevice(dict):
     # List of names of derived items.
     # Useful for documenting the interpretation of the derived values, and is also
     # used to set the default values (in case the condition which
-    # triggers the derivation does not occur at a particular timeStamp) - see the setDerivationDefaults method.
+    # triggers the derivation does not occur at a particular timeStamp) - see the set_derivation_defaults method.
 
     # Each "definition" is itself a list, comprising:
     # [paramName, paramDefault, out (to CSV) True or False, comment]
@@ -105,7 +105,7 @@ class ParseDevice(dict):
     #
     # NB *** It is (much) simpler to describe the actual derivation for a particular item in Python code
     # (within the subclass that needs it) than to develop a completely new "syntax" for describing derivations!
-    # see the codeDerivations method in the subclasses of ParseDevice for examples.
+    # see the code_derivations method in the subclasses of ParseDevice for examples.
 
     _derivn: ClassVar[list[list[Any]]] = [
         # [paramName, paramDefault, out (to CSV) True or False, comment]
@@ -141,7 +141,7 @@ class ParseDevice(dict):
         new_instance = super().__new__(cls)
         # (Re)setting a basically empty (unknown) definition for this instance is crucial
         # because you may have already encountered another unknown device with a *different* length and fieldDefs,
-        # and the parseDevTable method updates the *class* definition dynamically if it encounters more data than it
+        # and the parse_dev_table method updates the *class* definition dynamically if it encounters more data than it
         # expects.
         new_instance.fieldDefs = [
             [
@@ -180,7 +180,7 @@ class ParseDevice(dict):
 
     # format a hex entry as a readable string
     @staticmethod
-    def hexData(data):
+    def hex_data(data):
         """
         Convert a string of bytes into a nicely formatted string of the hex representation of each byte.
 
@@ -189,7 +189,7 @@ class ParseDevice(dict):
         """
         line_size = 16
 
-        def hexLine(data):
+        def hex_line(data):
             return " ".join(f"{x:02x}" for x in data)
 
         hex_lines = []
@@ -197,15 +197,15 @@ class ParseDevice(dict):
             print_ptr = 0
             while len(data) - print_ptr >= line_size:
                 hex_lines.append(
-                    hexLine(data[print_ptr : print_ptr + line_size])
+                    hex_line(data[print_ptr : print_ptr + line_size])
                 )
                 print_ptr += line_size
             if print_ptr < len(data):
-                hex_lines.append(hexLine(data[print_ptr:]))
+                hex_lines.append(hex_line(data[print_ptr:]))
         return " | ".join(hex_lines)
 
     @staticmethod
-    def unhexData(hex_data):
+    def unhex_data(hex_data):
         """
         Convert a hex representation into a string of bytes, i.e. the inverse of hex_data.
 
@@ -221,12 +221,12 @@ class ParseDevice(dict):
         Extra keyword arguments (such as explorer) are accepted and ignored,
         because ParseDevice(data, explorer=...) passes them to __init__ too.
         """
-        self.parseDevTable(data)
-        self.setDerivationDefaults()
-        self.codeDerivations()
-        self.checkHypotheses()
+        self.parse_dev_table(data)
+        self.set_derivation_defaults()
+        self.code_derivations()
+        self.check_hypotheses()
 
-    def parseDevTable(self, data):
+    def parse_dev_table(self, data):
         """Parse the header and every field of the data block into self."""
         data_ptr = 0
         dev_hdr_len = 8
@@ -253,17 +253,17 @@ class ParseDevice(dict):
             }
         )
 
-        if self.fieldDefsLen > dev_len:
-            msg = f"You have defined more bytes, {self.fieldDefsLen}, than the message contains, {dev_len}"
+        if self.field_defs_len > dev_len:
+            msg = f"You have defined more bytes, {self.field_defs_len}, than the message contains, {dev_len}"
             raise ValueError(msg)
-        if self.fieldDefsLen < dev_len:
+        if self.field_defs_len < dev_len:
             # By default, convert any remaining undefined bytes to their representation as a hexadecimal string.
             self.fieldDefs.append(
                 [
-                    dev_len - self.fieldDefsLen,
+                    dev_len - self.field_defs_len,
                     "hex",
                     "Undeciphered_data",
-                    self.hexData,
+                    self.hex_data,
                     True,
                     "unknown as yet",
                 ]
@@ -329,15 +329,15 @@ class ParseDevice(dict):
         elif out_format_fn is not None:
             self[param_name] = out_format_fn(self[param_name])
 
-    def setDerivationDefaults(self):
+    def set_derivation_defaults(self):
         """Set every derived item to its default value."""
         for param_name, param_default, _out, _comment in self._derivn:
             self[param_name] = param_default
 
-    def codeDerivations(self):
+    def code_derivations(self):
         """Calculate derived items. Does nothing here; subclasses override it."""
 
-    def checkHypotheses(self):
+    def check_hypotheses(self):
         """Log a warning for each hypothesis that does not hold for this device."""
         for hypothesis, holds in self._hypotheses:
             if not holds(self):
@@ -371,7 +371,7 @@ class ParseDevice(dict):
         return {self.devType: {self._seId: self}}
 
     @classmethod
-    def itemNames(cls):
+    def item_names(cls):
         """Return the names of the items that are written to CSV and Graphite."""
         # Extract some item name and definition length information that se2csv needs
 
@@ -402,7 +402,7 @@ class ParseDevice(dict):
         return dev_item_names
 
     @property
-    def fieldDefsLen(self):
+    def field_defs_len(self):
         """Return the total number of bytes described by fieldDefs."""
         return sum(
             [
@@ -412,7 +412,7 @@ class ParseDevice(dict):
         )
 
     @classmethod
-    def itemDefs(cls):
+    def item_defs(cls):
         """
         Produce a pretty report on the item definitions parsed by this class, and its subclasses.
 
@@ -459,7 +459,7 @@ class ParseDevice(dict):
                         f"(default={param_default}) {comment}",
                     )
                 )
-        msg.extend(subclass.itemDefs() for subclass in cls.__subclasses__())
+        msg.extend(subclass.item_defs() for subclass in cls.__subclasses__())
         return "\n".join(msg)
 
 
@@ -532,7 +532,7 @@ class ParseDevice_0x0030(ParseDevice):
             4,
             "hex",
             "HexConst_52",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             False,
             "unknown, constant value",
         ],
@@ -540,7 +540,7 @@ class ParseDevice_0x0030(ParseDevice):
             4,
             "hex",
             "HexConst_56",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             False,
             "unknown, constant value",
         ],
@@ -661,7 +661,7 @@ class ParseDevice_0x0022(ParseDevice):
             2,
             "hex",
             "Flag_off12_hex",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             True,
             "flag"
             + sp
@@ -686,7 +686,7 @@ class ParseDevice_0x0022(ParseDevice):
             2,
             "hex",
             "Flag_off20_hex",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             True,
             "flag"
             + sp
@@ -713,7 +713,7 @@ class ParseDevice_0x0022(ParseDevice):
             2,
             "hex",
             "Flag_off28_hex",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             True,
             "flag"
             + sp
@@ -742,7 +742,7 @@ class ParseDevice_0x0022(ParseDevice):
             2,
             "hex",
             "Flag_off36_hex",
-            ParseDevice.hexData,
+            ParseDevice.hex_data,
             True,
             "flag"
             + sp
@@ -841,7 +841,7 @@ class ParseDevice_0x0022(ParseDevice):
         """Parse the data block; extra keyword arguments are ignored."""
         super().__init__(data)
 
-    def codeDerivations(self):
+    def code_derivations(self):
         """Replace the bogus large negative P2X values with NaN."""
         # Filter out some sporadic 'NaN'-like values which appear in P2X.  The hex value is the BIG endian version of a
         # Python NaN. Read as LITTLE endian it becomes "-3.2... 10^38" which is unlikely to be meant as a real value!
@@ -911,7 +911,7 @@ class ParseDevice_Explorer(ParseDevice):
     _itemNames: ClassVar[list[str]] = ["seType", "seId", "devLen", "devType"]
     _fieldDefsLen = 0
 
-    def parseDevTable(self, data):
+    def parse_dev_table(self, data):
         """
         A special exploratory parser that needs no predefined item definitions.
 
@@ -950,14 +950,14 @@ class ParseDevice_Explorer(ParseDevice):
         )
 
         # First, dump a hex version of the whole block into one field
-        self["AllAsHex"] = self.hexData(data[data_ptr:])
+        self["AllAsHex"] = self.hex_data(data[data_ptr:])
         # Next work through the block, 2 bytes at a time, trying as many potential parsings as will fit.
         # I am assuming items will be at least 2 bytes long. Easy enough to change if you need to try different offsets.
         for offset in range(0, dev_len, 2):
             # Parse a range of possible interpretations of the (4) bytes beginning at offset.
-            self.parseAtOffset(data[data_ptr:], offset, dev_len)
+            self.parse_at_offset(data[data_ptr:], offset, dev_len)
 
-    def parseAtOffset(self, data, offset, devlen):
+    def parse_at_offset(self, data, offset, devlen):
         """
         Parses (up to) 4 bytes of data, beginning at offset, as many ways as it can.
 
@@ -969,13 +969,13 @@ class ParseDevice_Explorer(ParseDevice):
         if offset <= (devlen - 1):
             # Parse items which may be 1 byte long
             item_name = f"offset{offset:03}_1_hex1"
-            self[item_name] = self.hexData(data[offset : offset + 1])
+            self[item_name] = self.hex_data(data[offset : offset + 1])
             self._itemNames.append(item_name)
 
         if offset <= (devlen - 2):
             # Parse items which may be 2 bytes long
             item_name = f"offset{offset:03}_1_hex2"
-            self[item_name] = self.hexData(data[offset : offset + 2])
+            self[item_name] = self.hex_data(data[offset : offset + 2])
             self._itemNames.append(item_name)
             item_name = f"offset{offset:03}_4_int2"
             self[item_name] = struct.unpack("<H", data[offset : offset + 2])[0]
@@ -984,7 +984,7 @@ class ParseDevice_Explorer(ParseDevice):
         if offset <= (devlen - 4):
             # Parse items which may be 4 bytes long
             item_name = f"offset{offset:03}_1_hex4"
-            self[item_name] = self.hexData(data[offset : offset + 4])
+            self[item_name] = self.hex_data(data[offset : offset + 4])
             self._itemNames.append(item_name)
             item_name = f"offset{offset:03}_3_float_LE"
             self[item_name] = struct.unpack("<f", data[offset : offset + 4])[0]
@@ -1020,19 +1020,19 @@ class ParseDevice_Explorer(ParseDevice):
             self._itemNames.append(f"Time_offset{offset:03}")
 
     @classmethod
-    def itemNames(cls):
+    def item_names(cls):
         """Return the item names collected by the exploratory parser."""
         # Warning. If ParseDevice_Explorer is used on more than 1 seType data block in a single run, this will *NOT*
         # return sensible values!
         return cls._itemNames
 
     @property
-    def fieldDefsLen(self):
+    def field_defs_len(self):
         """Return the byte length of the data block, from its header."""
         return self._fieldDefsLen
 
     @classmethod
-    def itemDefs(cls):
+    def item_defs(cls):
         """Return a report describing the exploratory parser's items."""
         msg = [
             "\n\n{} / {} parses data blocks with any unrecognized seType.\n{}".format(

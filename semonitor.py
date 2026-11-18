@@ -68,9 +68,9 @@ def readData(args, mode, state, files):
     eof = False
     if mode.passiveMode:
         # skip data until the start of the first complete message
-        (msg, eof) = se.msg.readMsg(files.data, files.rec, mode, state)
+        (msg, eof) = se.msg.read_msg(files.data, files.rec, mode, state)
     while not eof:
-        (msg, eof) = se.msg.readMsg(files.data, files.rec, mode, state)
+        (msg, eof) = se.msg.read_msg(files.data, files.rec, mode, state)
         if eof:  # end of file
             logger.info("End of file")
         if msg == b"\x00" * len(msg):  # ignore messages containing all zeros
@@ -98,7 +98,7 @@ def processMsg(msg, mode, state, files):
     is sent when one is due.
     """
     # parse the message
-    (msg_seq, from_addr, to_addr, function, data) = se.msg.parseMsg(msg)
+    (msg_seq, from_addr, to_addr, function, data) = se.msg.parse_msg(msg)
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
@@ -114,10 +114,10 @@ def processMsg(msg, mode, state, files):
         if mode.masterMode:  # send reply
             (reply_function, reply_data) = masterReply(function, state)
             if reply_function:
-                msg = se.msg.formatMsg(
+                msg = se.msg.format_msg(
                     msg_seq, to_addr, from_addr, reply_function, reply_data
                 )
-                se.msg.sendMsg(files.data, msg, files.rec)
+                se.msg.send_msg(files.data, msg, files.rec)
 
 
 def masterReply(function, state):
@@ -174,9 +174,9 @@ def masterGrant(state, data_file, rec_file, slave_addr):
     with threadLock:
         se.logutils.setState(state, "threadLock", value=True)
         # grant control of the bus to the slave
-        se.msg.sendMsg(
+        se.msg.send_msg(
             data_file,
-            se.msg.formatMsg(
+            se.msg.format_msg(
                 nextSeq(),
                 MASTER_ADDR,
                 int(slave_addr, 16),
@@ -219,9 +219,9 @@ def doCommands(args, mode, state, files):
         params = [int(p[1:], 16) for p in command[1:]]
         seq = nextSeq()
         # send the command
-        se.msg.sendMsg(
+        se.msg.send_msg(
             files.data,
-            se.msg.formatMsg(
+            se.msg.format_msg(
                 seq,
                 MASTER_ADDR,
                 int(args.slaves[0], 16),
@@ -234,8 +234,8 @@ def doCommands(args, mode, state, files):
             # grant control of the bus to the slave
             masterGrant(state, files.data, files.rec, args.slaves[0])
         # wait for the response to the command
-        (msg, _eof) = se.msg.readMsg(files.data, files.rec, mode, state)
-        (_msg_seq, _from_addr, _to_addr, response, data) = se.msg.parseMsg(msg)
+        (msg, _eof) = se.msg.read_msg(files.data, files.rec, mode, state)
+        (_msg_seq, _from_addr, _to_addr, response, data) = se.msg.parse_msg(msg)
         msg_data = se.data.parse_data(response, data)
         # write response to output file
         se.data.write_data(

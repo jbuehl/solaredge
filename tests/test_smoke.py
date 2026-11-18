@@ -16,9 +16,9 @@ def test_golden_data_is_checked_out(golden_dir, sample):
 
 
 def test_message_roundtrip():
-    msg = se.msg.formatMsg(1234, 0xFFFFFFFE, 0x7F104920, 0x0501, b"\x01\x02")
+    msg = se.msg.format_msg(1234, 0xFFFFFFFE, 0x7F104920, 0x0501, b"\x01\x02")
 
-    assert se.msg.parseMsg(bytes(msg)) == (
+    assert se.msg.parse_msg(bytes(msg)) == (
         1234,
         0xFFFFFFFE,
         0x7F104920,

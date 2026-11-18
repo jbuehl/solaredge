@@ -530,7 +530,7 @@ def with_the_magic_in_the_data(recording):
     assert data[8 + 22 : 8 + 26] == bytes(4)
     data[8 + 22 : 8 + 26] = MAGIC
     return MAGIC + bytes(
-        se.msg.formatMsg(sequence, source, destination, function, bytes(data))
+        se.msg.format_msg(sequence, source, destination, function, bytes(data))
     )
 
 

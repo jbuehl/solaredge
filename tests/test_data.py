@@ -133,9 +133,9 @@ def read_frames(sample):
     state = {}
     with (GOLDEN_DIR / "rec" / f"{sample}.rec").open("rb") as rec:
         while True:
-            msg, eof = se.msg.readMsg(rec, None, PASSIVE, state)
+            msg, eof = se.msg.read_msg(rec, None, PASSIVE, state)
             if msg:
-                function, data = se.msg.parseMsg(msg)[3:]
+                function, data = se.msg.parse_msg(msg)[3:]
                 if function:
                     frames.append((function, data))
             if eof:

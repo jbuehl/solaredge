@@ -172,7 +172,7 @@ COMMAND_MODE = LISTEN_MODE
 
 
 def frame(function, data=b"", seq=7, source=SLAVE, dest=MASTER_ADDR):
-    return bytes(se.msg.formatMsg(seq, source, dest, function, data))
+    return bytes(se.msg.format_msg(seq, source, dest, function, data))
 
 
 def corrupt(msg):
@@ -199,7 +199,7 @@ def function_of(msg):
 
 
 def carries_data(msg):
-    return len(se.msg.parseMsg(msg)[4]) > 0
+    return len(se.msg.parse_msg(msg)[4]) > 0
 
 
 def carries_no_data(msg):
