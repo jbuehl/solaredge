@@ -337,16 +337,16 @@ def comparable(device):
     }
 
 
-# Parsing changes the class level tables (a longer record adds to fieldDefs, the
+# Parsing changes the class level tables (a longer record adds to field_defs, the
 # explorer adds item names), so every test gets pristine copies.
 @pytest.fixture(autouse=True)
 def isolate_class_state(monkeypatch):
     for cls in (ParseDevice_0x0022, ParseDevice_0x0030, ParseDevice_Explorer):
-        monkeypatch.setattr(cls, "fieldDefs", list(vars(cls)["fieldDefs"]))
+        monkeypatch.setattr(cls, "field_defs", list(vars(cls)["field_defs"]))
     monkeypatch.setattr(
         ParseDevice_Explorer,
-        "_itemNames",
-        list(vars(ParseDevice_Explorer)["_itemNames"]),
+        "_item_names",
+        list(vars(ParseDevice_Explorer)["_item_names"]),
     )
 
 
@@ -516,7 +516,7 @@ def test_unknown_devices_of_different_length_do_not_share_definitions(
         payload_of(short_record)[4:]
     )
     assert long_dev == again
-    assert ParseDevice.fieldDefs == []  # the shared definition is under test
+    assert ParseDevice.field_defs == []  # the shared definition is under test
 
 
 @pytest.mark.parametrize("record", UNKNOWN)
@@ -584,7 +584,7 @@ def test_trailing_bytes_become_a_part_of_the_battery_definition(record):
     ParseDevice(resized(record, payload_of(record) + b"\x01"))
 
     assert ParseDevice_0x0030.item_names()[-1] == "Undeciphered_data"
-    assert sum(item[0] for item in ParseDevice_0x0030.fieldDefs) == (  # idem
+    assert sum(item[0] for item in ParseDevice_0x0030.field_defs) == (  # idem
         len(payload_of(record)) + 1
     )
 
@@ -1271,7 +1271,7 @@ def test_recorded_devices_merge_to_the_golden_devices(golden, sample):
 
 def test_recorded_device_types_are_those_of_the_samples():
     found = {
-        ParseDevice(rec).devType  # the type of the record is under test
+        ParseDevice(rec).dev_type  # the type of the record is under test
         for sample in SAMPLES
         for message in parsed_by_parse_device(
             GOLDEN_DIR / "rec" / f"{sample}.rec"

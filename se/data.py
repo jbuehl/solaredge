@@ -279,7 +279,7 @@ def parse_device_data(data):
             # appropriate identifiers) to the dictionary of devices
             merge_update(devs_dict, parsed_device.wrap_in_ids())
             log_device(
-                f"{parsed_device.devType}: ",
+                f"{parsed_device.dev_type}: ",
                 se_type,
                 se_id,
                 dev_len,
