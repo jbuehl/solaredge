@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from pathlib import Path
 
 import serial
 
@@ -17,7 +18,7 @@ def openInFile(inFileName):
     if inFileName == "stdin":
         return sys.stdin.buffer
     # Explicitly specify mode rb to keep Windows happy!
-    return open(inFileName, "rb")
+    return Path(inFileName).open("rb")
 
 
 # close the data source
@@ -29,7 +30,7 @@ def closeData(dataFile):
 # open the output file if it is specified
 def openOutFile(fileName, writeMode="wb"):
     if fileName:
-        return open(fileName, writeMode)
+        return Path(fileName).open(writeMode)
     return None
 
 

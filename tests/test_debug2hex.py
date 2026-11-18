@@ -123,7 +123,7 @@ def test_the_data_file_is_complete_when_the_script_has_ended(
         opened.append(handle)
         return handle
 
-    monkeypatch.setattr("builtins.open", tracking_open)
+    monkeypatch.setattr("io.open", tracking_open)
 
     run_debug2hex(monkeypatch, log, workdir / "out.bin")
 

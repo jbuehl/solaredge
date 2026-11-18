@@ -3,9 +3,9 @@
 import argparse
 import contextlib
 import datetime
-import os
 import sys
 import time
+from pathlib import Path
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
             inFile = sys.stdin
         else:
             try:
-                inFile = files.enter_context(open(args.infile))
+                inFile = files.enter_context(Path(args.infile).open())
             except OSError:
                 sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
                 sys.exit(1)
@@ -55,8 +55,7 @@ def main():
                 curhour = curtime.strftime("%Y-%m-%d-%H")
                 curstore = curday if store_daily else curhour
                 if make_daily_dir:
-                    if not os.path.isdir(basedir + "/" + curday):
-                        os.mkdir(basedir + "/" + curday)
+                    Path(basedir, curday).mkdir(exist_ok=True)
                     tfname = (
                         basedir
                         + "/"
@@ -77,8 +76,8 @@ def main():
                     writefilename = tfname
 
                 # The file is closed again right away, so we never keep it open
-                with open(
-                    writefilename, "a", buffering=filebuffersize
+                with Path(writefilename).open(
+                    "a", buffering=filebuffersize
                 ) as writefile:
                     writefile.write(jsonStr + "\n")
                 lastwrite = curepoch

@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import csv
 import json
+from pathlib import Path
 
 from common import unwrap_metricsDict
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
                     itemNames = ["__Identifier__", *sorted(devAttrs.keys())]
                     devsFile[devName] = csv.DictWriter(
                         csv_files.enter_context(
-                            open(devsFileName, "a" if args.append else "w")
+                            Path(devsFileName).open("a" if args.append else "w")
                         ),
                         itemNames,
                     )

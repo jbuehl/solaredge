@@ -7,6 +7,7 @@ import getopt
 import json
 import sys
 import time
+from pathlib import Path
 
 from common import open_input
 
@@ -34,7 +35,7 @@ def avgItems(itemDict, itemAttr):
 
 def writeState(stateDict, outFileName):
     # update the state file
-    with open(outFileName, "w") as outFile:
+    with Path(outFileName).open("w") as outFile:
         json.dump(stateDict, outFile)
 
 
@@ -77,7 +78,7 @@ if initialize:
 else:
     # start with values from the file if it exists
     try:
-        with open(outFileName) as stateFile:
+        with Path(outFileName).open() as stateFile:
             stateDict = json.load(stateFile)
     except OSError:
         pass

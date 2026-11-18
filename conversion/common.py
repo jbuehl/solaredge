@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 
 def open_input(args):
@@ -20,7 +21,7 @@ def open_input(args):
     if not args:
         return sys.stdin
     try:
-        return open(args[0])
+        return Path(args[0]).open()
     except OSError as ex:
         sys.exit(f"{sys.argv[0]}: {ex}")
 

@@ -9,8 +9,8 @@
 ## Originally sourced from the gist at https://gist.github.com/marcelom/4218010
 
 import logging
-import os.path
 import sys
+from pathlib import Path
 
 import SocketServer
 
@@ -22,8 +22,7 @@ HOST, PORT = "0.0.0.0", 514
 # NO USER SERVICEABLE PARTS BELOW HERE...
 #
 
-if not os.path.isdir(LOG_DIR):
-    os.mkdir(LOG_DIR)
+Path(LOG_DIR).mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,

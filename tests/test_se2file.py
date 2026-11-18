@@ -325,7 +325,7 @@ def test_the_output_files_are_not_left_open(workdir, se2file, monkeypatch):
         opened.append(handle)
         return handle
 
-    monkeypatch.setattr("builtins.open", tracking_open)
+    monkeypatch.setattr("io.open", tracking_open)
 
     se2file("-b", "out", stdin=['{"a": 1}\n'])
 

@@ -7,6 +7,7 @@ import struct
 import sys
 import threading
 import time
+from pathlib import Path
 
 import se.commands
 import se.data
@@ -231,14 +232,14 @@ def block(state):
 # get next sequence number
 def nextSeq():
     try:
-        with open(SEQ_FILE_NAME) as seqFile:
+        with Path(SEQ_FILE_NAME).open() as seqFile:
             seq = int(seqFile.read().rstrip("\n"))
         seq += 1
         if seq > 65535:
             seq = 1
     except OSError:
         seq = 1
-    with open(SEQ_FILE_NAME, "w") as seqFile:
+    with Path(SEQ_FILE_NAME).open("w") as seqFile:
         seqFile.write(str(seq) + "\n")
     return seq
 

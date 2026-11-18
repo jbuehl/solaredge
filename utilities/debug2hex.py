@@ -12,11 +12,12 @@
 import binascii
 import contextlib
 import sys
+from pathlib import Path
 
 with contextlib.ExitStack() as files:
-    logFile = files.enter_context(open(sys.argv[1]))
+    logFile = files.enter_context(Path(sys.argv[1]).open())
     try:
-        dataFile = files.enter_context(open(sys.argv[2], "wb"))
+        dataFile = files.enter_context(Path(sys.argv[2]).open("wb"))
     except IndexError:
         dataFile = sys.stdout.buffer
 

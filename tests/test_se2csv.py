@@ -24,7 +24,7 @@ def run_se2csv(monkeypatch, *args, stdin=""):
         opened.append(handle)
         return handle
 
-    monkeypatch.setattr("builtins.open", tracking_open)
+    monkeypatch.setattr("io.open", tracking_open)
     try:
         runpy.run_path(str(SCRIPT), run_name="__main__")
     except SystemExit as exit_:
