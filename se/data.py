@@ -30,6 +30,15 @@ from se.dataparams import (
 logger = logging.getLogger(__name__)
 
 
+# the device types in the data of a performance data message
+DEV_OPTIMIZER = 0x0000
+DEV_INVERTER = 0x0010
+DEV_INVERTER_3PH = 0x0011
+DEV_OPTIMIZER_NEW = 0x0080
+DEV_OPTIMIZER_S440 = 0x0082
+DEV_EVENT = 0x0300
+
+
 class Seq:
     """Debugging sequence number of the messages written."""
 
@@ -171,22 +180,22 @@ def parseDeviceData(data):
         seId = parseId(seId)
         dataPtr += devHdrLen
         # device data
-        if seType == 0x0000:  # optimizer data
+        if seType == DEV_OPTIMIZER:  # optimizer data
             optDict[seId] = parseOptData(
                 seId, optItems, data[dataPtr : dataPtr + devLen]
             )
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == 0x0080:  # new format optimizer data
+        elif seType == DEV_OPTIMIZER_NEW:  # new format optimizer data
             optDict[seId] = parseNewOptData(
                 seId, optItems, data[dataPtr : dataPtr + devLen]
             )
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == 0x0082:  # s440 optimizers
+        elif seType == DEV_OPTIMIZER_S440:  # s440 optimizers
             optDict[seId] = parseS440OptData(
                 seId, optItems, data[dataPtr : dataPtr + devLen]
             )
             logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == 0x0010:  # inverter data
+        elif seType == DEV_INVERTER:  # inverter data
             invDict[seId] = parseInvData(
                 seId, invItems, data[dataPtr : dataPtr + devLen]
             )
@@ -196,12 +205,12 @@ def parseDeviceData(data):
             if invDict[seId]["Pmax"] < -3 * 10**38:
                 invDict[seId]["Pmax"] = float("nan")
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
-        elif seType == 0x0011:  # 3 phase inverter data
+        elif seType == DEV_INVERTER_3PH:  # 3 phase inverter data
             invDict[seId] = parseInv3PhData(
                 seId, inv3PhItems, data[dataPtr : dataPtr + devLen]
             )
             logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
-        elif seType == 0x0300:  # wake or sleep event
+        elif seType == DEV_EVENT:  # wake or sleep event
             eventDict[seId] = parseEventData(
                 seId, eventItems, data[dataPtr : dataPtr + devLen]
             )

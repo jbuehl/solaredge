@@ -26,6 +26,8 @@ MASTER_MSG_INTERVAL = 5
 MASTER_MSG_TIMEOUT = 10
 MASTER_ADDR = 0xFFFFFFFE
 SEQ_FILE_NAME = "seseq.txt"
+MAX_SEQ = 0xFFFF  # the sequence number wraps after this
+PROT_CMD_SERVER_KEY = 0x0503  # the message with the encryption key
 
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
@@ -92,7 +94,7 @@ def processMsg(msg, mode, state, dataFile, recFile, outFile):
                 # send ack
                 replyFunction = se.commands.PROT_RESP_ACK
                 replyData = b""
-            elif function == 0x0503:  # encryption key
+            elif function == PROT_CMD_SERVER_KEY:
                 # send ack
                 replyFunction = se.commands.PROT_RESP_ACK
                 replyData = b""
@@ -233,7 +235,7 @@ def nextSeq():
         with Path(SEQ_FILE_NAME).open() as seqFile:
             seq = int(seqFile.read().rstrip("\n"))
         seq += 1
-        if seq > 65535:
+        if seq > MAX_SEQ:
             seq = 1
     except OSError:
         seq = 1
