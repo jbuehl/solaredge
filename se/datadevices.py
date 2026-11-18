@@ -241,9 +241,8 @@ class ParseDevice(dict):
         )
 
         if self.fieldDefsLen > devLen:
-            raise ValueError(
-                f"You have defined more bytes, {self.fieldDefsLen}, than the message contains, {devLen}"
-            )
+            msg = f"You have defined more bytes, {self.fieldDefsLen}, than the message contains, {devLen}"
+            raise ValueError(msg)
         if self.fieldDefsLen < devLen:
             # By default, convert any remaining undefined bytes to their representation as a hexadecimal string.
             self.fieldDefs.append(

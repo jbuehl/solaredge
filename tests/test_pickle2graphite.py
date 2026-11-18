@@ -34,7 +34,8 @@ class FakeSocket:
 
     def send(self, data):
         if isinstance(data, str):
-            raise TypeError("a bytes-like object is required, not 'str'")
+            msg = "a bytes-like object is required, not 'str'"
+            raise TypeError(msg)
         self.sent.append(data)
         return len(data)
 

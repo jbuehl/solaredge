@@ -38,7 +38,8 @@ def validated_commands(command_str):
     commands = []
     for c in command_str.split("/"):
         if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
-            raise argparse.ArgumentTypeError(f"Invalid command: {c}")
+            msg = f"Invalid command: {c}"
+            raise argparse.ArgumentTypeError(msg)
         commands.append(c.split(","))
     return commands
 
@@ -47,7 +48,8 @@ def validated_slaves(slave_str):
     slaves = []
     for s in slave_str.split(","):
         if not re.match(r"^[0-9a-fA-F]+$", s):
-            raise argparse.ArgumentTypeError(f"Invalid slave ID: {s}")
+            msg = f"Invalid slave ID: {s}"
+            raise argparse.ArgumentTypeError(msg)
         slaves.append(s)
     return slaves
 
