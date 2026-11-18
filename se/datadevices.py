@@ -913,8 +913,8 @@ class ParseDevice_Explorer(ParseDevice):
         """
         A special exploratory parser that needs no predefined item definitions.
 
-        Somewhere among the plethora of parsed values it produces, there will be the correct interpretation of each item.
-        I hope!
+        Somewhere among the plethora of parsed values it produces, there will be the correct interpretation of each
+        item. I hope!
 
         It does presume all devices begin with a standard "seType, seId, devLen" header, which may not be correct.
 
