@@ -36,7 +36,6 @@ def write_log(workdir, text, name="debug.log"):
 # --- to a file ---------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 def test_the_data_lines_are_written_as_binary_to_the_data_file(
     workdir, monkeypatch
 ):
@@ -49,7 +48,6 @@ def test_the_data_lines_are_written_as_binary_to_the_data_file(
     assert (workdir / "out.bin").read_bytes() == b"\x12\x34\x56\x79\x00\xff"
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 def test_lines_that_are_not_data_are_ignored(workdir, monkeypatch):
     log = write_log(
         workdir,
@@ -66,7 +64,6 @@ def test_lines_that_are_not_data_are_ignored(workdir, monkeypatch):
     assert (workdir / "out.bin").read_bytes() == b"\x01\x02\x03"
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 @pytest.mark.parametrize(
     "line",
     [
@@ -103,7 +100,6 @@ def test_an_empty_log_gives_an_empty_file(workdir, monkeypatch):
     assert (workdir / "out.bin").read_bytes() == b""
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 def test_the_data_file_is_replaced_not_extended(workdir, monkeypatch):
     (workdir / "out.bin").write_bytes(b"old data")
     log = write_log(workdir, "data:       01\n")
@@ -113,7 +109,6 @@ def test_the_data_file_is_replaced_not_extended(workdir, monkeypatch):
     assert (workdir / "out.bin").read_bytes() == b"\x01"
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 # No buffered data that is only written at the exit of the interpreter, as a
 # script that is used in a pipeline is read right after it ends.
 def test_the_data_file_is_complete_when_the_script_has_ended(
@@ -164,7 +159,6 @@ def test_a_log_file_that_does_not_exist_is_an_error(workdir, monkeypatch):
         run_debug2hex(monkeypatch, workdir / "missing.log")
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 def test_data_that_is_not_hex_is_an_error(workdir, monkeypatch):
     log = write_log(workdir, "data:       zz yy\n")
 
@@ -175,7 +169,6 @@ def test_data_that_is_not_hex_is_an_error(workdir, monkeypatch):
 # --- log of semonitor itself -------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #47")
 @pytest.mark.parametrize(
     "data",
     [

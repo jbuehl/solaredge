@@ -10,14 +10,18 @@
 #       dataFile    file to write data to (default: stdout)
 
 import binascii
+import contextlib
 import sys
 
-logFile = open(sys.argv[1])
-try:
-    datafile = open(sys.argv[2], "wb")
-except IndexError:
-    dataFile = sys.stdout.buffer
+with contextlib.ExitStack() as files:
+    logFile = files.enter_context(open(sys.argv[1]))
+    try:
+        dataFile = files.enter_context(open(sys.argv[2], "wb"))
+    except IndexError:
+        dataFile = sys.stdout.buffer
 
-for line in logFile:
-    if line[0:5] == "data:":
-        dataFile.write(binascii.unhexlify(line[5:].replace(" ", "").strip()))
+    for line in logFile:
+        if line[0:5] == "data:":
+            dataFile.write(
+                binascii.unhexlify(line[5:].replace(" ", "").strip())
+            )
