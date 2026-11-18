@@ -5,14 +5,15 @@ Layouts of the data of each device type, and their item names.
 """
 
 # event data interpretation
+# (the item of devData, by index, and what it means)
 #
-#   timeStamp = devData[0]
-#   Type = devData[1] # 0 or 1
-#   timeStamp = devData[2] # event start time
-#   timeStamp = devData[3] # event end time (Type == 0) or tzOffset (Type == 1)
-#   timeStamp = devData[4] # 0 (Type == 0) or event end time (Type == 1)
-#   data5 = devData[5] # 0
-#   data6 = devData[6] # 0
+#    0  timeStamp
+#    1  Type: 0 or 1
+#    2  timeStamp: event start time
+#    3  timeStamp: event end time (Type == 0) or tzOffset (Type == 1)
+#    4  timeStamp: 0 (Type == 0) or event end time (Type == 1)
+#    5  data5: 0
+#    6  data6: 0
 
 # format string used to unpack input data
 eventInFmt = "<LLLlLLL"
@@ -24,33 +25,34 @@ eventIdx = [0, 1, 2, 3, 4]
 eventItems = ["Date", "Time", "ID", "Type", "Event1", "Event2", "Event3"]
 
 # inverter data interpretation
+# (the item of devData, by index, and what it means)
 #
-#   timeStamp = devData[0]
-#   Uptime = devData[1] # uptime (s) ?
-#   Interval = devData[2] # time in last interval (s) ?
-#   Temp = devData[3] # temperature (°C)
-#   Eday = devData[4] # energy produced today (Wh)
-#   Eac = devData[5] # energy produced in last interval (Wh)
-#   Vac = devData[6] # AC volts
-#   Iac = devData[7] # AC current
-#   freq = devData[8] # frequency (Hz)
-#   data9 = devData[9] # 0xff7fffff
-#   data10 = devData[10] # 0xff7fffff
-#   Vdc = devData[11] # DC volts
-#   data12 = devData[12] # 0xff7fffff
-#   Etot = devData[13] # total energy produced (Wh)
-#   data14 = devData[14] # ?
-#   data15 = devData[15] # 0xff7fffff
-#   data16 = devData[16] # 0.0
-#   data17 = devData[17] # 0.0
-#   Pmax = devData[18] # max power (W) = 5000
-#   data19 = devData[19] # 0.0
-#   data20 = devData[20] # ?
-#   data21 = devData[21] # 0xff7fffff
-#   data22 = devData[22] # 0xff7fffff
-#   Pac = devData[23] # AC power (W)
-#   data24 = devData[24] # ?
-#   data25 = devData[25] # 0xff7fffff
+#    0  timeStamp
+#    1  Uptime: uptime (s) ?
+#    2  Interval: time in last interval (s) ?
+#    3  Temp: temperature (°C)
+#    4  Eday: energy produced today (Wh)
+#    5  Eac: energy produced in last interval (Wh)
+#    6  Vac: AC volts
+#    7  Iac: AC current
+#    8  freq: frequency (Hz)
+#    9  data9: 0xff7fffff
+#   10  data10: 0xff7fffff
+#   11  Vdc: DC volts
+#   12  data12: 0xff7fffff
+#   13  Etot: total energy produced (Wh)
+#   14  data14: ?
+#   15  data15: 0xff7fffff
+#   16  data16: 0.0
+#   17  data17: 0.0
+#   18  Pmax: max power (W) = 5000
+#   19  data19: 0.0
+#   20  data20: ?
+#   21  data21: 0xff7fffff
+#   22  data22: 0xff7fffff
+#   23  Pac: AC power (W)
+#   24  data24: ?
+#   25  data25: 0xff7fffff
 
 # format string used to unpack input data
 invInFmt = "<LLLffffffLLfLffLfffffLLffL"
@@ -96,46 +98,47 @@ invOutFmt = [
 ]
 
 # 3 phase inverter data interpretation
+# (the item of devData, by index, and what it means)
 #
-#   timeStamp = devData[0]
-#   Uptime = devData[1] # uptime (s)
-#   Interval = devData[2] # time in last interval (s)
-#   Temp = devData[3] # temperature (°C)
-#   Eday = devData[4] # energy produced today (Wh)
-#   Eac = devData[5] # energy produced in last interval (Wh)
-#   Vac1 = devData[6] # AC volts
-#   Vac2 = devData[7] # AC volts
-#   Vac3 = devData[8] # AC volts
-#   Iac1 = devData[9] # AC current
-#   Iac2 = devData[10] # AC current
-#   Iac3 = devData[11] # AC current
-#   freq1 = devData[12] # frequency (Hz)
-#   freq2 = devData[13] # frequency (Hz)
-#   freq3 = devData[14] # frequency (Hz)
-#   EdayDC = devData[15] # Same as Eday, but measured at DC side. Obfuscated by SE because it would directly reveal inverter efficiency.
-#   Edc = devData[16] # Same as Eac, but measured at DC side. Obfuscated by SE just like EdayDC.
-#   Vdc = devData[17] # DC volts
-#   Idc = devData[18] # Same as Iac, but at DC side. Obfuscated by SE.
-#   Etot = devData[19] # total energy produced (Wh)
-#   Irdc = devData[20] # What's this?
-#   data21 = devData[21] # 0xff7fffff
-#   data22 = devData[22] # 0.0
-#   data23 = devData[23] # 0.0
-#   CosPhi1 = devData[24] # cos φ, phase 1
-#   CosPhi2 = devData[25] # cos φ, phase 2
-#   CosPhi3 = devData[26] # cos φ, phase 3
-#   mode = devData[27] # Mode (1=OFF, 2=SLEEPING, 3=STARTING, 4=MPPT, 6=SHUTTING_DOWN, 8=STANDBY)
-#   GndFrR = devData[28] # Ground Fault Resistance, a float value
-#   data29 = devData[29] # Is this Power Limit in percent? Always 100 or 0
-#   IoutDC = devData[30] # This is what SolarEdge calls it.
-#   data31 = devData[31] # 0xff7fffff
+#    0  timeStamp
+#    1  Uptime: uptime (s)
+#    2  Interval: time in last interval (s)
+#    3  Temp: temperature (°C)
+#    4  Eday: energy produced today (Wh)
+#    5  Eac: energy produced in last interval (Wh)
+#    6  Vac1: AC volts
+#    7  Vac2: AC volts
+#    8  Vac3: AC volts
+#    9  Iac1: AC current
+#   10  Iac2: AC current
+#   11  Iac3: AC current
+#   12  freq1: frequency (Hz)
+#   13  freq2: frequency (Hz)
+#   14  freq3: frequency (Hz)
+#   15  EdayDC: Same as Eday, but measured at DC side. Obfuscated by SE because it would directly reveal inverter
+#       efficiency.
+#   16  Edc: Same as Eac, but measured at DC side. Obfuscated by SE just like EdayDC.
+#   17  Vdc: DC volts
+#   18  Idc: Same as Iac, but at DC side. Obfuscated by SE.
+#   19  Etot: total energy produced (Wh)
+#   20  Irdc: What's this?
+#   21  data21: 0xff7fffff
+#   22  data22: 0.0
+#   23  data23: 0.0
+#   24  CosPhi1: cos φ, phase 1
+#   25  CosPhi2: cos φ, phase 2
+#   26  CosPhi3: cos φ, phase 3
+#   27  mode: Mode (1=OFF, 2=SLEEPING, 3=STARTING, 4=MPPT, 6=SHUTTING_DOWN, 8=STANDBY)
+#   28  GndFrR: Ground Fault Resistance, a float value
+#   29  data29: Is this Power Limit in percent? Always 100 or 0
+#   30  IoutDC: This is what SolarEdge calls it.
+#   31  data31: 0xff7fffff
 
 # format string used to unpack input data
 inv3PhInFmt = "<LLLffffffffffffLLfLffLLLfffLfffL"
 # length of data that will be unpacked
 inv3PhInFmtLen = (len(inv3PhInFmt) - 1) * 4
 # mapping of input data to device data items
-# inv3PhIdx = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,19,24,29]
 inv3PhIdx = [
     0,
     1,
@@ -208,7 +211,6 @@ inv3PhItems = [
     "data31",
 ]
 # device data output file format strings
-# inv3PhOutFmt = ["%s", "%s", "%s", "%d", "%d", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f", "%f"]
 inv3PhOutFmt = [
     "%s",
     "%s",
@@ -247,15 +249,16 @@ inv3PhOutFmt = [
 ]
 
 # optimizer data interpretation
+# (the item of devData, by index, and what it means)
 #
-#   timeStamp = devData[0]
-#   inverter = devData[1] & 0xff7fffff
-#   Uptime = devData[3] # uptime (s) ?
-#   Vmod = devData[4] # module voltage
-#   Vopt = devData[5] # optimizer voltage
-#   Imod = devData[6] # module current
-#   Eday = devData[7] # energy produced today (Wh)
-#   Temp = devData[8] # temperature (°C)
+#    0  timeStamp
+#    1  inverter: the value & 0xff7fffff
+#    3  Uptime: uptime (s) ?
+#    4  Vmod: module voltage
+#    5  Vopt: optimizer voltage
+#    6  Imod: module current
+#    7  Eday: energy produced today (Wh)
+#    8  Temp: temperature (°C)
 
 # format string used to unpack input data
 optInFmt = "<LLLLfffff"
