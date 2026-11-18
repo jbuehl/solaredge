@@ -139,7 +139,6 @@ def test_unknown_options_are_an_error(monkeypatch):
 # --- metrics -----------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_every_numeric_attribute_becomes_a_metric(monkeypatch):
     stdin = line(inverters={"I1": device(Pac=1.5, Vac=240)})
 
@@ -151,7 +150,6 @@ def test_every_numeric_attribute_becomes_a_metric(monkeypatch):
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_each_metric_is_one_newline_terminated_message(monkeypatch):
     connection = run_se2graphite(
         monkeypatch, stdin=line(inverters={"I1": device(Pac=1.5)})
@@ -162,7 +160,6 @@ def test_each_metric_is_one_newline_terminated_message(monkeypatch):
     assert connection.sent[0].count(b"\n") == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_the_base_is_prepended_with_a_dot(monkeypatch):
     connection = run_se2graphite(
         monkeypatch,
@@ -199,7 +196,6 @@ def test_attributes_that_are_not_numbers_are_not_sent(monkeypatch, attrs):
     assert connection.sent == []
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_date_and_time_are_not_sent_as_metrics(monkeypatch):
     connection = run_se2graphite(
         monkeypatch, stdin=line(inverters={"I1": device(Pac=1)})
@@ -208,7 +204,6 @@ def test_date_and_time_are_not_sent_as_metrics(monkeypatch):
     assert [name for name, *_ in metrics(connection)] == ["inverters.I1.Pac"]
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_numeric_strings_are_sent(monkeypatch):
     connection = run_se2graphite(
         monkeypatch, stdin=line(inverters={"I1": device(Pac="12.5")})
@@ -217,7 +212,6 @@ def test_numeric_strings_are_sent(monkeypatch):
     assert names_and_values(connection) == [("inverters.I1.Pac", "12.5")]
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_every_line_and_device_is_sent_in_order(monkeypatch):
     stdin = line(
         inverters={"I1": device(Pac=1)}, optimizers={"O1": device(Vmod=2)}
@@ -233,7 +227,6 @@ def test_every_line_and_device_is_sent_in_order(monkeypatch):
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_it_sleeps_between_metrics_instead_of_flooding_graphite(
     env, monkeypatch
 ):
@@ -248,7 +241,6 @@ def test_it_sleeps_between_metrics_instead_of_flooding_graphite(
 # --- timestamps --------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 @pytest.mark.parametrize(
     ("date", "time_", "epoch"),
     [
@@ -268,7 +260,6 @@ def test_date_and_time_are_the_timestamp_in_local_time(
     assert metrics(connection)[0][2] == epoch
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_the_timestamp_follows_the_local_timezone_including_dst(monkeypatch):
     monkeypatch.setenv("TZ", "Europe/Amsterdam")
     time.tzset()
@@ -295,7 +286,6 @@ def test_the_timestamp_follows_the_local_timezone_including_dst(monkeypatch):
     assert winter_epoch == 1451646000
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #15")
 def test_a_missing_time_is_logged_and_replaced_by_the_epoch(env, monkeypatch):
     stdin = line(inverters={"I1": {"Date": "2016-01-01", "Pac": 1}})
 

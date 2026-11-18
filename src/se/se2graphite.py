@@ -78,7 +78,7 @@ def send_metrics(graphite_socket, base, base_name, dev_attrs, delay):
                     metric = (
                         f"{full_name} {dev_attrs[dev_attr]!s} {time_stamp}\n"
                     )
-                    graphite_socket.send(metric)
+                    graphite_socket.send(metric.encode())
                     time.sleep(delay)
             except ValueError:
                 # It's not a numeric metric, ignore it
