@@ -8,29 +8,41 @@ import time
 from pathlib import Path
 
 
+# open the file to read from, which stays open until files is closed
+def _open_input(args, files):
+    if args.infile == "stdin":
+        return sys.stdin
+    try:
+        return files.enter_context(Path(args.infile).open())
+    except OSError:
+        sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
+        sys.exit(1)
+
+
+# the name of the file to write to, in a directory per day if asked for
+def _output_path(args, curtime):
+    curday = curtime.strftime("%Y-%m-%d")
+    curhour = curtime.strftime("%Y-%m-%d-%H")
+    curstore = curday if args.store_daily else curhour
+    if args.make_daily_dir:
+        Path(args.basedir, curday).mkdir(exist_ok=True)
+        return (
+            args.basedir + "/" + curday + "/" + args.prefix + curstore + ".json"
+        )
+    return args.basedir + "/" + args.prefix + curstore + ".json"
+
+
 def main():
     # parse the command line arguments
     args = getargs()
 
     blank_max = 10  # Since we want to work on files and stdin. We will count the number of lines that are blank. If we process 10 blank lines and we are not doing stdin, we will assume that the file is done
-    basedir = args.basedir
     debug = args.debug
-    prefix = args.prefix
     openfilesecs = int(args.openfilesecs)
-    store_daily = args.store_daily
-    make_daily_dir = args.make_daily_dir
-    looper = args.looper
+    # We always set looper = False for files, even if the args set it to true.
+    looper = args.looper and args.infile == "stdin"
     with contextlib.ExitStack() as files:
-        if args.infile == "stdin":
-            inFile = sys.stdin
-        else:
-            try:
-                inFile = files.enter_context(Path(args.infile).open())
-            except OSError:
-                sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
-                sys.exit(1)
-            # We always set looper = False for files, even if the args set it to true.
-            looper = False
+        inFile = _open_input(args, files)
 
         lastwrite = 0
         # read the input forever or until we have 10 blank lines in the case of file as input
@@ -50,23 +62,9 @@ def main():
                 blank_cnt = 0  # If we have data, reset the blank_cnt variable
                 if debug:
                     sys.stderr.write(f"Got some data: {jsonStr}\n")
-                curtime = datetime.datetime.now().astimezone()
-                curday = curtime.strftime("%Y-%m-%d")
-                curhour = curtime.strftime("%Y-%m-%d-%H")
-                curstore = curday if store_daily else curhour
-                if make_daily_dir:
-                    Path(basedir, curday).mkdir(exist_ok=True)
-                    tfname = (
-                        basedir
-                        + "/"
-                        + curday
-                        + "/"
-                        + prefix
-                        + curstore
-                        + ".json"
-                    )
-                else:
-                    tfname = basedir + "/" + prefix + curstore + ".json"
+                tfname = _output_path(
+                    args, datetime.datetime.now().astimezone()
+                )
                 if tfname != writefilename:
                     if debug:
                         sys.stderr.write(
