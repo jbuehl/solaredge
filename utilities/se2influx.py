@@ -44,10 +44,6 @@ class DateError(Exception):
     pass
 
 
-class EndOfFile(Exception):
-    pass
-
-
 class Se2Influx:
     def __init__(
         self,
@@ -126,7 +122,8 @@ class Se2Influx:
                 ):
                     line = sys.stdin.readline()
                     if not line:
-                        raise EndOfFile
+                        logger.info("Reached end of input")
+                        return
                     self.writer_queue.put(line)
 
                     if self.log_path:
@@ -135,8 +132,6 @@ class Se2Influx:
                 if self.shutdown.is_set():
                     return
 
-        except EndOfFile:
-            logger.info("Reached end of input")
         except Exception:
             logger.exception("Error reading from stdin")
 

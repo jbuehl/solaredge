@@ -186,7 +186,6 @@ def test_influx_params_are_the_arguments_of_the_influx_client(se):
 
 def test_the_exceptions_are_exceptions(se):
     assert issubclass(se.DateError, Exception)
-    assert issubclass(se.EndOfFile, Exception)
 
 
 # --- constructor -------------------------------------------------------------

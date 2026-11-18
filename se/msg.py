@@ -72,11 +72,12 @@ def readBytes(inFile, recFile, length, mode, state):
         se.logutils.setState(
             state, "lastByteRead", f"{bytearray(inBuf)[-1]:02x}"
         )
-        return inBuf
     # treat exceptions as end of file
     except (IndexError, OSError, ValueError) as ex:
         logger.info("Exception while reading data: %s", ex)
         return b""
+    else:
+        return inBuf
 
 
 # parse a message
