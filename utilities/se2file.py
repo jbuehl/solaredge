@@ -2,7 +2,7 @@
 
 import argparse
 import contextlib
-import datetime
+import datetime as dt
 import sys
 import time
 from pathlib import Path
@@ -62,9 +62,7 @@ def main():
                 blank_cnt = 0  # If we have data, reset the blank_cnt variable
                 if debug:
                     sys.stderr.write(f"Got some data: {jsonStr}\n")
-                tfname = _output_path(
-                    args, datetime.datetime.now().astimezone()
-                )
+                tfname = _output_path(args, dt.datetime.now().astimezone())
                 if tfname != writefilename:
                     if debug:
                         sys.stderr.write(
@@ -94,7 +92,7 @@ def main():
             if lcnt % lreport == 0:
                 lcnt = 0
                 if debug:
-                    curtime = datetime.datetime.now().astimezone()
+                    curtime = dt.datetime.now().astimezone()
                     curstr = curtime.strftime("%Y-%m-%d-%H:%m:%s")
                     sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
 
