@@ -1,9 +1,35 @@
-"""Send SolarEdge performance metrics to Graphite."""
+"""
+Send SolarEdge performance metrics to Graphite.
 
+By default the metrics are sent to the Graphite/carbon pickle listener port
+(usually 2004), which accepts batches of metrics in a pickled nested list of
+tuples format. With the -t option they are sent to the plain text listener
+port (usually 2003) instead, one metric at a time.
+
+The `Metrics` class converts a nested dictionary (such as produced by
+`json.loads` on some SolarEdge traffic that has been processed by semonitor)
+into the nested list of tuples structure expected by carbon. `send_pickle`
+pickles it, adds the requisite header, and sends it to Graphite, `send_text`
+sends each of the metrics as a line of text.
+
+You may need to adjust the delay parameter, depending upon the capacity and
+busyness of the Graphite server. I have found 0.2 works fine **for me** in
+production mode, when I am "following" some existing metrics in real time, as
+the SolarEdge inverter emits them, but I needed to increase it to as much as
+5.0 the first time I sent a new batch of metrics to Graphite, otherwise the
+carbon listener seemed to be swamped and didn't have time to create all the
+new metrics. To be completely precise, I had problems when I sent an existing
+batch of metrics to a new "test" base, which meant Graphite / carbon had to
+create a whole lot of new whisper files all at once.
+"""
+
+import dataclasses
 import getopt
 import json
 import math
+import pickle
 import socket
+import struct
 import sys
 import time
 
@@ -25,101 +51,209 @@ def log(*args):
     syslog.syslog(message)
 
 
-def send_metrics(graphite_socket, base, base_name, dev_attrs, delay):
-    """
-    Send the numeric attributes of a device to Graphite, as metrics.
+# Time to wait, in seconds, after sending a batch (or for more data when following).
+delay = 0.2
+# Time to wait, in seconds, after sending a single metric as text.
+text_delay = 0.1
 
-    The time of the metrics is the date and time of the device, or the
-    epoch plus a little when those are missing.
+
+def get_json_str(in_file, following):
     """
-    # convert date and time to unix time
-    try:
-        (year, month, day) = dev_attrs["Date"].split("-")
-        (hour, minute, second) = dev_attrs["Time"].split(":")
-    except KeyError:
-        log(
-            "Date or Time is missing or incorrectly formatted for this set of metrics"
-        )
-        (year, month, day, hour, minute, second) = (
-            1970,
-            1,
-            1,
-            0,
-            1,
-            1,
-        )
-    # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
-    # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
-    time_stamp = time.mktime(
-        (
-            int(year),
-            int(month),
-            int(day),
-            int(hour),
-            int(minute),
-            int(second),
-            0,
-            0,
-            -1,
-        )
-    )
-    # Treat every attribute as a metric - except for non-numeric ones!
-    for dev_attr in dev_attrs:
-        if dev_attr not in {"Date", "Time", "Undeciphered_data"}:
+    Read the next line of JSON from the input.
+
+    If following is True, wait (sleeping for delay seconds between tries) until a line arrives.
+
+    Args:
+        in_file: The open input file to read from.
+        following: Whether to keep waiting for new data at end of file.
+
+    Returns:
+        The line read, or an empty string at end of file when not following.
+    """
+    json_str = in_file.readline()
+    if json_str == "" and following:
+        while json_str == "":
+            # wait for more data
+            time.sleep(delay)
+            json_str = in_file.readline()
+    return json_str
+
+
+class Metrics(list):
+    """
+    Convert a nested dictionary of metrics into the list of tuples Graphite needs.
+
+    The list of tuples is in the format expected by the Graphite (carbon) pickle interface, and is sent to carbon,
+    either as a batch to its pickle listener port, or as a line of text for each metric to its text listener port.
+    """
+
+    def __init__(self, metrics_dict, base):
+        """
+        Build the list of (name, (timestamp, value)) tuples from metrics_dict.
+
+        Args:
+            metrics_dict: A nested dictionary of devices and their attributes, as produced by json.loads.
+            base: A prefix to put in front of every metric name.
+        """
+        for base_name, dev_attrs in unwrap_metrics_dict(metrics_dict):
+            # convert date and time to Unix time
             try:
-                # Weed out attributes with non numeric values (Graphite does this too, but why clog the
-                # network?)
-                test = float(dev_attrs[dev_attr])
-                if math.isnan(test):
-                    # It's a NaN!
-                    pass
-                else:
-                    full_name = f"{base}{base_name}.{dev_attr}"
-                    metric = (
-                        f"{full_name} {dev_attrs[dev_attr]!s} {time_stamp}\n"
-                    )
-                    graphite_socket.send(metric.encode())
-                    time.sleep(delay)
-            except ValueError:
-                # It's not a numeric metric, ignore it
-                pass
+                (year, month, day) = dev_attrs["Date"].split("-")
+                (hour, minute, second) = dev_attrs["Time"].split(":")
+            except KeyError:
+                log(
+                    "Date or Time is missing or incorrectly formatted for this set of metrics"
+                )
+                (year, month, day, hour, minute, second) = (1970, 1, 1, 0, 1, 1)
+            # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
+            # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
+            time_stamp = time.mktime(
+                (
+                    int(year),
+                    int(month),
+                    int(day),
+                    int(hour),
+                    int(minute),
+                    int(second),
+                    0,
+                    0,
+                    -1,
+                )
+            )
+            # Treat every attribute as a metric - except for non-numeric ones!
+            for dev_attr in dev_attrs:
+                if dev_attr not in {"Date", "Time", "Undeciphered_data"}:
+                    try:
+                        # Weed out attributes with non numeric values (Graphite does this too, but why clog the
+                        # network?)
+                        test = float(dev_attrs[dev_attr])
+                        if math.isnan(test):
+                            # It's a NaN!
+                            pass
+                        else:
+                            full_name = f"{base}{base_name}.{dev_attr}"
+                            # A nested tuple as per the expectations of the pickle Graphite interface
+                            self.append(
+                                (
+                                    full_name,
+                                    (time_stamp, str(dev_attrs[dev_attr])),
+                                )
+                            )
+                    except ValueError:
+                        # It is not a numeric metric
+                        pass
+
+    def send_pickle(self, graphite_socket):
+        """
+        Pickle the metrics and send them to the Graphite socket.
+
+        Only the list items are pickled, so that the non list attributes of self do not upset carbon.
+        A short delay follows each send so that carbon is not swamped.
+
+        Args:
+            graphite_socket: A connected socket to the carbon pickle listener.
+        """
+        payload = pickle.dumps(list(self))
+        header = struct.pack("!L", len(payload))
+        graphite_socket.send(header + payload)
+        time.sleep(delay)
+
+    def send_text(self, graphite_socket):
+        """
+        Send each of the metrics to the Graphite socket as a line of text.
+
+        A short delay follows each metric so that carbon is not swamped.
+
+        Args:
+            graphite_socket: A connected socket to the carbon text listener.
+        """
+        for full_name, (time_stamp, value) in self:
+            metric = f"{full_name} {value} {time_stamp}\n"
+            graphite_socket.send(metric.encode())
+            time.sleep(text_delay)
+
+
+@dataclasses.dataclass
+class Options:
+    """The options of the command line."""
+
+    base: str = ""
+    host_name: str = "localhost"
+    port: int | None = None
+    text: bool = False
+    following: bool = False
+    in_file: object = None
+
+
+def parse_options(argv):
+    """
+    Parse the options of the command line, and open the input.
+
+    The port must be the one which Graphite (carbon) has configured to be the
+    listener port of the protocol in use. The usual Graphite installation
+    defaults are 2004 for the pickle and 2003 for the text protocol.
+
+    Args:
+        argv: The command line arguments, without the name of the program.
+
+    Returns:
+        The Options, with the default port of the protocol if none was given.
+    """
+    options = Options()
+    (opts, args) = getopt.getopt(argv, "b:fh:p:t")
+    options.in_file = open_input(args)
+    for opt in opts:
+        if opt[0] == "-b":
+            options.base = opt[1] + "."
+        if opt[0] == "-h":
+            options.host_name = opt[1]
+        if opt[0] == "-p":
+            options.port = int(opt[1])
+        if opt[0] == "-f":
+            options.following = True
+        if opt[0] == "-t":
+            options.text = True
+    if options.port is None:
+        options.port = 2003 if options.text else 2004
+    return options
 
 
 def main(argv=None):
     """
-    Send the metrics read from the input to Graphite, one metric per line.
+    Send the metrics read from the input to Graphite.
 
     Args:
         argv: The command line arguments to use, or None for those of the process.
     """
-    # parameter defaults
-    base = ""
-    host_name = "localhost"
-    port = 2003
-    delay = 0.1
+    options = parse_options(sys.argv[1:] if argv is None else argv)
 
-    # get program arguments and options
-    (opts, args) = getopt.getopt(
-        sys.argv[1:] if argv is None else argv, "b:h:p:"
-    )
-    in_file = open_input(args)
-    for opt in opts:
-        if opt[0] == "-b":
-            base = opt[1] + "."
-        if opt[0] == "-h":
-            host_name = opt[1]
-        if opt[0] == "-p":
-            port = int(opt[1])
-
+    if not options.text:
+        # Timeout if no connection after 10 seconds,
+        #   in which case check that Graphite is running, and the host name and port are correct.
+        socket.setdefaulttimeout(10.0)
     graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    graphite_socket.connect((host_name, port))
-    with in_file:
-        json_str = in_file.readline()
+    graphite_socket.connect((options.host_name, options.port))
+    with options.in_file:
+        json_str = get_json_str(options.in_file, options.following)
         while json_str != "":
-            in_dict = json.loads(json_str)
-            for base_name, dev_attrs in unwrap_metrics_dict(in_dict):
-                send_metrics(graphite_socket, base, base_name, dev_attrs, delay)
-            json_str = in_file.readline()
+            if options.text:
+                Metrics(json.loads(json_str), base=options.base).send_text(
+                    graphite_socket
+                )
+            else:
+                try:
+                    Metrics(
+                        json.loads(json_str), base=options.base
+                    ).send_pickle(graphite_socket)
+                except ValueError:
+                    log(
+                        "WARNING json.loads had a problem with the following jsonStr\n",
+                        json_str,
+                        "\n",
+                        "=" * 80,
+                        "\n",
+                    )
+            json_str = get_json_str(options.in_file, options.following)
     graphite_socket.close()
 
 

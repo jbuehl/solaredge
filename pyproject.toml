@@ -31,7 +31,6 @@ mqtt = ["paho-mqtt<2"]
 all = ["semonitor[influx,mqtt]"]
 
 [project.scripts]
-pickle2graphite = "se.pickle2graphite:main"
 se2csv = "se.se2csv:main"
 se2file = "se.se2file:main"
 se2graphite = "se.se2graphite:main"

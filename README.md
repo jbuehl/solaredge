@@ -650,7 +650,7 @@ listener port.
 #### Examples
 
 ```sh
-    pickle2graphite -b "semonitor" yyyymmdd.json
+    se2graphite -b "semonitor" yyyymmdd.json
 ```
 
 Send all numeric metric data for each device encountered in `yyyymmdd.json` to
@@ -664,9 +664,9 @@ When running "in production" this delay usually seems to be adequate, but when a
 large JSON file with many metrics which graphite hasn't seen before is sent to
 graphite, the server may be swamped, and some metrics may be dropped. Any of:
 
-* just rerun `pickle2graphite` again, or
+* just rerun `se2graphite` again, or
 * temporarily adjust the delay to say 5.0 secs, or
-* even use `se2graphite` once,
+* even use `se2graphite -t` once,
 
 any of which should allow the graphite server enough time to create new whisper
 files, before the next batch of metrics from the next line in the JSON file
