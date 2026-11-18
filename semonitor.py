@@ -105,12 +105,12 @@ def processMsg(msg, mode, state, files):
         for line in se.logutils.format_data(data):
             logger.data(line)
     else:
-        msg_data = se.data.parseData(function, data)
+        msg_data = se.data.parse_data(function, data)
         if (
             function == se.commands.PROT_CMD_SERVER_POST_DATA and data
         ):  # performance data
             # write performance data to output file
-            se.data.writeData(msg_data, files.out)
+            se.data.write_data(msg_data, files.out)
         if mode.masterMode:  # send reply
             (reply_function, reply_data) = masterReply(function, state)
             if reply_function:
@@ -138,7 +138,7 @@ def masterReply(function, state):
         # set time
         return (
             se.commands.PROT_RESP_SERVER_GMT,
-            se.data.formatTime(
+            se.data.format_time(
                 int(time.time()),
                 (time.localtime().tm_hour - time.gmtime().tm_hour) * 60 * 60,
             ),
@@ -236,9 +236,9 @@ def doCommands(args, mode, state, files):
         # wait for the response to the command
         (msg, _eof) = se.msg.readMsg(files.data, files.rec, mode, state)
         (_msg_seq, _from_addr, _to_addr, response, data) = se.msg.parseMsg(msg)
-        msg_data = se.data.parseData(response, data)
+        msg_data = se.data.parse_data(response, data)
         # write response to output file
-        se.data.writeData(
+        se.data.write_data(
             {
                 "command": function,
                 "response": response,

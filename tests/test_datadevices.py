@@ -386,26 +386,26 @@ def raise_value_error(_timestamp):
     ],
 )
 def test_parse_id_masks_flag_bit_and_gives_upper_case(se_id, expected):
-    assert ParseDevice.parseId(se_id) == expected
+    assert ParseDevice.parse_id(se_id) == expected
 
 
 def test_date_and_time_stamps_use_local_time(monkeypatch):
     stamp = 1_700_000_000  # 2023-11-14 22:13:20 UTC
 
-    assert ParseDevice.formatDateStamp(stamp) == "2023-11-14"
-    assert ParseDevice.formatTimeStamp(stamp) == "22:13:20"
-    assert ParseDevice.formatDateStamp(0) == "1970-01-01"
-    assert ParseDevice.formatTimeStamp(3661) == "01:01:01"
+    assert ParseDevice.format_date_stamp(stamp) == "2023-11-14"
+    assert ParseDevice.format_time_stamp(stamp) == "22:13:20"
+    assert ParseDevice.format_date_stamp(0) == "1970-01-01"
+    assert ParseDevice.format_time_stamp(3661) == "01:01:01"
 
     monkeypatch.setenv("TZ", "EET-2")
     time.tzset()
 
-    assert ParseDevice.formatDateStamp(stamp) == "2023-11-15"
-    assert ParseDevice.formatTimeStamp(stamp) == "00:13:20"
+    assert ParseDevice.format_date_stamp(stamp) == "2023-11-15"
+    assert ParseDevice.format_time_stamp(stamp) == "00:13:20"
 
 
 @pytest.mark.parametrize(
-    "method", [ParseDevice.formatDateStamp, ParseDevice.formatTimeStamp]
+    "method", [ParseDevice.format_date_stamp, ParseDevice.format_time_stamp]
 )
 def test_unrepresentable_time_stamp_is_reported_as_invalid(caplog, method):
     with caplog.at_level(logging.INFO, logger=LOGGER):
@@ -884,8 +884,8 @@ def test_derived_items_are_exported_after_the_defined_ones(monkeypatch):
 @pytest.mark.parametrize(
     ("method", "key", "placeholder"),
     [
-        ("formatDateStamp", "Date", "1970-01-01"),
-        ("formatTimeStamp", "Time", "00:00:01"),
+        ("format_date_stamp", "Date", "1970-01-01"),
+        ("format_time_stamp", "Time", "00:00:01"),
     ],
 )
 def test_timestamp_that_cannot_be_formatted_gets_a_placeholder(
@@ -948,7 +948,7 @@ def test_explorer_takes_date_and_time_from_the_first_offset(record):
 
     assert dev["Date"] == ParseDevice(record)["Date"]
     assert dev["Time"] == ParseDevice(record)["Time"]
-    assert dev["Date_offset002"] == ParseDevice.formatDateStamp(
+    assert dev["Date_offset002"] == ParseDevice.format_date_stamp(
         dev["offset002_4_int4"]
     )
     assert dev["Date_offset002"] != dev["Date"]
@@ -1038,7 +1038,7 @@ def test_explorer_item_is_wrapped_by_the_same_id_as_other_devices(record):
 @pytest.mark.parametrize("record", UNKNOWN)
 def test_explorer_marks_offsets_that_are_not_a_date(monkeypatch, record):
     monkeypatch.setattr(
-        ParseDevice, "formatDateStamp", staticmethod(raise_value_error)
+        ParseDevice, "format_date_stamp", staticmethod(raise_value_error)
     )
 
     dev = ParseDevice(resized(record, b"\x01\x00\x00\x00"), explorer=True)

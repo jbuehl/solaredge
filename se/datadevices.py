@@ -88,7 +88,7 @@ class ParseDevice(dict):
         # The following standard device header fields are automatically parsed for all device types.
         # These items do *not* need to be defined! They are:
         # - seType: 2 bytes ('H'), identifies the type of this SolarEdge data block, shown as a 4 digit hex number
-        # - seId: 4 bytes ('L'), identifies the SolarEdge device, formatted by parseId
+        # - seId: 4 bytes ('L'), identifies the SolarEdge device, formatted by parse_id
         # - devLen: 2 bytes ('H'), the length in bytes of the data block
     ]
 
@@ -156,12 +156,12 @@ class ParseDevice(dict):
         return new_instance
 
     @staticmethod
-    def parseId(se_id):
+    def parse_id(se_id):
         """Return the device id as an upper-case hex string, with bit 23 cleared."""
         return ("%x" % (se_id & 0xFF7FFFFF)).upper()
 
     @staticmethod
-    def formatDateStamp(time_stamp):
+    def format_date_stamp(time_stamp):
         """Return the local date of a Unix timestamp as YYYY-MM-DD, or "invalid"."""
         try:
             return time.strftime("%Y-%m-%d", time.localtime(time_stamp))
@@ -170,7 +170,7 @@ class ParseDevice(dict):
             return "invalid"
 
     @staticmethod
-    def formatTimeStamp(time_stamp):
+    def format_time_stamp(time_stamp):
         """Return the local time of a Unix timestamp as HH:MM:SS, or "invalid"."""
         try:
             return time.strftime("%H:%M:%S", time.localtime(time_stamp))
@@ -242,7 +242,7 @@ class ParseDevice(dict):
         self.devType = f"{self._devName}_{se_type:#06x}"
         # Store seId as an attribute for later use as part of the standard "dictionary of dictionaries" wrapper when
         # a parsed instance is converted to json.
-        self._seId = self.parseId(se_id)
+        self._seId = self.parse_id(se_id)
 
         self.update(
             {
@@ -311,7 +311,7 @@ class ParseDevice(dict):
         # Optionally format the field
         if out_format_fn == "dateTime":
             try:
-                self["Date"] = self.formatDateStamp(self[param_name])
+                self["Date"] = self.format_date_stamp(self[param_name])
             except ValueError:
                 logger.debug(
                     "'%s' is not a valid date, changed to '1970-01-01'",
@@ -319,7 +319,7 @@ class ParseDevice(dict):
                 )
                 self["Date"] = "1970-01-01"
             try:
-                self["Time"] = self.formatTimeStamp(self[param_name])
+                self["Time"] = self.format_time_stamp(self[param_name])
             except ValueError:
                 logger.debug(
                     "'%s' is not a valid time, changed to '00:00:01'",
@@ -943,7 +943,7 @@ class ParseDevice_Explorer(ParseDevice):
         self.update(
             {
                 "seType": f"{se_type:#06x}",
-                "seId": self.parseId(se_id),
+                "seId": self.parse_id(se_id),
                 "devLen": dev_len,
                 "devType": self.devType,
             }
@@ -997,17 +997,17 @@ class ParseDevice_Explorer(ParseDevice):
             self._itemNames.append(item_name)
             # Maybe it is a date?
             try:
-                self[f"Date_offset{offset:03}"] = self.formatDateStamp(
+                self[f"Date_offset{offset:03}"] = self.format_date_stamp(
                     self[item_name]
                 )
-                self[f"Time_offset{offset:03}"] = self.formatTimeStamp(
+                self[f"Time_offset{offset:03}"] = self.format_time_stamp(
                     self[item_name]
                 )
                 # Other modules (e.g. se2graphite) become upset if Date and Time are not supplied, so take the 1st valid
                 # Date we find. Implicitly I'm guessing that offset zero will be the "real" date.
                 if "Date" not in self.keys():
-                    self["Date"] = self.formatDateStamp(self[item_name])
-                    self["Time"] = self.formatTimeStamp(self[item_name])
+                    self["Date"] = self.format_date_stamp(self[item_name])
+                    self["Time"] = self.format_time_stamp(self[item_name])
             except ValueError:
                 # Apparently it is not a date!
                 self[f"Date_offset{offset:03}"] = (
