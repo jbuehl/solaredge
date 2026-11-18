@@ -65,8 +65,8 @@ class ParseDevice(dict):
 
     Its main purposes are:
 
-        to provide a suite of standard methods shared by all the subclasses (and in particular the parse_dev_table method
-        which given a fieldDefs list, will parse the seData block accordingly); and
+        to provide a suite of standard methods shared by all the subclasses (and in particular the parse_dev_table
+        method which given a fieldDefs list, will parse the seData block accordingly); and
         to have a 'clever' __new__ method, which redirects the creation of a ParseDevice to the creation of a subclass
         of a ParseDevice which specializes in the particular seType encountered in the current block of seData
         (provided of course that a specialized subclass for that seType has been defined).
