@@ -78,8 +78,8 @@ def dumpState(state):
             state[item][1],
         )
     # The only way to get the frames of the other threads, it is in the docs
-    for threadId, stack in sys._current_frames().items():  # noqa: SLF001
-        logger.info("ThreadID: %s", threadId)
+    for thread_id, stack in sys._current_frames().items():  # noqa: SLF001
+        logger.info("ThreadID: %s", thread_id)
         for filename, lineno, name, line in traceback.extract_stack(stack):
             logger.info(
                 '      File: "%s", line %d, in %s', filename, lineno, name

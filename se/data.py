@@ -92,13 +92,13 @@ def parseData(function, data):
 
 def parseEnergyStats(data):
     """Decode the energy statistics: energy today, this month, this year, total, and time."""
-    (Eday, Emon, Eyear, Etot, Time1) = struct.unpack("<ffffL", data[0:20])
+    (eday, emon, eyear, etot, time1) = struct.unpack("<ffffL", data[0:20])
     return {
-        "Eday": Eday,
-        "Emon": Emon,
-        "Eyear": Eyear,
-        "Etot": Etot,
-        "Time1": formatDateTime(Time1),
+        "Eday": eday,
+        "Emon": emon,
+        "Eyear": eyear,
+        "Etot": etot,
+        "Time1": formatDateTime(time1),
     }
 
 
@@ -144,10 +144,10 @@ def formatLong(param):
 
 def parseValueType(data):
     """Decode a 32-bit value followed by a 16-bit type."""
-    (value, dataType) = struct.unpack("<LH", data)
+    (value, data_type) = struct.unpack("<LH", data)
     logger.data("value:     %08x", value)
-    logger.data("type:      %04x", dataType)
-    return {"value": value, "type": dataType}
+    logger.data("type:      %04x", data_type)
+    return {"value": value, "type": data_type}
 
 
 def formatValueType(value, dataType):
@@ -170,10 +170,10 @@ def formatParamValue(param, value):
 
 def parseTime(data):
     """Decode a Unix time and a signed time zone offset in seconds."""
-    (timeValue, tzOffset) = struct.unpack("<Ll", data)
-    logger.data("time:      %s", time.asctime(time.gmtime(timeValue)))
-    logger.data("tz:        UTC%+d", tzOffset / 60 / 60)
-    return {"time": timeValue, "tz": tzOffset}
+    (time_value, tz_offset) = struct.unpack("<Ll", data)
+    logger.data("time:      %s", time.asctime(time.gmtime(time_value)))
+    logger.data("tz:        UTC%+d", tz_offset / 60 / 60)
+    return {"time": time_value, "tz": tz_offset}
 
 
 def formatTime(timeValue, tzOffset):
@@ -205,81 +205,94 @@ def parseDeviceData(data):
         A dict with "inverters", "optimizers" and "events" keys, and the
         attributes of any other devices.
     """
-    devHdrLen = 8
-    invDict = {}
-    optDict = {}
-    eventDict = {}
+    dev_hdr_len = 8
+    inv_dict = {}
+    opt_dict = {}
+    event_dict = {}
     # Add a master dictionary, to store anything parsed by ParseDevice, indexed by the `devType`
-    devsDict = {}
+    devs_dict = {}
 
-    dataPtr = 0
-    while dataPtr < len(data):
+    data_ptr = 0
+    while data_ptr < len(data):
         # device header
-        (seType, seId, devLen) = struct.unpack(
-            "<HLH", data[dataPtr : dataPtr + devHdrLen]
+        (se_type, se_id, dev_len) = struct.unpack(
+            "<HLH", data[data_ptr : data_ptr + dev_hdr_len]
         )
-        seId = parseId(seId)
-        dataPtr += devHdrLen
+        se_id = parseId(se_id)
+        data_ptr += dev_hdr_len
         # device data
-        if seType == DEV_OPTIMIZER:  # optimizer data
-            optDict[seId] = parseOptData(
-                seId, optItems, data[dataPtr : dataPtr + devLen]
+        if se_type == DEV_OPTIMIZER:  # optimizer data
+            opt_dict[se_id] = parseOptData(
+                se_id, optItems, data[data_ptr : data_ptr + dev_len]
             )
-            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == DEV_OPTIMIZER_NEW:  # new format optimizer data
-            optDict[seId] = parseNewOptData(
-                seId, optItems, data[dataPtr : dataPtr + devLen]
+            logDevice(
+                "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
             )
-            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == DEV_OPTIMIZER_S440:  # s440 optimizers
-            optDict[seId] = parseS440OptData(
-                seId, optItems, data[dataPtr : dataPtr + devLen]
+        elif se_type == DEV_OPTIMIZER_NEW:  # new format optimizer data
+            opt_dict[se_id] = parseNewOptData(
+                se_id, optItems, data[data_ptr : data_ptr + dev_len]
             )
-            logDevice("optimizer:     ", seType, seId, devLen, optDict[seId])
-        elif seType == DEV_INVERTER:  # inverter data
-            invDict[seId] = parseInvData(
-                seId, invItems, data[dataPtr : dataPtr + devLen]
+            logDevice(
+                "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
+            )
+        elif se_type == DEV_OPTIMIZER_S440:  # s440 optimizers
+            opt_dict[se_id] = parseS440OptData(
+                se_id, optItems, data[data_ptr : data_ptr + dev_len]
+            )
+            logDevice(
+                "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
+            )
+        elif se_type == DEV_INVERTER:  # inverter data
+            inv_dict[se_id] = parseInvData(
+                se_id, invItems, data[data_ptr : data_ptr + dev_len]
             )
             # Correct odd case where SolarEdge inverter sends NaN value in opposite byte order to all other float values
             # i.e. SolarEdge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as -3.402... * 10 ** 38
             # but b'\xff\x7f\xff\xff' unpacks as NaN, which is the "correct" value when this byte pattern is seen.
-            if invDict[seId]["Pmax"] < -3 * 10**38:
-                invDict[seId]["Pmax"] = float("nan")
-            logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
-        elif seType == DEV_INVERTER_3PH:  # 3 phase inverter data
-            invDict[seId] = parseInv3PhData(
-                seId, inv3PhItems, data[dataPtr : dataPtr + devLen]
+            if inv_dict[se_id]["Pmax"] < -3 * 10**38:
+                inv_dict[se_id]["Pmax"] = float("nan")
+            logDevice(
+                "inverter:     ", se_type, se_id, dev_len, inv_dict[se_id]
             )
-            logDevice("inverter:     ", seType, seId, devLen, invDict[seId])
-        elif seType == DEV_EVENT:  # wake or sleep event
-            eventDict[seId] = parseEventData(
-                seId, eventItems, data[dataPtr : dataPtr + devLen]
+        elif se_type == DEV_INVERTER_3PH:  # 3 phase inverter data
+            inv_dict[se_id] = parseInv3PhData(
+                se_id, inv3PhItems, data[data_ptr : data_ptr + dev_len]
             )
-            logDevice("event:         ", seType, seId, devLen, eventDict[seId])
+            logDevice(
+                "inverter:     ", se_type, se_id, dev_len, inv_dict[se_id]
+            )
+        elif se_type == DEV_EVENT:  # wake or sleep event
+            event_dict[se_id] = parseEventData(
+                se_id, eventItems, data[data_ptr : data_ptr + dev_len]
+            )
+            logDevice(
+                "event:         ", se_type, se_id, dev_len, event_dict[se_id]
+            )
         else:  # unknown device type, or one that ParseDevice can handle
             # In production you would usually set explorer to False, to prevent excessively long (and mostly useless)
             # parse results for unknown device types.
-            parsedDevice = ParseDevice(
-                data[dataPtr - devHdrLen : dataPtr + devLen], explorer=False
+            parsed_device = ParseDevice(
+                data[data_ptr - dev_hdr_len : data_ptr + dev_len],
+                explorer=False,
             )
             # Add the new device attributes (wrapped in a dictionary of
             # appropriate identifiers) to the dictionary of devices
-            merge_update(devsDict, parsedDevice.wrap_in_ids())
+            merge_update(devs_dict, parsed_device.wrap_in_ids())
             logDevice(
-                f"{parsedDevice.devType}: ",
-                seType,
-                seId,
-                devLen,
-                parsedDevice.wrap_in_ids(),
+                f"{parsed_device.devType}: ",
+                se_type,
+                se_id,
+                dev_len,
+                parsed_device.wrap_in_ids(),
             )
 
-        dataPtr += devLen
+        data_ptr += dev_len
     # A bit of a lazy way out, but embed the pre-existing dictionaries into devsDict
-    devsDict["inverters"] = invDict
-    devsDict["optimizers"] = optDict
-    devsDict["events"] = eventDict
+    devs_dict["inverters"] = inv_dict
+    devs_dict["optimizers"] = opt_dict
+    devs_dict["events"] = event_dict
 
-    return devsDict
+    return devs_dict
 
 
 # the parser of the data of each function, which are all defined above
@@ -303,51 +316,51 @@ DATA_PARSERS = {
 def parseEventData(seId, eventItems, devData):
     """Decode the data of a wake or sleep event device."""
     # unpack data and map to items
-    seEventData = [
+    se_event_data = [
         struct.unpack(eventInFmt, devData[:invInFmtLen])[i] for i in eventIdx
     ]
-    seEventData[2] = formatDateTime(seEventData[2])
-    if seEventData[1] == 0:
-        seEventData[3] = formatDateTime(seEventData[3])
+    se_event_data[2] = formatDateTime(se_event_data[2])
+    if se_event_data[1] == 0:
+        se_event_data[3] = formatDateTime(se_event_data[3])
     else:
-        seEventData[4] = formatDateTime(seEventData[4])
-    return devDataDict(seId, eventItems, seEventData)
+        se_event_data[4] = formatDateTime(se_event_data[4])
+    return devDataDict(seId, eventItems, se_event_data)
 
 
 def parseInvData(seId, invItems, devData):
     """Decode the data of a single phase inverter."""
     # unpack data and map to items
-    seInvData = [
+    se_inv_data = [
         struct.unpack(invInFmt, devData[:invInFmtLen])[i] for i in invIdx
     ]
-    return devDataDict(seId, invItems, seInvData)
+    return devDataDict(seId, invItems, se_inv_data)
 
 
 def parseInv3PhData(seId, invItems, devData):
     """Decode the data of a three phase inverter."""
     # unpack data and map to items
-    seInvData = [
+    se_inv_data = [
         struct.unpack(inv3PhInFmt, devData[:inv3PhInFmtLen])[i]
         for i in inv3PhIdx
     ]
-    return devDataDict(seId, invItems, seInvData)
+    return devDataDict(seId, invItems, se_inv_data)
 
 
 def parseOptData(seId, optItems, devData):
     """Decode the data of an optimizer."""
     # unpack data and map to items
-    seOptData = [
+    se_opt_data = [
         struct.unpack(optInFmt, devData[:optInFmtLen])[i] for i in optIdx
     ]
-    seOptData[1] = parseId(seOptData[1])
-    return devDataDict(seId, optItems, seOptData)
+    se_opt_data[1] = parseId(se_opt_data[1])
+    return devDataDict(seId, optItems, se_opt_data)
 
 
 def parseNewOptData(seId, optItems, devData):
     """Decode the data of an optimizer in the newer format."""
     data = bytearray()
     data.extend(devData)
-    (timeStamp, uptime) = struct.unpack("<LH", devData[0:6])
+    (time_stamp, uptime) = struct.unpack("<LH", devData[0:6])
     vpan = 0.125 * (data[6] | (data[7] << 8 & 0x300))
     vopt = 0.125 * (data[7] >> 2 | (data[8] << 6 & 0x3C0))
     imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xF))
@@ -355,7 +368,7 @@ def parseNewOptData(seId, optItems, devData):
     temp = 2.0 * struct.unpack("<b", devData[12:13])[0]
     # Don't have an inverter ID in the data, substitute 0
     return devDataDict(
-        seId, optItems, [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp]
+        seId, optItems, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
     )
 
 
@@ -363,7 +376,7 @@ def parseS440OptData(seId, optItems, devData):
     """Decode the data of an S440 optimizer, which has no energy or temperature."""
     data = bytearray()
     data.extend(devData)
-    (timeStamp, uptime) = struct.unpack("<LH", devData[0:6])
+    (time_stamp, uptime) = struct.unpack("<LH", devData[0:6])
     vpan = 0.125 * (data[6] | (data[7] << 8 & 0x300))
     vopt = 0.125 * (data[7] >> 2 | (data[8] << 6 & 0x3C0))
     imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xF))
@@ -372,7 +385,7 @@ def parseS440OptData(seId, optItems, devData):
     temp = 0
     # Don't have an inverter ID in the data, substitute 0
     return devDataDict(
-        seId, optItems, [timeStamp, 0, uptime, vpan, vopt, imod, eday, temp]
+        seId, optItems, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
     )
 
 
@@ -383,18 +396,18 @@ def devDataDict(seId, itemNames, itemValues):
     The first value is a timestamp, which is split into "Date" and "Time".
     An invalid timestamp gives "invalid" for both.
     """
-    devDict = {}
+    dev_dict = {}
     try:
-        devDict["Date"] = formatDateStamp(itemValues[0])
-        devDict["Time"] = formatTimeStamp(itemValues[0])
+        dev_dict["Date"] = formatDateStamp(itemValues[0])
+        dev_dict["Time"] = formatTimeStamp(itemValues[0])
     except (OverflowError, OSError, TypeError, ValueError) as ex:
         logger.info("Invalid timestamp: %s %s", itemValues[0], ex)
-        devDict["Date"] = "invalid"
-        devDict["Time"] = "invalid"
-    devDict["ID"] = seId
+        dev_dict["Date"] = "invalid"
+        dev_dict["Time"] = "invalid"
+    dev_dict["ID"] = seId
     for i in range(3, len(itemNames)):
-        devDict[itemNames[i]] = itemValues[i - 2]
-    return devDict
+        dev_dict[itemNames[i]] = itemValues[i - 2]
+    return dev_dict
 
 
 def writeData(msgDict, outFile):

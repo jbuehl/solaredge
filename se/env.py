@@ -289,12 +289,14 @@ def getArgs():
     parser = _make_parser()
     args = parser.parse_args()
     _configure_logging(args)
-    serialDevice = _is_serial_device(args)
-    _validate_serial(parser, args, serial_device=serialDevice)
-    passiveMode = _validate_mode(parser, args)
+    serial_device = _is_serial_device(args)
+    _validate_serial(parser, args, serial_device=serial_device)
+    passive_mode = _validate_mode(parser, args)
     _log_arguments(args)
 
     return (
         args,
-        RunMode(serialDevice, args.type, passiveMode, args.master, args.follow),
+        RunMode(
+            serial_device, args.type, passive_mode, args.master, args.follow
+        ),
     )

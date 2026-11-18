@@ -22,11 +22,11 @@ def sumItems(itemDict, itemAttr):
 
     The stats item is ignored.
     """
-    itemSum = 0
+    item_sum = 0
     for item in itemDict:
         if item != "stats":
-            itemSum += itemDict[item][itemAttr]
-    return itemSum
+            item_sum += itemDict[item][itemAttr]
+    return item_sum
 
 
 def avgItems(itemDict, itemAttr):
@@ -43,8 +43,8 @@ def avgItems(itemDict, itemAttr):
 
 def writeState(stateDict, outFileName):
     """Write the state dictionary to the state file as JSON."""
-    with Path(outFileName).open("w") as outFile:
-        json.dump(stateDict, outFile)
+    with Path(outFileName).open("w") as out_file:
+        json.dump(stateDict, out_file)
 
 
 # get program arguments and options

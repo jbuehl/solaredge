@@ -98,24 +98,24 @@ def processMsg(msg, mode, state, files):
     is sent when one is due.
     """
     # parse the message
-    (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg)
+    (msg_seq, from_addr, to_addr, function, data) = se.msg.parseMsg(msg)
     if function == 0:
         # message could not be processed
         logger.data("Ignoring this message")
         for line in se.logutils.format_data(data):
             logger.data(line)
     else:
-        msgData = se.data.parseData(function, data)
+        msg_data = se.data.parseData(function, data)
         if (
             function == se.commands.PROT_CMD_SERVER_POST_DATA and data
         ):  # performance data
             # write performance data to output file
-            se.data.writeData(msgData, files.out)
+            se.data.writeData(msg_data, files.out)
         if mode.masterMode:  # send reply
-            (replyFunction, replyData) = masterReply(function, state)
-            if replyFunction:
+            (reply_function, reply_data) = masterReply(function, state)
+            if reply_function:
                 msg = se.msg.formatMsg(
-                    msgSeq, toAddr, fromAddr, replyFunction, replyData
+                    msg_seq, to_addr, from_addr, reply_function, reply_data
                 )
                 se.msg.sendMsg(files.data, msg, files.rec)
 
@@ -158,8 +158,8 @@ def masterCommands(state, dataFile, recFile, slaveAddrs):
     """
     se.logutils.setState(state, "masterThread", value=True)
     while True:
-        for slaveAddr in slaveAddrs:
-            masterGrant(state, dataFile, recFile, slaveAddr)
+        for slave_addr in slaveAddrs:
+            masterGrant(state, dataFile, recFile, slave_addr)
         time.sleep(MASTER_MSG_INTERVAL)
     se.logutils.setState(state, "masterThread", value=False)
 
@@ -193,8 +193,8 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
         se.logutils.setState(state, "masterTimer", value=False)
 
     # start a timeout to release the bus if the slave doesn't respond
-    masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
-    masterTimer.start()
+    master_timer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
+    master_timer.start()
     se.logutils.setState(state, "masterTimer", value=True)
     # wait for slave to release the bus
     masterEvent.clear()
@@ -202,7 +202,7 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     masterEvent.wait()
     se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     # cancel the timeout
-    masterTimer.cancel()
+    master_timer.cancel()
     se.logutils.setState(state, "masterTimer", value=False)
 
 
@@ -215,7 +215,7 @@ def doCommands(args, mode, state, files):
     for command in args.commands:
         # format the command parameters
         function = int(command[0], 16)
-        structFmt = "<" + "".join(c[0] for c in command[1:])
+        struct_fmt = "<" + "".join(c[0] for c in command[1:])
         params = [int(p[1:], 16) for p in command[1:]]
         seq = nextSeq()
         # send the command
@@ -226,7 +226,7 @@ def doCommands(args, mode, state, files):
                 MASTER_ADDR,
                 int(args.slaves[0], 16),
                 function,
-                struct.pack(structFmt, *tuple(params)),
+                struct.pack(struct_fmt, *tuple(params)),
             ),
             files.rec,
         )
@@ -235,15 +235,15 @@ def doCommands(args, mode, state, files):
             masterGrant(state, files.data, files.rec, args.slaves[0])
         # wait for the response to the command
         (msg, _eof) = se.msg.readMsg(files.data, files.rec, mode, state)
-        (_msgSeq, _fromAddr, _toAddr, response, data) = se.msg.parseMsg(msg)
-        msgData = se.data.parseData(response, data)
+        (_msg_seq, _from_addr, _to_addr, response, data) = se.msg.parseMsg(msg)
+        msg_data = se.data.parseData(response, data)
         # write response to output file
         se.data.writeData(
             {
                 "command": function,
                 "response": response,
                 "sequence": seq,
-                "data": msgData,
+                "data": msg_data,
             },
             files.out,
         )
@@ -254,11 +254,11 @@ def doCommands(args, mode, state, files):
 def startMaster(args):
     """Start the daemon thread that sends the RS485 master commands."""
     # start a thread to send RS485 master commands
-    masterThread = threading.Thread(
+    master_thread = threading.Thread(
         name=MASTER_THREAD_NAME, target=masterCommands, args=args
     )
-    masterThread.daemon = True
-    masterThread.start()
+    master_thread.daemon = True
+    master_thread.start()
     logger.info("starting %s", MASTER_THREAD_NAME)
 
 
@@ -279,15 +279,15 @@ def nextSeq():
     missing or unreadable.
     """
     try:
-        with Path(SEQ_FILE_NAME).open() as seqFile:
-            seq = int(seqFile.read().rstrip("\n"))
+        with Path(SEQ_FILE_NAME).open() as seq_file:
+            seq = int(seq_file.read().rstrip("\n"))
         seq += 1
         if seq > MAX_SEQ:
             seq = 1
     except OSError:
         seq = 1
-    with Path(SEQ_FILE_NAME).open("w") as seqFile:
-        seqFile.write(str(seq) + "\n")
+    with Path(SEQ_FILE_NAME).open("w") as seq_file:
+        seq_file.write(str(seq) + "\n")
     return seq
 
 

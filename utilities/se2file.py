@@ -56,12 +56,12 @@ def main():
     # We always set looper = False for files, even if the args set it to true.
     looper = args.looper and args.infile == "stdin"
     with contextlib.ExitStack() as files:
-        inFile = _open_input(args, files)
+        in_file = _open_input(args, files)
 
         lastwrite = 0
         # read the input forever or until we have 10 blank lines in the case of file as input
         writefilename = ""
-        jsonStr = ""
+        json_str = ""
         lcnt = 0
         filebuffersize = 0
         blank_cnt = 0
@@ -69,13 +69,13 @@ def main():
             looper or blank_cnt <= blank_max
         ):  # If stdin is set, the blank_cnt will be ignored
             lcnt += 1
-            jsonStr = inFile.readline().strip()
+            json_str = in_file.readline().strip()
             curepoch = int(time.time())
             # wait for and handle data coming in
-            if jsonStr != "":
+            if json_str != "":
                 blank_cnt = 0  # If we have data, reset the blank_cnt variable
                 if debug:
-                    sys.stderr.write(f"Got some data: {jsonStr}\n")
+                    sys.stderr.write(f"Got some data: {json_str}\n")
                 tfname = _output_path(args, dt.datetime.now().astimezone())
                 if tfname != writefilename:
                     if debug:
@@ -89,9 +89,9 @@ def main():
                 with Path(writefilename).open(
                     "a", buffering=filebuffersize
                 ) as writefile:
-                    writefile.write(jsonStr + "\n")
+                    writefile.write(json_str + "\n")
                 lastwrite = curepoch
-                jsonStr = ""
+                json_str = ""
             else:
                 blank_cnt += 1
                 time.sleep(0.5)
