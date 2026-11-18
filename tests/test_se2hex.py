@@ -7,14 +7,14 @@ import pytest
 
 import se.logutils
 
-SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "debug2hex.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "src" / "se" / "se2hex.py"
 
 
 class Stdout(io.TextIOWrapper):
     pass
 
 
-def run_debug2hex(monkeypatch, *args):
+def run_se2hex(monkeypatch, *args):
     stdout = Stdout(io.BytesIO(), encoding="latin-1", write_through=True)
     monkeypatch.setattr(sys, "argv", [str(SCRIPT), *map(str, args)])
     monkeypatch.setattr(sys, "stdout", stdout)
@@ -41,7 +41,7 @@ def test_the_data_lines_are_written_as_binary_to_the_data_file(
 ):
     log = write_log(workdir, "data:       12 34 56 79\ndata:       00 ff\n")
 
-    code, stdout = run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    code, stdout = run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert code == 0
     assert stdout == b""
@@ -59,7 +59,7 @@ def test_lines_that_are_not_data_are_ignored(workdir, monkeypatch):
         "data:       03\n",
     )
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert (workdir / "out.bin").read_bytes() == b"\x01\x02\x03"
 
@@ -78,7 +78,7 @@ def test_spacing_and_the_case_of_the_hex_digits_do_not_matter(
 ):
     log = write_log(workdir, line + "\n")
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert (workdir / "out.bin").read_bytes() == b"\x0a\x0b\x0c"
 
@@ -86,7 +86,7 @@ def test_spacing_and_the_case_of_the_hex_digits_do_not_matter(
 def test_a_log_without_data_gives_an_empty_file(workdir, monkeypatch):
     log = write_log(workdir, "nothing to see here\n")
 
-    code, _ = run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    code, _ = run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert code == 0
     assert (workdir / "out.bin").read_bytes() == b""
@@ -95,7 +95,7 @@ def test_a_log_without_data_gives_an_empty_file(workdir, monkeypatch):
 def test_an_empty_log_gives_an_empty_file(workdir, monkeypatch):
     log = write_log(workdir, "")
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert (workdir / "out.bin").read_bytes() == b""
 
@@ -104,7 +104,7 @@ def test_the_data_file_is_replaced_not_extended(workdir, monkeypatch):
     (workdir / "out.bin").write_bytes(b"old data")
     log = write_log(workdir, "data:       01\n")
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert (workdir / "out.bin").read_bytes() == b"\x01"
 
@@ -125,7 +125,7 @@ def test_the_data_file_is_complete_when_the_script_has_ended(
 
     monkeypatch.setattr("io.open", tracking_open)
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert all(handle.closed for handle in opened)
 
@@ -138,7 +138,7 @@ def test_without_a_data_file_the_binary_data_goes_to_stdout(
 ):
     log = write_log(workdir, "data:       12 34 56 79\ndata:       80 ff\n")
 
-    code, stdout = run_debug2hex(monkeypatch, log)
+    code, stdout = run_se2hex(monkeypatch, log)
 
     assert code == 0
     assert stdout == b"\x12\x34\x56\x79\x80\xff"
@@ -149,21 +149,21 @@ def test_without_a_data_file_the_binary_data_goes_to_stdout(
 
 @pytest.mark.xfail(strict=True, reason="Issue #31")
 def test_a_log_file_has_to_be_given(monkeypatch):
-    code, _ = run_debug2hex(monkeypatch)
+    code, _ = run_se2hex(monkeypatch)
 
     assert code not in (0, None)
 
 
 def test_a_log_file_that_does_not_exist_is_an_error(workdir, monkeypatch):
     with pytest.raises(FileNotFoundError):
-        run_debug2hex(monkeypatch, workdir / "missing.log")
+        run_se2hex(monkeypatch, workdir / "missing.log")
 
 
 def test_data_that_is_not_hex_is_an_error(workdir, monkeypatch):
     log = write_log(workdir, "data:       zz yy\n")
 
     with pytest.raises(ValueError, match="Non-hexadecimal"):
-        run_debug2hex(monkeypatch, log, workdir / "out.bin")
+        run_se2hex(monkeypatch, log, workdir / "out.bin")
 
 
 # --- log of semonitor itself -------------------------------------------------
@@ -183,6 +183,6 @@ def test_what_semonitor_logs_for_data_gives_the_data_back(
 ):
     log = write_log(workdir, "\n".join(se.logutils.format_data(data)) + "\n")
 
-    run_debug2hex(monkeypatch, log, workdir / "out.bin")
+    run_se2hex(monkeypatch, log, workdir / "out.bin")
 
     assert (workdir / "out.bin").read_bytes() == data

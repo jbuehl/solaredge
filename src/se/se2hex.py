@@ -5,7 +5,7 @@ The log must have been created by semonitor.py with the -vvvv option which
 dumps the raw data.
 
 Usage:
-  python debug2hex.py logFile [dataFile]
+  python se2hex.py logFile [dataFile]
       logFile     file containing semonitor.py debug output created with the -vvvv option
       dataFile    file to write data to (default: stdout)
 """

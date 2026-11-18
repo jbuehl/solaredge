@@ -31,11 +31,11 @@ mqtt = ["paho-mqtt<2"]
 all = ["semonitor[influx,mqtt]"]
 
 [project.scripts]
-debug2hex = "se.debug2hex:main"
 pickle2graphite = "se.pickle2graphite:main"
 se2csv = "se.se2csv:main"
 se2file = "se.se2file:main"
 se2graphite = "se.se2graphite:main"
+se2hex = "se.se2hex:main"
 se2influx = "se.se2influx:main"
 se2mqtt = "se.se2mqtt:main"
 se2state = "se.se2state:main"
