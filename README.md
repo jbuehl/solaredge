@@ -176,7 +176,6 @@ SolarEdge inverter performance monitoring using the SolarEdge protocol.
     -r recfile           file to record all incoming and outgoing messages to
     -s inv[,inv,...]     comma delimited list of SolarEdge slave inverter IDs
     -t 2|4               data source type (2=RS232, 4=RS485)
-    -u updatefile        file to write firmware update to (experimental)
     -v                   verbose output
     -x                   halt on data exception
 

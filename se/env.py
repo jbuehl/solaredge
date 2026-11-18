@@ -58,7 +58,6 @@ def getArgs():
     parser.add_argument("-r", dest="record", help="file to record all incoming and outgoing messages to")
     parser.add_argument("-s", dest="slaves", type=validated_slaves, default=[], help="comma delimited list of SolarEdge slave inverter IDs")
     parser.add_argument("-t", dest="type", choices=["2","4"], help="serial data source type (2=RS232, 4=RS485)")
-    parser.add_argument("-u", dest="updatefile", type=argparse.FileType('w'), help="file to write firmware update to (experimental)")
     parser.add_argument("-v", dest="verbose", action="count", default=0, help="verbose output")
     parser.add_argument("-x", dest="xerror", action="store_true", default=False, help="halt on data exception")
     parser.add_argument("datasource", default="stdin", nargs='?', help="Input filename or serial port")

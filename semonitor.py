@@ -25,7 +25,6 @@ MASTER_MSG_INTERVAL = 5
 MASTER_MSG_TIMEOUT = 10
 MASTER_ADDR = 0xfffffffe
 SEQ_FILE_NAME = "seseq.txt"
-UPDATE_SIZE = 0x80000
 
 # global variables
 threadLock = threading.Lock()  # lock to synchronize reads and writes
@@ -42,7 +41,6 @@ def terminate(code=0, msg=b""):
 # process the input data
 def readData(args, mode, state, dataFile, recFile, outFile):
     eof = False
-    updateBuf = list(b"\x00" * UPDATE_SIZE) if args.updatefile else []
     if mode.passiveMode:
         # skip data until the start of the first complete message
         (msg, eof) = se.msg.readMsg(dataFile, recFile, mode, state)
@@ -56,7 +54,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
             with threadLock:
                 se.logutils.setState(state, "threadLock", True)
                 try:
-                    processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf)
+                    processMsg(msg, args, mode, state, dataFile, recFile, outFile)
                 except Exception as ex:
                     logger.info("Failed to parse message: "+str(ex))
                     for l in se.logutils.format_data(msg):
@@ -64,13 +62,10 @@ def readData(args, mode, state, dataFile, recFile, outFile):
                     if args.xerror:
                         raise
                 se.logutils.setState(state, "threadLock", False)
-    # all finished
-    if args.updatefile:  # write the firmware update file
-        writeUpdate(updateBuf, args.updatefile)
     return
 
 # process a received message
-def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
+def processMsg(msg, args, mode, state, dataFile, recFile, outFile):
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg)
     if function == 0:
@@ -83,8 +78,6 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
         if function == se.commands.PROT_CMD_SERVER_POST_DATA and data:  # performance data
             # write performance data to output file
             se.data.writeData(msgData, outFile)
-        elif updateBuf and function == se.commands.PROT_CMD_UPGRADE_WRITE:  # firmware update data
-            updateBuf[msgData["offset"]:msgData["offset"] + msgData["length"]] = msgData["data"]
         if mode.masterMode:  # send reply
             replyFunction = b""
             if function == se.commands.PROT_CMD_SERVER_POST_DATA:  # performance data
@@ -106,13 +99,6 @@ def processMsg(msg, args, mode, state, dataFile, recFile, outFile, updateBuf):
             if replyFunction:
                 msg = se.msg.formatMsg(msgSeq, toAddr, fromAddr, replyFunction, replyData)
                 se.msg.sendMsg(dataFile, msg, recFile)
-
-# write firmware image to file
-def writeUpdate(updateBuf, updateFileName):
-    updateBuf = b"".join(updateBuf)
-    logger.info("writing %s", updateFileName)
-    with open(updateFileName, "wb") as updateFile:
-        updateFile.write(updateBuf)
 
 # RS485 master commands thread
 def masterCommands(state, dataFile, recFile, slaveAddrs):
