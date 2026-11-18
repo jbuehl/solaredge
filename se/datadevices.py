@@ -265,55 +265,57 @@ class ParseDevice(dict):
             _out,
             _comment,
         ) in self.fieldDefs:
-            # Extract the field
-            if paramInFmt == "hex":
-                self[paramName] = data[dataPtr : dataPtr + paramLen]
-            # Check for a specific value which I believe should be interpreted as NaN
-            # In little endian format '\xff\xff\x7f\xff' unpacks as -3.402...*10**38.
-            # But the SolarEdge messages seem to use it to signify "not reported".
-            # In all the cases I have encountered it makes more sense to interpret this particular float value as NaN
-            # rather than as a very large negative number, so that is what I do below.
-            # Note that if unpacked in **big** endian format, this special value actually unpacks as NaN.
-            # I suspect a legacy "bug" somewhere in the SolarEdge messages, but in the meantime just check the bytes
-            # and fix it.
-            elif paramInFmt == "f" and (
-                data[dataPtr : dataPtr + paramLen] == b"\xff\xff\x7f\xff"
-            ):
-                self[paramName] = float("nan")
-            else:
-                self[paramName] = struct.unpack(
-                    "<" + paramInFmt, data[dataPtr : dataPtr + paramLen]
-                )[0]
-                if "s" in paramInFmt:
-                    # Python 3.x requires that we convert byte string to Unicode string
-                    # if the value is to be used (later on) as a dictionary key for nested fields
-                    # Required for e.g. battery IDs
-                    # Remove trailing 'null' character (i.e. 0x00) at the same time
-                    self[paramName] = (
-                        self[paramName].decode("utf-8").strip("\x00")
-                    )
-
-            # Optionally format the field
-            if outFormatFn == "dateTime":
-                try:
-                    self["Date"] = self.formatDateStamp(self[paramName])
-                except ValueError:
-                    logger.debug(
-                        "'%s' is not a valid date, changed to '1970-01-01'",
-                        format(self[paramName]),
-                    )
-                    self["Date"] = "1970-01-01"
-                try:
-                    self["Time"] = self.formatTimeStamp(self[paramName])
-                except ValueError:
-                    logger.debug(
-                        "'%s' is not a valid time, changed to '00:00:01'",
-                        format(self[paramName]),
-                    )
-                    self["Time"] = "00:00:01"
-            elif outFormatFn is not None:
-                self[paramName] = outFormatFn(self[paramName])
+            raw = data[dataPtr : dataPtr + paramLen]
+            self._unpack_field(paramName, paramInFmt, raw)
+            self._format_field(paramName, outFormatFn)
             dataPtr += paramLen
+
+    def _unpack_field(self, param_name, param_fmt, raw):
+        # Extract the field
+        if param_fmt == "hex":
+            self[param_name] = raw
+        # Check for a specific value which I believe should be interpreted as NaN
+        # In little endian format '\xff\xff\x7f\xff' unpacks as -3.402...*10**38.
+        # But the SolarEdge messages seem to use it to signify "not reported".
+        # In all the cases I have encountered it makes more sense to interpret this particular float value as NaN
+        # rather than as a very large negative number, so that is what I do below.
+        # Note that if unpacked in **big** endian format, this special value actually unpacks as NaN.
+        # I suspect a legacy "bug" somewhere in the SolarEdge messages, but in the meantime just check the bytes
+        # and fix it.
+        elif param_fmt == "f" and (raw == b"\xff\xff\x7f\xff"):
+            self[param_name] = float("nan")
+        else:
+            self[param_name] = struct.unpack("<" + param_fmt, raw)[0]
+            if "s" in param_fmt:
+                # Python 3.x requires that we convert byte string to Unicode string
+                # if the value is to be used (later on) as a dictionary key for nested fields
+                # Required for e.g. battery IDs
+                # Remove trailing 'null' character (i.e. 0x00) at the same time
+                self[param_name] = (
+                    self[param_name].decode("utf-8").strip("\x00")
+                )
+
+    def _format_field(self, param_name, out_format_fn):
+        # Optionally format the field
+        if out_format_fn == "dateTime":
+            try:
+                self["Date"] = self.formatDateStamp(self[param_name])
+            except ValueError:
+                logger.debug(
+                    "'%s' is not a valid date, changed to '1970-01-01'",
+                    format(self[param_name]),
+                )
+                self["Date"] = "1970-01-01"
+            try:
+                self["Time"] = self.formatTimeStamp(self[param_name])
+            except ValueError:
+                logger.debug(
+                    "'%s' is not a valid time, changed to '00:00:01'",
+                    format(self[param_name]),
+                )
+                self["Time"] = "00:00:01"
+        elif out_format_fn is not None:
+            self[param_name] = out_format_fn(self[param_name])
 
     def setDerivationDefaults(self):
         for paramName, paramDefault, _out, _comment in self._derivn:
