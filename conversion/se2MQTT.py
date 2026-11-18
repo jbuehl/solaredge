@@ -68,5 +68,5 @@ with inFile:
             mqttc.connect(server)
             mqttc.publish(topic, json.dumps(stateDict))
             mqttc.disconnect()
-        except Exception as ex:
+        except (OSError, ValueError) as ex:
             sys.stderr.write(f"MQTT Exception: {ex}\n")

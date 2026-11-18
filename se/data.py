@@ -325,7 +325,7 @@ def devDataDict(seId, itemNames, itemValues):
     try:
         devDict["Date"] = formatDateStamp(itemValues[0])
         devDict["Time"] = formatTimeStamp(itemValues[0])
-    except Exception as ex:
+    except (OverflowError, OSError, TypeError, ValueError) as ex:
         logger.info("Invalid timestamp: %s %s", itemValues[0], ex)
         devDict["Date"] = "invalid"
         devDict["Time"] = "invalid"
@@ -368,7 +368,7 @@ def formatDateTime(timeStamp):
         return time.asctime(time.localtime(timeStamp))
     except ValueError:
         return "".join(x.encode("hex") for x in struct.pack("<L", timeStamp))
-    except Exception as ex:
+    except (OverflowError, OSError, TypeError) as ex:
         logger.info("Invalid timestamp: %s %s", timeStamp, ex)
         return "invalid"
 

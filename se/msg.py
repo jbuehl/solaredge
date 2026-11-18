@@ -74,7 +74,7 @@ def readBytes(inFile, recFile, length, mode, state):
         )
         return inBuf
     # treat exceptions as end of file
-    except Exception as ex:
+    except (IndexError, OSError, ValueError) as ex:
         logger.info("Exception while reading data: %s", ex)
         return b""
 

@@ -159,7 +159,7 @@ class ParseDevice(dict):
     def formatDateStamp(timeStamp):
         try:
             return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
-        except Exception as ex:
+        except (OverflowError, OSError, TypeError, ValueError) as ex:
             logger.info("Invalid timestamp: %s %s", timeStamp, ex)
             return "invalid"
 
@@ -168,7 +168,7 @@ class ParseDevice(dict):
     def formatTimeStamp(timeStamp):
         try:
             return time.strftime("%H:%M:%S", time.localtime(timeStamp))
-        except Exception as ex:
+        except (OverflowError, OSError, TypeError, ValueError) as ex:
             logger.info("Invalid timestamp: %s %s", timeStamp, ex)
             return "invalid"
 
