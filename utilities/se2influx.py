@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import contextlib
 import gzip
 import json
 import logging
@@ -231,37 +232,38 @@ class Se2Influx:
         be fine)
         """
         while True:
-            try:
-                log_fh = open(self.log_path, "a")
-            except Exception:
-                logger.exception("Error opening %s", self.log_path)
-                return
-
-            while True:
+            with contextlib.ExitStack() as stack:
                 try:
-                    line = self.logger_queue.get(timeout=1)
-                except queue.Empty:
-                    if self.shutdown.is_set():
-                        return
-                    continue
-
-                try:
-                    log_fh.write(line)
-                    log_fh.flush()
+                    log_fh = stack.enter_context(open(self.log_path, "a"))
                 except Exception:
-                    logger.exception("Error writing to %s", self.log_path)
+                    logger.exception("Error opening %s", self.log_path)
                     return
 
-                size = os.stat(self.log_path).st_size
-                if self.max_log_size and size > self.max_log_size:
-                    log_fh.close()
+                while True:
                     try:
-                        self.rotate_log()
+                        line = self.logger_queue.get(timeout=1)
+                    except queue.Empty:
+                        if self.shutdown.is_set():
+                            return
+                        continue
+
+                    try:
+                        log_fh.write(line)
+                        log_fh.flush()
                     except Exception:
-                        logger.exception(
-                            "Failed to rotate file: %s", self.log_path
-                        )
-                    break
+                        logger.exception("Error writing to %s", self.log_path)
+                        return
+
+                    size = os.stat(self.log_path).st_size
+                    if self.max_log_size and size > self.max_log_size:
+                        log_fh.close()
+                        try:
+                            self.rotate_log()
+                        except Exception:
+                            logger.exception(
+                                "Failed to rotate file: %s", self.log_path
+                            )
+                        break
 
     def rotate_log(self) -> None:
         """Rotate and compress logs once they get too big"""

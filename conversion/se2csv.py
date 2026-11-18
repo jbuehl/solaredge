@@ -3,6 +3,7 @@
 # Convert SolarEdge inverter performance monitoring data from JSON to CSV
 
 import argparse
+import contextlib
 import csv
 import json
 
@@ -64,20 +65,24 @@ if __name__ == "__main__":
 
     devsFile = {}
 
-    # process the data
-    for jsonStr in args.infile:
-        for baseName, devAttrs in sorted(
-            unwrap_metricsDict(json.loads(jsonStr))
-        ):
-            devName, devId = baseName.split(".", 1)
-            if devName not in devsFile:
-                devsFileName = f"{args.prefix}.{devName}.csv"
-                itemNames = ["__Identifier__", *sorted(devAttrs.keys())]
-                devsFile[devName] = csv.DictWriter(
-                    open(devsFileName, "a" if args.append else "w"), itemNames
-                )
-                if args.headers:
-                    devsFile[devName].writeheader()
+    # process the data, and close the CSV files when we are done
+    with contextlib.ExitStack() as csv_files:
+        for jsonStr in args.infile:
+            for baseName, devAttrs in sorted(
+                unwrap_metricsDict(json.loads(jsonStr))
+            ):
+                devName, devId = baseName.split(".", 1)
+                if devName not in devsFile:
+                    devsFileName = f"{args.prefix}.{devName}.csv"
+                    itemNames = ["__Identifier__", *sorted(devAttrs.keys())]
+                    devsFile[devName] = csv.DictWriter(
+                        csv_files.enter_context(
+                            open(devsFileName, "a" if args.append else "w")
+                        ),
+                        itemNames,
+                    )
+                    if args.headers:
+                        devsFile[devName].writeheader()
 
-            devAttrs["__Identifier__"] = devId
-            devsFile[devName].writerow(devAttrs)
+                devAttrs["__Identifier__"] = devId
+                devsFile[devName].writerow(devAttrs)

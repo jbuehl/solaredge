@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import contextlib
 import datetime
 import os
 import sys
@@ -19,86 +20,86 @@ def main():
     store_daily = args.store_daily
     make_daily_dir = args.make_daily_dir
     looper = args.looper
-    if args.infile == "stdin":
-        inFile = sys.stdin
-    else:
-        try:
-            inFile = open(args.infile)
-        except OSError:
-            sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
-            sys.exit(1)
-        # We always set looper = False for files, even if the args set it to true.
-        looper = False
+    with contextlib.ExitStack() as files:
+        if args.infile == "stdin":
+            inFile = sys.stdin
+        else:
+            try:
+                inFile = files.enter_context(open(args.infile))
+            except OSError:
+                sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
+                sys.exit(1)
+            # We always set looper = False for files, even if the args set it to true.
+            looper = False
 
-    lastwrite = 0
-    # read the input forever or until we have 10 blank lines in the case of file as input
-    writefile = None
-    writefilename = ""
-    jsonStr = ""
-    lcnt = 0
-    filebuffersize = 0
-    blank_cnt = 0
-    while (
-        looper or blank_cnt <= blank_max
-    ):  # If stdin is set, the blank_cnt will be ignored
-        lcnt += 1
-        jsonStr = inFile.readline().strip()
-        curepoch = int(time.time())
-        # wait for and handle data coming in
-        if jsonStr != "":
-            blank_cnt = 0  # If we have data, reset the blank_cnt variable
-            if debug:
-                sys.stderr.write(f"Got some data: {jsonStr}\n")
-            curtime = datetime.datetime.now().astimezone()
-            curday = curtime.strftime("%Y-%m-%d")
-            curhour = curtime.strftime("%Y-%m-%d-%H")
-            curstore = curday if store_daily else curhour
-            if make_daily_dir:
-                if not os.path.isdir(basedir + "/" + curday):
-                    os.mkdir(basedir + "/" + curday)
-                tfname = (
-                    basedir + "/" + curday + "/" + prefix + curstore + ".json"
-                )
+        lastwrite = 0
+        # read the input forever or until we have 10 blank lines in the case of file as input
+        writefilename = ""
+        jsonStr = ""
+        lcnt = 0
+        filebuffersize = 0
+        blank_cnt = 0
+        while (
+            looper or blank_cnt <= blank_max
+        ):  # If stdin is set, the blank_cnt will be ignored
+            lcnt += 1
+            jsonStr = inFile.readline().strip()
+            curepoch = int(time.time())
+            # wait for and handle data coming in
+            if jsonStr != "":
+                blank_cnt = 0  # If we have data, reset the blank_cnt variable
+                if debug:
+                    sys.stderr.write(f"Got some data: {jsonStr}\n")
+                curtime = datetime.datetime.now().astimezone()
+                curday = curtime.strftime("%Y-%m-%d")
+                curhour = curtime.strftime("%Y-%m-%d-%H")
+                curstore = curday if store_daily else curhour
+                if make_daily_dir:
+                    if not os.path.isdir(basedir + "/" + curday):
+                        os.mkdir(basedir + "/" + curday)
+                    tfname = (
+                        basedir
+                        + "/"
+                        + curday
+                        + "/"
+                        + prefix
+                        + curstore
+                        + ".json"
+                    )
+                else:
+                    tfname = basedir + "/" + prefix + curstore + ".json"
+                if tfname != writefilename:
+                    if debug:
+                        sys.stderr.write(
+                            "Looks like a new daily output file: "
+                            f"Temp Name: {tfname} - Old Name: {writefilename}\n"
+                        )
+                    writefilename = tfname
+
+                # The file is closed again right away, so we never keep it open
+                with open(
+                    writefilename, "a", buffering=filebuffersize
+                ) as writefile:
+                    writefile.write(jsonStr + "\n")
+                lastwrite = curepoch
+                jsonStr = ""
             else:
-                tfname = basedir + "/" + prefix + curstore + ".json"
-            if tfname != writefilename:
+                blank_cnt += 1
+                time.sleep(0.5)
+            # Let's not leave output files open if we haven't seen data in a while
+            if curepoch - lastwrite > openfilesecs:
                 if debug:
                     sys.stderr.write(
-                        "Looks like a new daily output file: "
-                        f"Temp Name: {tfname} - Old Name: {writefilename}\n"
+                        f"No data for {openfilesecs} seconds, closing file\n"
                     )
-                if writefile is not None:
-                    writefile.close()
-                    writefile = None
-                writefilename = tfname
-
-            if writefile is None:
-                writefile = open(writefilename, "a", buffering=filebuffersize)
-            writefile.write(jsonStr + "\n")
-            lastwrite = curepoch
-            writefile.close()
-            writefile = None
-            jsonStr = ""
-        else:
-            blank_cnt += 1
-            time.sleep(0.5)
-        # Let's not leave output files open if we haven't seen data in a while
-        if curepoch - lastwrite > openfilesecs:
-            if debug:
-                sys.stderr.write(
-                    f"No data for {openfilesecs} seconds, closing file\n"
-                )
-            if writefile is not None:
-                writefile.close()
-                writefile = None
-        # Keep track of when we are looping and report on it if debug is enabled.
-        lreport = 60
-        if lcnt % lreport == 0:
-            lcnt = 0
-            if debug:
-                curtime = datetime.datetime.now().astimezone()
-                curstr = curtime.strftime("%Y-%m-%d-%H:%m:%s")
-                sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
+            # Keep track of when we are looping and report on it if debug is enabled.
+            lreport = 60
+            if lcnt % lreport == 0:
+                lcnt = 0
+                if debug:
+                    curtime = datetime.datetime.now().astimezone()
+                    curstr = curtime.strftime("%Y-%m-%d-%H:%m:%s")
+                    sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
 
 
 def getargs():
