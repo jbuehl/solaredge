@@ -461,14 +461,14 @@ _derivn = [
     # recType=5 and (only) intervalData=0 (False) is Grid export / import
     [
         "0_5_TotalE2Grid",
-        "nan",
+        nan,
         True,
         "Wh, total lifetime export to grid" + sp + "matches SE LCD panel value",
     ],
     # ...
     [
         "0_5_E2X",
-        "nan",
+        nan,
         True,
         "Wh, energy exported to grid during interval"
         + sp
@@ -476,7 +476,7 @@ _derivn = [
     ],
     [
         "0_5_EfromX",
-        "nan",
+        nan,
         True,
         "Wh, energy imported from grid during interval"
         + sp
@@ -484,7 +484,7 @@ _derivn = [
     ],
     [
         "0_5_P2X",
-        "nan",
+        nan,
         True,
         "W, power to grid (at end of?) interval"
         + sp
@@ -492,7 +492,7 @@ _derivn = [
     ],
     [
         "0_5_PfromX",
-        "nan",
+        nan,
         True,
         "W, power from grid (at end of?) interval"
         + sp
@@ -514,7 +514,7 @@ In this example the *derivation* consisted of copying the raw value,
 read from the data block, into a new field with a similar name, but prefixed
 by the value of two other fields (`intervalData` and `recType`) - so if
 for example `self["intervalData"] == 0` and `self["recType"] == 5`, then
-the value of `self["0_5_PfromX"]` was changed from the default (`"nan"`)
+the value of `self["0_5_PfromX"]` was changed from the default (`nan`)
 to whatever value was provided for `self["PfromX"]` in the device data
 block.
 
@@ -739,21 +739,26 @@ values that appeared to be constant. To be able to confirm (or deny)
 that they were constant during extended runs of semonitor, I added the
 concept of hypotheses to `ParseDevice`.
 
-`_hypotheses` is a list of strings which contain valid Python
-expressions, which evaluate to `True` or `False`. The `checkHypotheses`
-method, invoked as the last step in the `__init__` method, simply
-evaluates these expressions, and logs any situation where they evaluate
-to `False`. An example (taken from `ParseDevice_0x0022`) may make this
-clearer:
+`_hypotheses` is a list of `(text, predicate)` pairs. The text describes
+the hypothesis, and the predicate is a function that takes the parsed
+device and returns `True` or `False`. The `checkHypotheses` method,
+invoked as the last step in the `__init__` method, simply calls the
+predicates, and logs the text of any hypothesis that evaluates to `False`.
+The module provides the helpers `is_zero(name)` and `is_small(name)` that
+build the pairs for the two common cases. An example (taken from
+`ParseDevice_0x0022`) may make this clearer:
 
 ```python
     _hypotheses = [
-        "self['AlwaysZero_off10_int2'] == 0",
-        "self['AlwaysZero_off18_int2'] == 0",
-        "self['AlwaysZero_off26_int2'] == 0",
-        "self['AlwaysZero_off34_int2'] == 0",
+        is_zero("AlwaysZero_off10_int2"),
+        is_zero("AlwaysZero_off18_int2"),
+        is_zero("AlwaysZero_off26_int2"),
+        is_zero("AlwaysZero_off34_int2"),
     ]
 ```
+
+Any other hypothesis is written out as a pair, for example
+`("self['Vdc'] > 0", lambda dev: dev["Vdc"] > 0)`.
 
 
 ### Documenting device fields - the `ParseDevice.itemDefs` method

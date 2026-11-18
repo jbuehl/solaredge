@@ -32,7 +32,10 @@ import binascii
 import logging
 import struct
 import time
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,19 @@ logger = logging.getLogger(__name__)
 sp = "\n\t\t\t\t\t\t: "
 # Create a "utility" constant, to use later to make code less verbose
 nan = float("nan")
+
+
+def is_zero(name):
+    """Build the hypothesis that the item `name` is always zero."""
+    return (f"self['{name}'] == 0", lambda dev: dev[name] == 0)
+
+
+def is_small(name):
+    """Build the hypothesis that the float item `name` is below 10**25."""
+    return (
+        f"abs(self['{name}']) < 10**25",
+        lambda dev: abs(dev[name]) < 10**25,
+    )
 
 
 class ParseDevice(dict):
@@ -81,6 +97,7 @@ class ParseDevice(dict):
 
     # Each "definition" is itself a list, comprising:
     # [paramName, paramDefault, out (to CSV) True or False, comment]
+    # paramDefault is the value itself, e.g. 0, 0.0, "" or nan.
     #
     # NB *** It is (much) simpler to describe the actual derivation for a particular item in Python code
     # (within the subclass that needs it) than to develop a completely new "syntax" for describing derivations!
@@ -90,10 +107,11 @@ class ParseDevice(dict):
         # [paramName, paramDefault, out (to CSV) True or False, comment]
     ]
 
-    # HYPOTHESES, optional, list of (valid Python) expressions which I expect to be always true.
+    # HYPOTHESES, optional, list of (text, predicate) pairs for conditions which I expect to be always true.
+    # The predicate takes the parsed device, the text is what gets logged when it is false.
     # Useful for generating debug alerts in the event of "new" unexpected values appearing in data items.
-    # See ParseDevice_0x0030 for an example.
-    _hypotheses: ClassVar[list[str]] = []
+    # See ParseDevice_0x0030 for an example, and is_zero and is_small for the common cases.
+    _hypotheses: ClassVar[list[tuple[str, Callable[[Any], bool]]]] = []
 
     def __new__(cls, data, explorer=False):
         # Some fancy footwork so that I can always start to create a ParseDevice, but actually get a subclass which is
@@ -298,15 +316,15 @@ class ParseDevice(dict):
 
     def setDerivationDefaults(self):
         for paramName, paramDefault, _out, _comment in self._derivn:
-            self[paramName] = eval(paramDefault)
+            self[paramName] = paramDefault
 
     def codeDerivations(self):
         # Subclasses should override this if they want to calculate any derivations.
         pass
 
     def checkHypotheses(self):
-        for hypothesis in self._hypotheses:
-            if not eval(hypothesis):
+        for hypothesis, holds in self._hypotheses:
+            if not holds(self):
                 msg = [
                     "Failed hypothesis",
                     self.__class__.__name__,
@@ -526,11 +544,11 @@ class ParseDevice_0x0030(ParseDevice):
         ],
     ]
 
-    _hypotheses: ClassVar[list[str]] = [
-        "abs(self['AlwaysZero_40_float']) < 10**25",
-        "abs(self['AlwaysZero_48_float']) < 10**25",
-        "abs(self['AlwaysZero_66_float']) < 10**25",
-        "abs(self['AlwaysZero_70_float']) < 10**25",
+    _hypotheses: ClassVar[list[tuple[str, Callable[[Any], bool]]]] = [
+        is_small("AlwaysZero_40_float"),
+        is_small("AlwaysZero_48_float"),
+        is_small("AlwaysZero_66_float"),
+        is_small("AlwaysZero_70_float"),
     ]
 
     def wrap_in_ids(self):
@@ -783,11 +801,11 @@ class ParseDevice_0x0022(ParseDevice):
         # [paramName, paramDefault, out (to CSV) True or False, comment]
     ]
 
-    _hypotheses: ClassVar[list[str]] = [
-        "self['AlwaysZero_off10_int2'] == 0",
-        "self['AlwaysZero_off18_int2'] == 0",
-        "self['AlwaysZero_off26_int2'] == 0",
-        "self['AlwaysZero_off34_int2'] == 0",
+    _hypotheses: ClassVar[list[tuple[str, Callable[[Any], bool]]]] = [
+        is_zero("AlwaysZero_off10_int2"),
+        is_zero("AlwaysZero_off18_int2"),
+        is_zero("AlwaysZero_off26_int2"),
+        is_zero("AlwaysZero_off34_int2"),
     ]
 
     def __init__(self, data, explorer=False):

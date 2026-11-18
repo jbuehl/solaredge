@@ -853,8 +853,8 @@ def test_derived_items_get_their_defaults(monkeypatch, record):
         ParseDevice_0x0022,
         "_derivn",
         [
-            ["Extra", "0.5", True, "net power"],
-            ["Label", "'none'", False, "a label"],
+            ["Extra", 0.5, True, "net power"],
+            ["Label", "none", False, "a label"],
         ],
     )
 
@@ -868,7 +868,7 @@ def test_derived_items_are_exported_after_the_defined_ones(monkeypatch):
     monkeypatch.setattr(
         ParseDevice_0x0022,
         "_derivn",
-        [["Extra", "0", True, "shown"], ["Hidden", "0", False, "not shown"]],
+        [["Extra", 0, True, "shown"], ["Hidden", 0, False, "not shown"]],
     )
 
     names = ParseDevice_0x0022.itemNames()
@@ -1079,7 +1079,7 @@ def test_item_defs_lists_the_byte_offset_of_each_field():
 
 def test_item_defs_describes_derived_items(monkeypatch):
     monkeypatch.setattr(
-        ParseDevice_0x0022, "_derivn", [["Extra", "0.5", True, "net power"]]
+        ParseDevice_0x0022, "_derivn", [["Extra", 0.5, True, "net power"]]
     )
 
     text = ParseDevice_0x0022.itemDefs()
