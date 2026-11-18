@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-A very basic alternative to the (Linux world's) syslog module, so I can test semonitor
-on a Windows machine without too much heartache.
+A very basic alternative to the (Linux world's) syslog module.
+
+It lets me test semonitor on a Windows machine without too much heartache.
 
 Note that to see anything from this logger, a syslog server must be running, to capture and use the UDP packets sent
 by the SysLogHandler.
@@ -18,7 +19,7 @@ class TimedRotatingFileHandlerUmasked(
     logging.handlers.TimedRotatingFileHandler
 ):
     """
-    A modification of the logging.handlers.TimedRotatingFileHandler
+    A modification of the logging.handlers.TimedRotatingFileHandler.
 
     It uses os.umask to give the owner and group read and write permissions to the log files.
     _open (in the parent classes) is the hidden method which actually opens and creates new log files.

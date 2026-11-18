@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Write the output of semonitor.py, unprocessed, to JSON files."""
 
 import argparse
 import contextlib
@@ -8,8 +9,13 @@ import time
 from pathlib import Path
 
 
-# open the file to read from, which stays open until files is closed
 def _open_input(args, files):
+    """
+    Open the file to read from, which stays open until files is closed.
+
+    Returns sys.stdin when the input is "stdin". Exits with status 1 if the
+    file cannot be opened.
+    """
     if args.infile == "stdin":
         return sys.stdin
     try:
@@ -19,8 +25,13 @@ def _open_input(args, files):
         sys.exit(1)
 
 
-# the name of the file to write to, in a directory per day if asked for
 def _output_path(args, curtime):
+    """
+    Return the path of the JSON file to write the message at curtime to.
+
+    The file is named after the day, or the hour, of curtime. A directory per
+    day is created under basedir when make_daily_dir is set.
+    """
     curday = curtime.strftime("%Y-%m-%d")
     curhour = curtime.strftime("%Y-%m-%d-%H")
     curstore = curday if args.store_daily else curhour
@@ -33,6 +44,7 @@ def _output_path(args, curtime):
 
 
 def main():
+    """Copy semonitor output lines into JSON files named by day and hour."""
     # parse the command line arguments
     args = getargs()
 
@@ -100,6 +112,7 @@ def main():
 
 
 def getargs():
+    """Parse and return the command line arguments."""
     parser = argparse.ArgumentParser(
         description=(
             "Write the output of semonitor.py, unprocessed, to JSON files "

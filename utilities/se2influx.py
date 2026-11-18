@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Read semonitor.py output and write it to an InfluxDB and a log file."""
 
 import argparse
 import contextlib
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class InfluxParams:
+    """Connection settings for the InfluxDB server."""
+
     host: str
     port: int
     username: str
@@ -43,15 +46,19 @@ class InfluxParams:
 
 @dataclass
 class LogParams:
+    """Settings for the optional log file of raw semonitor output."""
+
     path: str | None
     max_size: int
 
 
 class DateError(Exception):
-    pass
+    """Raised when the date and time of a semonitor message cannot be converted."""
 
 
 class Se2Influx:
+    """Read semonitor data from stdin and write it to InfluxDB and a log file."""
+
     def __init__(
         self,
         influx_params: InfluxParams,
@@ -60,7 +67,18 @@ class Se2Influx:
         local_tz: str | None,
         stat_timer_secs: int | None,
     ) -> None:
+        """
+        Store the settings and create the queues and the shutdown event.
 
+        Args:
+            influx_params: The InfluxDB connection settings.
+            queue_size: The maximum number of lines in each queue.
+            log_params: The settings for the optional log file.
+            local_tz: The name of the time zone the inverter uses, or None
+                for the local machine time zone.
+            stat_timer_secs: How often, in seconds, to log the number of data
+                points written, or None to log nothing.
+        """
         self.influx_params = influx_params
         self.log_path = log_params.path
         self.max_log_size = log_params.max_size
@@ -78,9 +96,10 @@ class Se2Influx:
 
     def run(self) -> None:
         """
-        Run method; start our read, write and (optionally) logger threads and then
-        block forever or until one of the threads exits (which should only happen
-        if they hit an exception)
+        Start the reader, writer and (optionally) logger threads.
+
+        Then block until one of the threads exits, which should only happen if
+        it hits an exception.
         """
         logger.info("Starting reader & writer threads")
         reader_thread = threading.Thread(target=self.reader, daemon=True)
@@ -116,9 +135,11 @@ class Se2Influx:
 
     def reader(self) -> None:
         """
-        Reader method: execute a blocking read on stdin with a timeout, after which
-        we check to see if we need to shutdown. Any data gets sent to our output queues
-        for ingestion by writer threads.
+        Read lines from stdin and pass them to the output queues.
+
+        Each read blocks with a timeout, after which we check to see if we need
+        to shut down. Any data gets sent to our output queues for ingestion by
+        writer threads.
         """
         try:
             while True:
@@ -143,10 +164,11 @@ class Se2Influx:
 
     def writer(self) -> None:
         """
-        Writer method: read data from our queue, parse the JSON, turn it into
-        valid InfluxDB data points, and then write it to our InfluxDB. Based on
-        the configured retries, we may end up blocking forever on the write if
-        the DB is down/unavailable.
+        Write data from our queue to InfluxDB.
+
+        Reads the JSON from the queue, turns it into valid InfluxDB data points
+        and writes them to our InfluxDB. Based on the configured retries, we may
+        end up blocking forever on the write if the DB is down or unavailable.
         """
         logger.info("Connecting to InfluxDB")
         db_client = influxdb.InfluxDBClient(**self.influx_params.__dict__)
@@ -191,7 +213,7 @@ class Se2Influx:
                 logger.exception("Error writing to influx db")
 
     def _create_database(self, db_client) -> bool:
-        """Create the database if it doesn't exist, and return if it is there"""
+        """Create the database if it doesn't exist, and return if it is there."""
         try:
             available_dbs = [db["name"] for db in db_client.get_list_database()]
             if self.influx_params.database not in available_dbs:
@@ -206,7 +228,7 @@ class Se2Influx:
         return True
 
     def _data_points(self, se_data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Turn the decoded JSON of a message into InfluxDB data points"""
+        """Turn the decoded JSON of a message into InfluxDB data points."""
         data_out = []
         try:
             for hw_type in ("inverters", "optimizers"):
@@ -238,12 +260,13 @@ class Se2Influx:
 
     def logger(self) -> None:
         """
-        Logger method:  this just takes our input data (read from stdin and
-        written to our input queue) and writes it verbatim out to a file, with
-        options for file rotation and compression. This is useful if we need
-        to later replay data and re-insert it into our InfluxDB (InfluxDB
-        handles duplicate data points by overwriting field data, so this should
-        be fine)
+        Write the raw input data verbatim to the log file.
+
+        This takes our input data (read from stdin and written to our input
+        queue) and writes it out to a file, with options for file rotation and
+        compression. This is useful if we need to later replay data and
+        re-insert it into our InfluxDB (InfluxDB handles duplicate data points
+        by overwriting field data, so this should be fine).
         """
         while True:
             with contextlib.ExitStack() as stack:
@@ -280,7 +303,7 @@ class Se2Influx:
                         break
 
     def rotate_log(self) -> None:
-        """Rotate and compress logs once they get too big"""
+        """Rotate and compress logs once they get too big."""
         ts = datetime.now().astimezone().strftime("%Y%m%d%H%M%S")
         log_root, sep, log_ext = self.log_path.rpartition(".")
         if not log_root:
@@ -300,10 +323,11 @@ class Se2Influx:
 
     def pop_utc_date(self, data: dict[str, Any]) -> str:
         """
-        Take a semonitor data dict, remove the time and date fields, and then
-        convert them (using a user-specified timezone, if specified, or otherwise
-        our local machine timezone) to a UTC-based string format required by
-        python-influxdb
+        Remove the date and time fields and return them as a UTC string.
+
+        The date and time are removed from data and converted (using the
+        user-specified time zone, or otherwise our local machine time zone) to
+        the UTC-based string format required by python-influxdb.
         """
         date = data.pop("Date")
         time = data.pop("Time")
@@ -319,7 +343,7 @@ class Se2Influx:
 
 
 def parse_args() -> argparse.Namespace:
-
+    """Parse and return the command line arguments."""
     parser = argparse.ArgumentParser(
         description="Read semonitor.py output and write to an InfluxDB, and optionally a log file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

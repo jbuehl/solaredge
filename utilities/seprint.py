@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-# print selected data from a JSON file
+"""Print selected data from a JSON file."""
 
 import json
 import sys

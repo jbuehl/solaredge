@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+"""
+Maintain a file containing the current state and selected statistics.
 
-# Maintain a file containing the current state and selected statistics
-# of SolarEdge inverters and optimizers
+The state covers SolarEdge inverters and optimizers.
+"""
 
 import getopt
 import json
@@ -14,9 +16,12 @@ from common import open_input
 initialize = False
 
 
-# return the sum of the specified attribute of the items in the specified dictionary
-# ignore the stats item
 def sumItems(itemDict, itemAttr):
+    """
+    Return the sum of an attribute over the items in a dictionary.
+
+    The stats item is ignored.
+    """
     itemSum = 0
     for item in itemDict:
         if item != "stats":
@@ -24,9 +29,12 @@ def sumItems(itemDict, itemAttr):
     return itemSum
 
 
-# return the average of the specified attribute of the items in the specified dictionary
-# ignore the stats item
 def avgItems(itemDict, itemAttr):
+    """
+    Return the average of an attribute over the items in a dictionary.
+
+    The stats item is ignored. Returns 0 when there are no items.
+    """
     try:
         return sumItems(itemDict, itemAttr) / (len(itemDict) - 1)
     except ZeroDivisionError:
@@ -34,7 +42,7 @@ def avgItems(itemDict, itemAttr):
 
 
 def writeState(stateDict, outFileName):
-    # update the state file
+    """Write the state dictionary to the state file as JSON."""
     with Path(outFileName).open("w") as outFile:
         json.dump(stateDict, outFile)
 

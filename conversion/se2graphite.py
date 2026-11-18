@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-# send SolarEdge performance metrics to Graphite
+"""Send SolarEdge performance metrics to Graphite."""
 
 import getopt
 import json
@@ -18,8 +17,8 @@ except ImportError:
     import seWindowsSyslog as syslog
 
 
-# log a message to syslog
 def log(*args):
+    """Log a message, made of the space separated arguments, to syslog."""
     message = args[0] + " "
     for arg in args[1:]:
         message += arg.__str__() + " "

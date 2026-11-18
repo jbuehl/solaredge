@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+"""
+Tiny Syslog Server in Python.
 
-## Tiny Syslog Server in Python.
-##
-## This is a tiny syslog server that is able to receive UDP-based syslog
-## entries on a specified port and save them to a file.
-## That's it... it does nothing else...
-## There are a few configuration parameters.
-## Originally sourced from the gist at https://gist.github.com/marcelom/4218010
+This is a tiny syslog server that is able to receive UDP-based syslog
+entries on a specified port and save them to a file.
+That's it... it does nothing else...
+There are a few configuration parameters.
+Originally sourced from the gist at https://gist.github.com/marcelom/4218010
+"""
 
 import logging
 import sys
@@ -36,7 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 class SyslogUDPHandler(SocketServer.BaseRequestHandler):
+    """Handle a UDP syslog message by logging it to the log file."""
+
     def handle(self):
+        """Log the received message, and show it with the sender's address."""
         data = bytes.decode(self.request[0].strip())
         sys.stderr.write(f"{self.client_address[0]} :  {data}\n")
         logger.info(str(data))

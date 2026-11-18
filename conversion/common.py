@@ -1,3 +1,5 @@
+"""Helper functions shared by the semonitor conversion scripts."""
+
 import sys
 from pathlib import Path
 
@@ -28,9 +30,10 @@ def open_input(args):
 
 def unwrap_metricsDict(mydict):
     """
-    An iterator/generator function to "flatten" (aka unwrap) the attributes stored in the parsed device dictionaries,
-    after they have been wrapped in the device type and device id identifiers. The inverse (sort of) to the
-    ParseDevice.wrap_in_ids method.
+    Flatten (unwrap) the attributes stored in the parsed device dictionaries.
+
+    A generator that yields each device's attributes after they have been wrapped in the device type and device id
+    identifiers. The inverse (sort of) to the ParseDevice.wrap_in_ids method.
 
     Will work equally well on a json.loads dictionary (where the JSON was created from a parsed device dictionary).
 

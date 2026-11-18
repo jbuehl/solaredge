@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-#
-# Utility to convert a debug log back into a binary data file.
-# The log must have been created by semonitor.py with the -vvvv option which
-# dumps the raw data.
+"""
+Convert a debug log back into a binary data file.
 
-# Usage:
-#   python debug2hex.py logFile [dataFile]
-#       logFile     file containing semonitor.py debug output created with the -vvvv option
-#       dataFile    file to write data to (default: stdout)
+The log must have been created by semonitor.py with the -vvvv option which
+dumps the raw data.
+
+Usage:
+  python debug2hex.py logFile [dataFile]
+      logFile     file containing semonitor.py debug output created with the -vvvv option
+      dataFile    file to write data to (default: stdout)
+"""
 
 import binascii
 import contextlib
