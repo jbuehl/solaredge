@@ -350,12 +350,12 @@ def test_read_msg_records_everything_it_reads(mode):
 @pytest.mark.parametrize("mode", SCANNING_MODES + HEADER_MODES)
 def test_read_msg_counts_the_messages_it_reads(mode):
     infile = make_file(MAGIC + GOOD)
-    before = se.msg.dataInSeq
+    before = se.msg.Seq.data_in
 
     se.msg.readMsg(infile, None, mode, {})
     se.msg.readMsg(infile, None, mode, {})
 
-    assert se.msg.dataInSeq == before + 2
+    assert se.msg.Seq.data_in == before + 2
 
 
 @pytest.mark.parametrize(
@@ -388,7 +388,7 @@ def test_read_msg_logs_the_message_but_not_empty_ones(caplog, mode):
         assert not caplog.records
         se.msg.readMsg(infile, None, mode, {})
 
-    seq = se.msg.dataInSeq
+    seq = se.msg.Seq.data_in
     length = len(MAGIC + GOOD)
     assert messages(caplog, logging.DEBUG) == [
         f"<test> --> message: {seq} length: {length}"
@@ -592,12 +592,12 @@ def test_send_msg_counts_and_logs_the_messages(caplog):
     log_all(caplog, logging.DEBUG)
     outfile = make_file()
     msg = se.msg.formatMsg(3, SRC, DST, FUNCTION)
-    before = se.msg.dataOutSeq
+    before = se.msg.Seq.data_out
 
     se.msg.sendMsg(outfile, msg, None)
     se.msg.sendMsg(outfile, msg, None)
 
-    assert se.msg.dataOutSeq == before + 2
+    assert se.msg.Seq.data_out == before + 2
     assert messages(caplog, logging.DEBUG) == [
         f"<test> <-- message: {before + 1} length: {len(MAGIC + msg)}",
         f"<test> <-- message: {before + 2} length: {len(MAGIC + msg)}",

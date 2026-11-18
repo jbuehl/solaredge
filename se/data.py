@@ -29,8 +29,11 @@ from se.dataparams import (
 
 logger = logging.getLogger(__name__)
 
-# message debugging sequence numbers
-outSeq = 0
+
+class Seq:
+    """Debugging sequence number of the messages written."""
+
+    out = 0
 
 
 # parse the message data
@@ -337,9 +340,8 @@ def devDataDict(seId, itemNames, itemValues):
 
 # write device data to output files
 def writeData(msgDict, outFile):
-    global outSeq
     if outFile:
-        outSeq += 1
+        Seq.out += 1
         msg = json.dumps(msgDict, sort_keys=True)
         logger.data(msg)
         outFile.write(msg.encode("latin-1") + b"\n")

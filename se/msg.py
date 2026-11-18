@@ -17,17 +17,19 @@ magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
 
-# message debugging sequence numbers
-dataInSeq = 0
-dataOutSeq = 0
+
+class Seq:
+    """Debugging sequence numbers of the messages read and written."""
+
+    data_in = 0
+    data_out = 0
 
 
 # return the next message
 def readMsg(inFile, recFile, mode, state):
     se.logutils.setState(state, "passiveMode", mode.passiveMode)
     se.logutils.setState(state, "serialType", mode.serialType)
-    global dataInSeq
-    dataInSeq += 1
+    Seq.data_in += 1
     msg = b""
     eof = False
     if not mode.passiveMode and (mode.serialType != "4"):
@@ -54,7 +56,7 @@ def readMsg(inFile, recFile, mode, state):
                 msg += nextByte
         msg = msg[:-magicLen]  # strip the magic number from the end
     if len(msg) > 0:  # don't log zero length messages
-        logger.message("-->", dataInSeq, magic + msg, inFile.name)
+        logger.message("-->", Seq.data_in, magic + msg, inFile.name)
     return (msg, eof)
 
 
@@ -167,9 +169,8 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=b"", encrypt=True):
 
 # send a message
 def sendMsg(dataFile, msg, recFile):
-    global dataOutSeq
-    dataOutSeq += 1
-    logger.message("<--", dataOutSeq, magic + msg, dataFile.name)
+    Seq.data_out += 1
+    logger.message("<--", Seq.data_out, magic + msg, dataFile.name)
     dataFile.write(magic + msg)
     dataFile.flush()
     recordMsg(magic + msg, recFile)

@@ -842,12 +842,12 @@ def test_write_data_flushes_the_file():
 
 
 def test_write_data_counts_the_messages_it_writes():
-    before = se.data.outSeq
+    before = se.data.Seq.out
 
     se.data.writeData({"a": 1}, io.BytesIO())
     se.data.writeData({"a": 2}, io.BytesIO())
 
-    assert se.data.outSeq == before + 2
+    assert se.data.Seq.out == before + 2
 
 
 def test_write_data_logs_the_message(caplog):
@@ -859,11 +859,11 @@ def test_write_data_logs_the_message(caplog):
 
 
 def test_write_data_without_a_file_writes_nothing():
-    before = se.data.outSeq
+    before = se.data.Seq.out
 
     assert se.data.writeData({"a": 1}, None) is None
 
-    assert se.data.outSeq == before
+    assert se.data.Seq.out == before
 
 
 def test_write_data_writes_what_parse_data_decoded():
