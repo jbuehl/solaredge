@@ -185,12 +185,9 @@ def parseStatus(data):
     """
     Log the status data as a hex dump, and return a status of 0.
 
-    The status is not decoded yet, so the result is always 0.
+    The status is not decoded yet, so the result is always 0. It is believed
+    to be seven unsigned 16 bit values (struct format "<HHHHHHH").
     """
-    #    if len(data) > 0:
-    #        status = struct.unpack("<HHHHHHH", data)
-    #        logger.data("status", "%d "*len(status) % status)
-    #    return {"status": status}
     for line in se.logutils.format_data(data):
         logger.data(line)
     return {"status": 0}

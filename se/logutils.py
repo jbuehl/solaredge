@@ -32,8 +32,6 @@ def _raw_log(self, msg, *args, **kwargs):
 def _message_log(self, direction, seq, msg, endPoint=""):
     if not self.isEnabledFor(logging.DEBUG):
         return
-    #    if direction == "-->":
-    #        self._log(logging.DEBUG, " ", ())
     self._log(
         logging.DEBUG,
         "%s %s message: %s length: %s",
@@ -42,10 +40,6 @@ def _message_log(self, direction, seq, msg, endPoint=""):
     if self.isEnabledFor(LOG_LEVEL_RAW):
         for line in format_data(msg):
             self._log(LOG_LEVEL_RAW, line, ())
-
-
-#    if direction == "<--":
-#        self._log(logging.DEBUG, " ", ())
 
 
 def format_data(data):

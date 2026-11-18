@@ -86,11 +86,10 @@ class ParseDevice(dict):
 
     fieldDefs: ClassVar[list[list[Any]]] = [
         # The following standard device header fields are automatically parsed for all device types.
-        # These items do *not* need to be defined!
-        # [2, 'H', 'seType', lambda hex: '{:#06x}'.format(hex), False,
-        #  "Identifies the type of this SolarEdge data block],
-        # [4, 'L', 'seId', parseId, False, "Identifies the SolarEdge device"],
-        # [2, 'H', 'devLen', None, False, "Length in bytes of the data block"],
+        # These items do *not* need to be defined! They are:
+        # - seType: 2 bytes ('H'), identifies the type of this SolarEdge data block, shown as a 4 digit hex number
+        # - seId: 4 bytes ('L'), identifies the SolarEdge device, formatted by parseId
+        # - devLen: 2 bytes ('H'), the length in bytes of the data block
     ]
 
     # DERIVATIONS, optional, can be left empty if not required.
