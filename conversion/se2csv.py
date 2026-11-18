@@ -12,7 +12,7 @@ from common import unwrap_metricsDict
 
 if __name__ == "__main__":
 
-    def deprecated(s):
+    def deprecated(_s):
         raise argparse.ArgumentTypeError("Deprecated option.")
 
     parser = argparse.ArgumentParser(

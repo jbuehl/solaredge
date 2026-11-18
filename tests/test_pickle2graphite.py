@@ -19,7 +19,7 @@ SCRIPT = CONVERSION / "pickle2graphite.py"
 class FakeSocket:
     instances: ClassVar[list] = []
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *_args, **_kwargs):
         self.address = None
         self.timeout = None
         self.sent = []

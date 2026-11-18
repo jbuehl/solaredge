@@ -296,7 +296,6 @@ def fake_bus(sm, monkeypatch):
 def process(sm, msg, files, mode=MASTER_MODE):
     sm.processMsg(
         msg,
-        make_args(),
         mode,
         files.state,
         files.line,

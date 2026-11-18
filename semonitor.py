@@ -57,9 +57,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
             with threadLock:
                 se.logutils.setState(state, "threadLock", True)
                 try:
-                    processMsg(
-                        msg, args, mode, state, dataFile, recFile, outFile
-                    )
+                    processMsg(msg, mode, state, dataFile, recFile, outFile)
                 except Exception as ex:
                     logger.info("Failed to parse message: %s", ex)
                     for line in se.logutils.format_data(msg):
@@ -71,7 +69,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
 
 
 # process a received message
-def processMsg(msg, args, mode, state, dataFile, recFile, outFile):
+def processMsg(msg, mode, state, dataFile, recFile, outFile):
     # parse the message
     (msgSeq, fromAddr, toAddr, function, data) = se.msg.parseMsg(msg)
     if function == 0:

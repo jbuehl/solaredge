@@ -115,10 +115,10 @@ def test_format_msg_layout(data):
     assert msg == header + data + struct.pack("<H", crc)
 
 
-def test_format_msg_takes_bytearray_data_and_ignores_encrypt():
+def test_format_msg_takes_bytearray_data():
     msg = se.msg.formatMsg(7, SRC, DST, FUNCTION, bytearray(b"ab"))
 
-    assert msg == se.msg.formatMsg(7, SRC, DST, FUNCTION, b"ab", encrypt=False)
+    assert msg == se.msg.formatMsg(7, SRC, DST, FUNCTION, b"ab")
 
 
 def test_format_msg_logs_the_header(caplog):

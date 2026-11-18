@@ -143,7 +143,7 @@ def validateMsg(msg):
 
 
 # format a message
-def formatMsg(msgSeq, fromAddr, toAddr, function, data=b"", encrypt=True):
+def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
     checksum = calcCrc(
         bytearray(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function))
         + data
