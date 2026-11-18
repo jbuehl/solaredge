@@ -57,7 +57,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
             logger.data(msg)
         else:
             with threadLock:
-                se.logutils.setState(state, "threadLock", True)
+                se.logutils.setState(state, "threadLock", value=True)
                 try:
                     processMsg(msg, mode, state, dataFile, recFile, outFile)
                 except Exception as ex:
@@ -66,7 +66,7 @@ def readData(args, mode, state, dataFile, recFile, outFile):
                         logger.data(line)
                     if args.xerror:
                         raise
-                se.logutils.setState(state, "threadLock", False)
+                se.logutils.setState(state, "threadLock", value=False)
     return
 
 
@@ -123,18 +123,18 @@ def processMsg(msg, mode, state, dataFile, recFile, outFile):
 
 # RS485 master commands thread
 def masterCommands(state, dataFile, recFile, slaveAddrs):
-    se.logutils.setState(state, "masterThread", True)
+    se.logutils.setState(state, "masterThread", value=True)
     while True:
         for slaveAddr in slaveAddrs:
             masterGrant(state, dataFile, recFile, slaveAddr)
         time.sleep(MASTER_MSG_INTERVAL)
-    se.logutils.setState(state, "masterThread", False)
+    se.logutils.setState(state, "masterThread", value=False)
 
 
 # send RS485 master grant command and wait for an ACK
 def masterGrant(state, dataFile, recFile, slaveAddr):
     with threadLock:
-        se.logutils.setState(state, "threadLock", True)
+        se.logutils.setState(state, "threadLock", value=True)
         # grant control of the bus to the slave
         se.msg.sendMsg(
             dataFile,
@@ -146,18 +146,18 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
             ),
             recFile,
         )
-        se.logutils.setState(state, "threadLock", False)
+        se.logutils.setState(state, "threadLock", value=False)
 
     def masterTimerExpire():
         logger.debug("RS485 master ack timeout")
         masterEvent.set()
         se.logutils.setState(state, "masterEvent", masterEvent.is_set())
-        se.logutils.setState(state, "masterTimer", False)
+        se.logutils.setState(state, "masterTimer", value=False)
 
     # start a timeout to release the bus if the slave doesn't respond
     masterTimer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
     masterTimer.start()
-    se.logutils.setState(state, "masterTimer", True)
+    se.logutils.setState(state, "masterTimer", value=True)
     # wait for slave to release the bus
     masterEvent.clear()
     se.logutils.setState(state, "masterEvent", masterEvent.is_set())
@@ -165,7 +165,7 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
     se.logutils.setState(state, "masterEvent", masterEvent.is_set())
     # cancel the timeout
     masterTimer.cancel()
-    se.logutils.setState(state, "masterTimer", False)
+    se.logutils.setState(state, "masterTimer", value=False)
 
 
 # perform the specified commands
@@ -247,11 +247,11 @@ def nextSeq():
 if __name__ == "__main__":
     # create the state variables with timestamps
     state = {}
-    se.logutils.setState(state, "readThread", False)
-    se.logutils.setState(state, "masterThread", False)
-    se.logutils.setState(state, "masterTimer", False)
-    se.logutils.setState(state, "threadLock", False)
-    se.logutils.setState(state, "masterEvent", False)
+    se.logutils.setState(state, "readThread", value=False)
+    se.logutils.setState(state, "masterThread", value=False)
+    se.logutils.setState(state, "masterTimer", value=False)
+    se.logutils.setState(state, "threadLock", value=False)
+    se.logutils.setState(state, "masterEvent", value=False)
 
     # get the command line arguments and run mode
     (args, mode) = se.env.getArgs()
