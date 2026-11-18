@@ -14,13 +14,13 @@ import se.logutils
 
 logger = logging.getLogger(__name__)
 
-sleepInterval = 0.1
+SLEEP_INTERVAL = 0.1
 
 # message constants
 magic = b"\x12\x34\x56\x79"
-magicLen = len(magic)
-msgHdrLen = 16
-checksumLen = 2
+MAGIC_LEN = len(magic)
+MSG_HDR_LEN = 16
+CHECKSUM_LEN = 2
 
 
 class MsgHdr(NamedTuple):
@@ -61,28 +61,30 @@ def read_msg(in_file, rec_file, mode, state):
     if not mode.passiveMode and (mode.serialType != "4"):
         # active mode that is not RS485
         # read the magic number and header
-        msg = read_bytes(in_file, rec_file, magicLen + msgHdrLen, mode, state)
+        msg = read_bytes(
+            in_file, rec_file, MAGIC_LEN + MSG_HDR_LEN, mode, state
+        )
         if not msg:  # end of file
             return (msg, True)
         (data_len, _data_len_inv, _msg_seq, _from_addr, _to_addr, _function) = (
-            struct.unpack("<HHHLLH", msg[magicLen:])
+            struct.unpack("<HHHLLH", msg[MAGIC_LEN:])
         )
         # read the data and checksum
         msg += read_bytes(
-            in_file, rec_file, data_len + checksumLen, mode, state
+            in_file, rec_file, data_len + CHECKSUM_LEN, mode, state
         )
-        msg = msg[magicLen:]  # strip the magic number from the beginning
+        msg = msg[MAGIC_LEN:]  # strip the magic number from the beginning
     else:
         # passive mode or RS485
         # read 1 byte at a time until the next magic number
-        while msg[-magicLen:] != magic:
+        while msg[-MAGIC_LEN:] != magic:
             next_byte = read_bytes(in_file, rec_file, 1, mode, state)
             if not next_byte:  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
             else:
                 msg += next_byte
-        msg = msg[:-magicLen]  # strip the magic number from the end
+        msg = msg[:-MAGIC_LEN]  # strip the magic number from the end
     if len(msg) > 0:  # don't log zero length messages
         logger.message("-->", Seq.data_in, magic + msg, in_file.name)
     return (msg, eof)
@@ -105,7 +107,7 @@ def read_bytes(in_file, rec_file, length, mode, state):
         # at the end of file, wait for more data when following
         if not in_buf and mode.following:
             while not in_buf:
-                time.sleep(sleepInterval)
+                time.sleep(SLEEP_INTERVAL)
                 in_buf = in_file.read(length)
         record_msg(in_buf, rec_file)
         se.logutils.set_state(
@@ -130,7 +132,7 @@ def parse_msg(msg):
         zero and data is empty if the message is rejected.
     """
     if (
-        len(msg) < msgHdrLen + checksumLen
+        len(msg) < MSG_HDR_LEN + CHECKSUM_LEN
     ):  # throw out messages that are too short
         logger.data("Threw out a message that was too short")
         return (0, 0, 0, 0, b"")
@@ -162,31 +164,32 @@ def validate_msg(msg):
         message tuple from reject_msg if the message is invalid.
     """
     # message must be at least a header and checksum
-    if len(msg) < msgHdrLen + checksumLen:
+    if len(msg) < MSG_HDR_LEN + CHECKSUM_LEN:
         return reject_msg(msg, "Message too short")
     # parse the message header
     (data_len, data_len_inv, msg_seq, from_addr, to_addr, function) = (
-        struct.unpack("<HHHLLH", msg[0:msgHdrLen])
+        struct.unpack("<HHHLLH", msg[0:MSG_HDR_LEN])
     )
     log_msg_hdr(
         MsgHdr(data_len, data_len_inv, msg_seq, from_addr, to_addr, function)
     )
     # header + data + checksum can't be longer than the message
-    if msgHdrLen + data_len + checksumLen > len(msg):
+    if MSG_HDR_LEN + data_len + CHECKSUM_LEN > len(msg):
         return reject_msg(msg, "Data length is too big for the message")
     # data length must match inverse length
     if data_len != ~data_len_inv & 0xFFFF:
         return reject_msg(msg, "Data length doesn't match inverse length")
-    data = msg[msgHdrLen : msgHdrLen + data_len]
+    data = msg[MSG_HDR_LEN : MSG_HDR_LEN + data_len]
     # discard extra bytes after the message
-    extra_len = len(msg) - (msgHdrLen + data_len + checksumLen)
+    extra_len = len(msg) - (MSG_HDR_LEN + data_len + CHECKSUM_LEN)
     if extra_len != 0:
         logger.data("Discarding %s extra bytes", extra_len)
         for line in se.logutils.format_data(msg[-extra_len:]):
             logger.data(line)
     # validate the checksum
     checksum = struct.unpack(
-        "<H", msg[msgHdrLen + data_len : msgHdrLen + data_len + checksumLen]
+        "<H",
+        msg[MSG_HDR_LEN + data_len : MSG_HDR_LEN + data_len + CHECKSUM_LEN],
     )[0]
     calcsum = calc_crc(
         struct.pack(">HLLH", msg_seq, from_addr, to_addr, function) + data
@@ -260,7 +263,7 @@ def record_msg(msg, rec_file):
 #
 # width=16 poly=0x8005 init=0x5a5a refin=true refout=true xorout=0x0000
 
-crcTable = [
+CRC_TABLE = [
     0x0000,
     0xC0C1,
     0xC181,
@@ -524,7 +527,7 @@ def calc_crc(data):
     """Return the CRC-16 checksum of data, using the table above."""
     crc = 0x5A5A  # initial value
     for d in data:
-        crc = crcTable[(crc ^ d) & 0xFF] ^ (crc >> 8)
+        crc = CRC_TABLE[(crc ^ d) & 0xFF] ^ (crc >> 8)
     return crc
 
 

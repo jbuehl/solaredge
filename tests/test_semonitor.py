@@ -289,7 +289,7 @@ def fake_bus(sm, monkeypatch):
         return bus.timers[-1]
 
     monkeypatch.setattr(threading, "Timer", make_timer)
-    monkeypatch.setattr(sm, "masterEvent", bus.event)
+    monkeypatch.setattr(sm, "master_event", bus.event)
     return bus
 
 
@@ -520,7 +520,7 @@ def test_time_reply_has_the_offset_of_the_zone(
 def test_master_grant_ack_releases_the_bus(sm, files, req, _reply):
     process(sm, req, files)
 
-    assert sm.masterEvent.is_set()
+    assert sm.master_event.is_set()
     assert files.state["masterEvent"][1] is True
     assert not files.line.written
 
@@ -529,7 +529,7 @@ def test_master_grant_ack_releases_the_bus(sm, files, req, _reply):
 def test_master_grant_ack_with_data_releases_the_bus(sm, files):
     process(sm, frame(GRANT_ACK, b"\x01\x02"), files)
 
-    assert sm.masterEvent.is_set()
+    assert sm.master_event.is_set()
 
 
 @pytest.mark.parametrize(
@@ -544,7 +544,7 @@ def test_passive_mode_never_replies(sm, files, req, _reply):
 
     assert not files.line.written
     assert not files.rec.getvalue()
-    assert not sm.masterEvent.is_set()
+    assert not sm.master_event.is_set()
 
 
 @pytest.mark.parametrize(
@@ -557,7 +557,7 @@ def test_other_functions_are_not_answered(sm, files, req, _reply):
     process(sm, req, files)
 
     assert not files.line.written
-    assert not sm.masterEvent.is_set()
+    assert not sm.master_event.is_set()
 
 
 # --- read_data ----------------------------------------------------------------
@@ -601,7 +601,7 @@ def test_first_partial_message_is_skipped_in_passive_mode(
     # message is read, and found to be nothing.
     assert ("Ignoring this message" in caplog.text) is (mode == LISTEN_MODE)
     assert not files.line.written
-    assert not sm.threadLock.locked()
+    assert not sm.thread_lock.locked()
 
 
 @pytest.mark.parametrize(
@@ -648,7 +648,7 @@ def test_message_that_fails_to_parse_is_logged_and_skipped(
 
     assert "Failed to parse message" in caplog.text
     assert files.out.getvalue() == first_json_line(golden, sample)
-    assert not sm.threadLock.locked()
+    assert not sm.thread_lock.locked()
     assert files.state["threadLock"][1] is False
 
 
@@ -664,7 +664,7 @@ def test_message_that_fails_to_parse_stops_the_reading_with_x(
         read(sm, files, xerror=True)
 
     assert not files.out.getvalue()
-    assert not sm.threadLock.locked()
+    assert not sm.thread_lock.locked()
 
 
 # --- master_grant -------------------------------------------------------------
@@ -697,11 +697,11 @@ def test_master_grant_hands_over_the_bus_until_the_slave_releases_it(
     write = files.line.write
 
     def probe_write(data):
-        lock_held["write"].append(sm.threadLock.locked())
+        lock_held["write"].append(sm.thread_lock.locked())
         return write(data)
 
     def slave_releases_the_bus():
-        lock_held["wait"].append(sm.threadLock.locked())
+        lock_held["wait"].append(sm.thread_lock.locked())
         bus.event.set()
 
     monkeypatch.setattr(files.line, "write", probe_write)

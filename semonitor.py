@@ -36,8 +36,8 @@ MAX_SEQ = 0xFFFF  # the sequence number wraps after this
 PROT_CMD_SERVER_KEY = 0x0503  # the message with the encryption key
 
 # global variables
-threadLock = threading.Lock()  # lock to synchronize reads and writes
-masterEvent = threading.Event()  # event to signal RS485 master release
+thread_lock = threading.Lock()  # lock to synchronize reads and writes
+master_event = threading.Event()  # event to signal RS485 master release
 
 
 @dataclasses.dataclass
@@ -76,7 +76,7 @@ def read_data(args, mode, state, files):
         if msg == b"\x00" * len(msg):  # ignore messages containing all zeros
             logger.data(msg)
         else:
-            with threadLock:
+            with thread_lock:
                 se.logutils.set_state(state, "threadLock", value=True)
                 try:
                     process_msg(msg, mode, state, files)
@@ -145,8 +145,8 @@ def master_reply(function, state):
         )
     if function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:
         # RS485 master release
-        masterEvent.set()
-        se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
+        master_event.set()
+        se.logutils.set_state(state, "masterEvent", master_event.is_set())
     return (b"", b"")
 
 
@@ -171,7 +171,7 @@ def master_grant(state, data_file, rec_file, slave_addr):
     The wait ends when the slave acknowledges the grant or when
     MASTER_MSG_TIMEOUT seconds have passed.
     """
-    with threadLock:
+    with thread_lock:
         se.logutils.set_state(state, "threadLock", value=True)
         # grant control of the bus to the slave
         se.msg.send_msg(
@@ -188,8 +188,8 @@ def master_grant(state, data_file, rec_file, slave_addr):
 
     def master_timer_expire():
         logger.debug("RS485 master ack timeout")
-        masterEvent.set()
-        se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
+        master_event.set()
+        se.logutils.set_state(state, "masterEvent", master_event.is_set())
         se.logutils.set_state(state, "masterTimer", value=False)
 
     # start a timeout to release the bus if the slave doesn't respond
@@ -197,10 +197,10 @@ def master_grant(state, data_file, rec_file, slave_addr):
     master_timer.start()
     se.logutils.set_state(state, "masterTimer", value=True)
     # wait for slave to release the bus
-    masterEvent.clear()
-    se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
-    masterEvent.wait()
-    se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
+    master_event.clear()
+    se.logutils.set_state(state, "masterEvent", master_event.is_set())
+    master_event.wait()
+    se.logutils.set_state(state, "masterEvent", master_event.is_set())
     # cancel the timeout
     master_timer.cancel()
     se.logutils.set_state(state, "masterTimer", value=False)

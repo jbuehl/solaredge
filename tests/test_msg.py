@@ -542,7 +542,7 @@ def test_read_bytes_waits_for_the_file_to_grow_when_following(monkeypatch):
     )
 
     assert data == b"\x01\x02"
-    assert sleeps == [se.msg.sleepInterval] * 3
+    assert sleeps == [se.msg.SLEEP_INTERVAL] * 3
     assert recfile.getvalue() == b"\x01\x02"
     assert state["lastByteRead"][1] == "02"
 
