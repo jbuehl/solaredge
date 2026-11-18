@@ -4,6 +4,7 @@ import logging
 import struct
 import time
 from builtins import bytes
+from typing import NamedTuple
 
 import se.logutils
 
@@ -16,6 +17,17 @@ magic = b"\x12\x34\x56\x79"
 magicLen = len(magic)
 msgHdrLen = 16
 checksumLen = 2
+
+
+class MsgHdr(NamedTuple):
+    """The header of a message."""
+
+    data_len: int
+    data_len_inv: int
+    msg_seq: int
+    from_addr: int
+    to_addr: int
+    function: int
 
 
 class Seq:
@@ -110,7 +122,7 @@ def validateMsg(msg):
     (dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function) = struct.unpack(
         "<HHHLLH", msg[0:msgHdrLen]
     )
-    logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function)
+    logMsgHdr(MsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function))
     # header + data + checksum can't be longer than the message
     if msgHdrLen + dataLen + checksumLen > len(msg):
         return rejectMsg(msg, "Data length is too big for the message")
@@ -161,7 +173,9 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
         + struct.pack("<H", checksum)
     )
     logMsgHdr(
-        len(data), ~len(data) & 0xFFFF, msgSeq, fromAddr, toAddr, function
+        MsgHdr(
+            len(data), ~len(data) & 0xFFFF, msgSeq, fromAddr, toAddr, function
+        )
     )
     return msg
 
@@ -456,10 +470,10 @@ def calcCrc(data):
 
 
 # print a formatted message header
-def logMsgHdr(dataLen, dataLenInv, msgSeq, fromAddr, toAddr, function):
-    logger.data("dataLen:    %04x", dataLen)
-    logger.data("dataLenInv: %04x", dataLenInv)
-    logger.data("sequence:   %04x", msgSeq)
-    logger.data("source:     %08x", fromAddr)
-    logger.data("dest:       %08x", toAddr)
-    logger.data("function:   %04x", function)
+def logMsgHdr(hdr):
+    logger.data("dataLen:    %04x", hdr.data_len)
+    logger.data("dataLenInv: %04x", hdr.data_len_inv)
+    logger.data("sequence:   %04x", hdr.msg_seq)
+    logger.data("source:     %08x", hdr.from_addr)
+    logger.data("dest:       %08x", hdr.to_addr)
+    logger.data("function:   %04x", hdr.function)
