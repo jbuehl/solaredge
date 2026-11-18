@@ -1,4 +1,9 @@
-# SolarEdge logging and debugging
+"""
+SolarEdge logging and debugging.
+
+Adds the custom DATA and RAW log levels, and helpers to dump messages and
+state variables to the log.
+"""
 
 import logging
 import sys
@@ -43,8 +48,8 @@ def _message_log(self, direction, seq, msg, endPoint=""):
 #        self._log(logging.DEBUG, " ", ())
 
 
-# hex dump data
 def format_data(data):
+    """Yield a hex dump of data, with 16 bytes on each line."""
     line_width = 16
     for i in range(0, len(data), line_width):
         yield "data:       " + " ".join(
@@ -57,13 +62,18 @@ logging.Logger.raw = _raw_log
 logging.Logger.message = _message_log
 
 
-# set a state variable
 def setState(state, item, value):
+    """Store value under item in state, with the current time."""
     state[item] = [time.time(), value]
 
 
-# dump out the state variables and stack traces of all threads
 def dumpState(state):
+    """
+    Log the state variables, and the stack traces of all threads.
+
+    Args:
+        state: A dict of state variables, as set by setState.
+    """
     logger = logging.getLogger(__name__)
     logger.info("state:")
     for item in state:

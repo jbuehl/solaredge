@@ -1,3 +1,5 @@
+"""Codes of the SolarEdge protocol commands and responses, and their names."""
+
 PROT_CMD_PARAMS_RESET = 0x0010
 PROT_CMD_PARAMS_SET_SINGLE = 0x0011
 PROT_CMD_PARAMS_GET_SINGLE = 0x0012

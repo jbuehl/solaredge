@@ -1,4 +1,8 @@
-# SolarEdge performance data parameters
+"""
+SolarEdge performance data parameters.
+
+Layouts of the data of each device type, and their item names.
+"""
 
 # event data interpretation
 #
