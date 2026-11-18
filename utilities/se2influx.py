@@ -41,6 +41,12 @@ class InfluxParams:
     udp_port: int
 
 
+@dataclass
+class LogParams:
+    path: str | None
+    max_size: int
+
+
 class DateError(Exception):
     pass
 
@@ -50,15 +56,14 @@ class Se2Influx:
         self,
         influx_params: InfluxParams,
         queue_size: int,
-        log_path: str | None,
-        max_log_size: int,
+        log_params: LogParams,
         local_tz: str | None,
         stat_timer_secs: int | None,
     ) -> None:
 
         self.influx_params = influx_params
-        self.log_path = log_path
-        self.max_log_size = max_log_size
+        self.log_path = log_params.path
+        self.max_log_size = log_params.max_size
         self.stat_timer_secs = stat_timer_secs
 
         self.local_tz = (
@@ -415,8 +420,7 @@ if __name__ == "__main__":
     se2influx = Se2Influx(
         db_params,
         args.queue_size,
-        args.log_path,
-        args.max_log_size,
+        LogParams(args.log_path, args.max_log_size),
         args.local_tz,
         args.stat_timer_secs,
     )

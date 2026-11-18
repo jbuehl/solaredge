@@ -122,8 +122,7 @@ def make(se):
         return se.Se2Influx(
             se.InfluxParams(**values),
             queue_size,
-            log_path,
-            max_log_size,
+            se.LogParams(log_path, max_log_size),
             local_tz,
             stat_timer_secs,
         )
