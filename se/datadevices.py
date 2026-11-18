@@ -1,8 +1,8 @@
 """
 The seDataDevices module defines the ParseDevice class, and a number of subclasses thereof.
 
-ParseDevice and it's subclasses are intended to be a reasonably straightforward way of adding new (seType) devices to the
-list that the semonitor suite can recognize and can parse.
+ParseDevice and it's subclasses are intended to be a reasonably straightforward way of adding new (seType) devices to
+the list that the semonitor suite can recognize and can parse.
 
 ParseDevice is a subclass of a dictionary, with a tailored __init__ method. Given a block of seData from a pcap file,
 the __init__ method will parse it, and populate the ParseDevice instance with entries mapping items to their parsed
@@ -10,18 +10,19 @@ value, as found in the data block.
 
 The top level ParseDevice only performs a rudimentary parse of the data, and returns almost all of it as a hex string.
 
-Subclasses of ParseDevice (e.g. ParseDevice_0x0030) contain more extensive item definitions (stored in the fieldDefs list) and
-populate the dictionary in a more sensible and useful way. Each subclass is tuned to a specific seType. se_type defines
-the seType the subclass is designed to parse, and fieldDefs lists the definitions for blocks of data of that seType.
+Subclasses of ParseDevice (e.g. ParseDevice_0x0030) contain more extensive item definitions (stored in the fieldDefs
+list) and populate the dictionary in a more sensible and useful way. Each subclass is tuned to a specific seType.
+se_type defines the seType the subclass is designed to parse, and fieldDefs lists the definitions for blocks of data of
+that seType.
 
 Thanks to some fancy footwork in the __new__ method of ParseDevice itself, it is only ever necessary to try to create an
-instance of ParseDevice (i.e. to code `ParseDevice(data)`). ParseDevice.__new__ determines the seType of the block of data, by
-examining the standard header block in the data. Then it searches through all the subclasses of ParseDevice that have
-been defined, and if one 'tuned' to the seType of the block of data being parsed is found, creates an instance of that
-specialized subclass.
+instance of ParseDevice (i.e. to code `ParseDevice(data)`). ParseDevice.__new__ determines the seType of the block of
+data, by examining the standard header block in the data. Then it searches through all the subclasses of ParseDevice
+that have been defined, and if one 'tuned' to the seType of the block of data being parsed is found, creates an instance
+of that specialized subclass.
 
-There is one extra special subclass of ParseDevice, namely ParseDevice_Explorer. It is *not* intended for production use.
-It operates without any item definitions at all. Instead it works its way through the block of seData, in 2-byte
+There is one extra special subclass of ParseDevice, namely ParseDevice_Explorer. It is *not* intended for production
+use. It operates without any item definitions at all. Instead it works its way through the block of seData, in 2-byte
 increments, parsing the next 4 bytes in almost every way they could be parsed. Almost all of the parsed data items will
 be nonsense, but perusing the parsed device - for example by using se2csv and then opening the csv file - may help with
 the deciphering of new seType devices. It is an alternative, of sorts, to examining the relevant part of the pcap file
@@ -65,9 +66,9 @@ class ParseDevice(dict):
 
         to provide a suite of standard methods shared by all the subclasses (and in particular the parseDevTable method
         which given a fieldDefs list, will parse the seData block accordingly); and
-        to have a 'clever' __new__ method, which redirects the creation of a ParseDevice to the creation of a subclass of
-        a ParseDevice which specializes in the particular seType encountered in the current block of seData (provided of
-        course that a specialized subclass for that seType has been defined).
+        to have a 'clever' __new__ method, which redirects the creation of a ParseDevice to the creation of a subclass
+        of a ParseDevice which specializes in the particular seType encountered in the current block of seData
+        (provided of course that a specialized subclass for that seType has been defined).
     """
 
     se_type = (
@@ -85,7 +86,8 @@ class ParseDevice(dict):
     fieldDefs: ClassVar[list[list[Any]]] = [
         # The following standard device header fields are automatically parsed for all device types.
         # These items do *not* need to be defined!
-        # [2, 'H', 'seType', lambda hex: '{:#06x}'.format(hex), False, "Identifies the type of this SolarEdge data block],
+        # [2, 'H', 'seType', lambda hex: '{:#06x}'.format(hex), False,
+        #  "Identifies the type of this SolarEdge data block],
         # [4, 'L', 'seId', parseId, False, "Identifies the SolarEdge device"],
         # [2, 'H', 'devLen', None, False, "Length in bytes of the data block"],
     ]
@@ -755,7 +757,8 @@ class ParseDevice_0x0022(ParseDevice):
             + sp
             + "Wh, consumption when recType=3"
             + sp
-            + "Wh, energy imported from grid during interval when recType=5 (whenever TotalEfromGrid is static, EfromX=0)"
+            + "Wh, energy imported from grid during interval when recType=5 "
+            + "(whenever TotalEfromGrid is static, EfromX=0)"
             + sp
             + "always 0 when recType=7 (I expected E from battery but it does not match battery(0x0030).EOut)"
             + sp
@@ -817,8 +820,8 @@ class ParseDevice_0x0022(ParseDevice):
         super().__init__(data)
 
     def codeDerivations(self):
-        # Filter out some sporadic 'NaN'-like values which appear in P2X.  The hex value is the BIG endian version
-        # of a Python NaN. Read as LITTLE endian it becomes "-3.2... 10^38" which is unlikely to be meant as a real value!
+        # Filter out some sporadic 'NaN'-like values which appear in P2X.  The hex value is the BIG endian version of a
+        # Python NaN. Read as LITTLE endian it becomes "-3.2... 10^38" which is unlikely to be meant as a real value!
         # Most of these are filtered out later, but occasionally if the interval is short one slips through anyway.
         # Short intervals appear to happen about once a day, perhaps when the inverter is going to sleep for the night.
         if self["P2X"] < -3 * 10**38:
@@ -901,10 +904,10 @@ class ParseDevice_Explorer(ParseDevice):
 
         self.se_type = seType
         self._fieldDefsLen = devLen
-        # For standard subclasses, devType will already have this value.
-        # However ParseDevice_Explorer can be used as a default parser, when a new device is encountered, in which case
-        # the actual instance value of seType would be unknown when the seDataDevices module was imported (or in other
-        # words, ParseDevice_Explorer.se_type will contain a nonsense value which must be corrected when real data is read)
+        # For standard subclasses, devType will already have this value. However ParseDevice_Explorer can be used as a
+        # default parser, when a new device is encountered, in which case the actual instance value of seType would be
+        # unknown when the seDataDevices module was imported (or in other words, ParseDevice_Explorer.se_type will
+        # contain a nonsense value which must be corrected when real data is read)
         self.devType = f"{self._devName}_{seType:#06x}"
         self._seId = seId
 
@@ -1032,8 +1035,9 @@ def merge_update(dict1, dict2):
             # We have a duplicated value being reported by se. I presume it is an updated value.
             pass
         else:
-            # We have reached the bottom of the dictionary of dictionaries structure and still have no NEW identifier keys.
-            # So it looks like the inverter has reported new attributes for an existing instance identifier in the same message
+            # We have reached the bottom of the dictionary of dictionaries structure and still have no NEW identifier
+            # keys. So it looks like the inverter has reported new attributes for an existing instance identifier in the
+            # same message
             message = (
                 f"WARNING: For {k2} about to overwrite {dict1[k2]} with {v2}"
             )

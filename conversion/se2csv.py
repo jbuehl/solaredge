@@ -17,7 +17,12 @@ if __name__ == "__main__":
         raise argparse.ArgumentTypeError(msg)
 
     parser = argparse.ArgumentParser(
-        description="Read a file containing JSON performance data and output a separate comma-delimited file for each device type (e.g. inverter, optimizer, battery) encountered that is suitable for input to a spreadsheet.",
+        description=(
+            "Read a file containing JSON performance data and output a "
+            "separate comma-delimited file for each device type (e.g. "
+            "inverter, optimizer, battery) encountered that is suitable for "
+            "input to a spreadsheet."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(

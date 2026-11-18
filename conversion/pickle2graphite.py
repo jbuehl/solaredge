@@ -11,10 +11,10 @@ pickles it, adds the requisite header, and sends it to Graphite.
 
 You may need to adjust the delay parameter, depending upon the capacity and busyness of the Graphite server. I have
 found 0.2 works fine **for me** in production mode, when I am "following" some existing metrics in real time, as the
-SolarEdge inverter emits them, but I needed to increase it to as much as 5.0 the first time I sent a new batch of metrics
-to Graphite, otherwise the carbon listener seemed to be swamped and didn't have time to create all the new metrics.
-To be completely precise, I had problems when I sent an existing batch of metrics to a new "test" base, which meant
-Graphite / carbon had to create a whole lot of new whisper files all at once.
+SolarEdge inverter emits them, but I needed to increase it to as much as 5.0 the first time I sent a new batch of
+metrics to Graphite, otherwise the carbon listener seemed to be swamped and didn't have time to create all the new
+metrics. To be completely precise, I had problems when I sent an existing batch of metrics to a new "test" base, which
+meant Graphite / carbon had to create a whole lot of new whisper files all at once.
 """
 
 import getopt
@@ -114,7 +114,8 @@ class Pickle2Graphite(list):
             for devAttr in devAttrs:
                 if devAttr not in {"Date", "Time", "Undeciphered_data"}:
                     try:
-                        # Weed out attributes with non numeric values (Graphite does this too, but why clog the network?)
+                        # Weed out attributes with non numeric values (Graphite does this too, but why clog the
+                        # network?)
                         test = float(devAttrs[devAttr])
                         if math.isnan(test):
                             # It's a NaN!

@@ -36,7 +36,9 @@ def main():
     # parse the command line arguments
     args = getargs()
 
-    blank_max = 10  # Since we want to work on files and stdin. We will count the number of lines that are blank. If we process 10 blank lines and we are not doing stdin, we will assume that the file is done
+    # Since we want to work on files and stdin. We will count the number of lines that are blank. If we process 10 blank
+    # lines and we are not doing stdin, we will assume that the file is done
+    blank_max = 10
     debug = args.debug
     openfilesecs = int(args.openfilesecs)
     # We always set looper = False for files, even if the args set it to true.
@@ -99,7 +101,10 @@ def main():
 
 def getargs():
     parser = argparse.ArgumentParser(
-        description="Write the output of semonitor.py, unprocessed, to JSON files named after the day and hour in which each message was received.",
+        description=(
+            "Write the output of semonitor.py, unprocessed, to JSON files "
+            "named after the day and hour in which each message was received."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -139,14 +144,22 @@ def getargs():
         dest="looper",
         default=False,
         action="store_true",
-        help="Wait forever for data on stdin, e.g. for a live semonitor.py; only applies when infile is stdin; without it, exit gracefully after 10 failed reads from stdin, so that piping in a file with cat returns.",
+        help=(
+            "Wait forever for data on stdin, e.g. for a live semonitor.py; "
+            "only applies when infile is stdin; without it, exit gracefully "
+            "after 10 failed reads from stdin, so that piping in a file with "
+            "cat returns."
+        ),
     )
     parser.add_argument(
         "-m",
         dest="make_daily_dir",
         default=False,
         action="store_true",
-        help="Create a directory per day (YYYY-MM-DD) for the files; otherwise all files go into the base directory (-b).",
+        help=(
+            "Create a directory per day (YYYY-MM-DD) for the files; "
+            "otherwise all files go into the base directory (-b)."
+        ),
     )
     parser.add_argument(
         "infile",
