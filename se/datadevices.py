@@ -61,8 +61,9 @@ def is_small(name):
 
 class ParseDevice(dict):
     """
-    ParseDevice itself can only perform a very basic parse of a block of seData from a pcap file. Its main purposes
-    are:
+    ParseDevice itself can only perform a very basic parse of a block of seData from a pcap file.
+
+    Its main purposes are:
 
         to provide a suite of standard methods shared by all the subclasses (and in particular the parseDevTable method
         which given a fieldDefs list, will parse the seData block accordingly); and
@@ -118,6 +119,7 @@ class ParseDevice(dict):
     _hypotheses: ClassVar[list[tuple[str, Callable[[Any], bool]]]] = []
 
     def __new__(cls, data, *, explorer=False):
+        """Return an instance of the subclass matching the data block's seType."""
         # Some fancy footwork so that I can always start to create a ParseDevice, but actually get a subclass which is
         # appropriate for the seType encountered in the data block (provided a subclass specific to the seType has been
         # defined, of course).
@@ -156,20 +158,21 @@ class ParseDevice(dict):
 
     @staticmethod
     def parseId(seId):
+        """Return the device id as an upper-case hex string, with bit 23 cleared."""
         return ("%x" % (seId & 0xFF7FFFFF)).upper()
 
-    # format a date
     @staticmethod
     def formatDateStamp(timeStamp):
+        """Return the local date of a Unix timestamp as YYYY-MM-DD, or "invalid"."""
         try:
             return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
         except (OverflowError, OSError, TypeError, ValueError) as ex:
             logger.info("Invalid timestamp: %s %s", timeStamp, ex)
             return "invalid"
 
-    # format a time
     @staticmethod
     def formatTimeStamp(timeStamp):
+        """Return the local time of a Unix timestamp as HH:MM:SS, or "invalid"."""
         try:
             return time.strftime("%H:%M:%S", time.localtime(timeStamp))
         except (OverflowError, OSError, TypeError, ValueError) as ex:
@@ -210,15 +213,20 @@ class ParseDevice(dict):
         """
         return binascii.unhexlify(hexData.replace("|", "").replace(" ", ""))
 
-    # ParseDevice(data, explorer=...) hands its arguments to __init__ as well
     def __init__(self, data, **_kwargs):
+        """
+        Parse the data block, then run the derivations and hypothesis checks.
+
+        Extra keyword arguments (such as explorer) are accepted and ignored,
+        because ParseDevice(data, explorer=...) passes them to __init__ too.
+        """
         self.parseDevTable(data)
         self.setDerivationDefaults()
         self.codeDerivations()
         self.checkHypotheses()
 
     def parseDevTable(self, data):
-
+        """Parse the header and every field of the data block into self."""
         dataPtr = 0
         devHdrLen = 8
         # device header
@@ -321,14 +329,15 @@ class ParseDevice(dict):
             self[param_name] = out_format_fn(self[param_name])
 
     def setDerivationDefaults(self):
+        """Set every derived item to its default value."""
         for paramName, paramDefault, _out, _comment in self._derivn:
             self[paramName] = paramDefault
 
     def codeDerivations(self):
-        # Subclasses should override this if they want to calculate any derivations.
-        pass
+        """Calculate derived items. Does nothing here; subclasses override it."""
 
     def checkHypotheses(self):
+        """Log a warning for each hypothesis that does not hold for this device."""
         for hypothesis, holds in self._hypotheses:
             if not holds(self):
                 msg = [
@@ -344,6 +353,8 @@ class ParseDevice(dict):
 
     def wrap_in_ids(self):
         """
+        Wrap the parsed items in a dict of dicts keyed by device identifiers.
+
         "Wrap" the dictionary of parsed data items inside a "dictionary of dictionary" structure (like invDict etc)
         based on the device type and device id(s), to uniquely identify each device instance. The standard
         identifiers are devType and seId, but some device types (e.g. batteries and optimizers) may have alternative
@@ -360,6 +371,7 @@ class ParseDevice(dict):
 
     @classmethod
     def itemNames(cls):
+        """Return the names of the items that are written to CSV and Graphite."""
         # Extract some item name and definition length information that se2csv needs
 
         # devItemNames = ["seType", "seId", "devLen", "devType"] These are "uninteresting" and will not be output to CSV
@@ -390,6 +402,7 @@ class ParseDevice(dict):
 
     @property
     def fieldDefsLen(self):
+        """Return the total number of bytes described by fieldDefs."""
         return sum(
             [
                 itemLen
@@ -450,7 +463,10 @@ class ParseDevice(dict):
 
 
 class ParseDevice_0x0030(ParseDevice):
+    """Parser for battery (seType 0x0030) data blocks."""
+
     def __new__(cls, _data):
+        """Create a bare dictionary instance, without ParseDevice.__new__."""
         # Create a bare minimum instance of a dictionary. ALL subclasses of ParseDevice MUST do this.
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
         # the __new__ method of ParseDevice itself, which would redirect the creation to this subclass, and so on until
@@ -559,6 +575,8 @@ class ParseDevice_0x0030(ParseDevice):
 
     def wrap_in_ids(self):
         """
+        Wrap the parsed items in a dict of dicts keyed by device identifiers.
+
         "Wrap" the dictionary of parsed data items inside a "dictionary of dictionary" structure (like invDict etc)
         based on the device type and device id(s), to uniquely identify each device instance. The standard
         identifiers are devType and seId, but some device types (e.g. batteries and optimizers) may have alternative
@@ -575,7 +593,10 @@ class ParseDevice_0x0030(ParseDevice):
 
 
 class ParseDevice_0x0022(ParseDevice):
+    """Parser for meter (seType 0x0022) data blocks, one record per recType."""
+
     def __new__(cls, _data):
+        """Create a bare dictionary instance, without ParseDevice.__new__."""
         # Create a bare minimum instance of a dictionary.
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
         # the __new__ method of ParseDevice itself, which would redirect the creation to this subclass, and so on until
@@ -815,11 +836,12 @@ class ParseDevice_0x0022(ParseDevice):
         is_zero("AlwaysZero_off34_int2"),
     ]
 
-    # ParseDevice(data, explorer=...) hands its arguments to __init__ as well
     def __init__(self, data, **_kwargs):
+        """Parse the data block; extra keyword arguments are ignored."""
         super().__init__(data)
 
     def codeDerivations(self):
+        """Replace the bogus large negative P2X values with NaN."""
         # Filter out some sporadic 'NaN'-like values which appear in P2X.  The hex value is the BIG endian version of a
         # Python NaN. Read as LITTLE endian it becomes "-3.2... 10^38" which is unlikely to be meant as a real value!
         # Most of these are filtered out later, but occasionally if the interval is short one slips through anyway.
@@ -829,6 +851,8 @@ class ParseDevice_0x0022(ParseDevice):
 
     def wrap_in_ids(self):
         """
+        Wrap the parsed items in a dict of dicts keyed by device identifiers.
+
         "Wrap" the dictionary of parsed data items inside a "dictionary of dictionary" structure (like invDict etc)
         based on the device type and device id(s), to uniquely identify each device instance. The standard
         identifiers are devType and seId, but some device types (e.g. batteries and optimizers) may have alternative
@@ -860,8 +884,9 @@ class ParseDevice_0x0022(ParseDevice):
 
 class ParseDevice_Explorer(ParseDevice):
     """
-    A special parser which tries out several different ways of interpreting each item in the data message, and
-    reports *ALL* of them.
+    A special parser which tries out several different ways of interpreting each item in the data message.
+
+    It reports *ALL* of them.
 
     Most of the parsed values will be wrong, but hopefully by inspection you can find the parsings which make sense.
 
@@ -871,6 +896,7 @@ class ParseDevice_Explorer(ParseDevice):
     """
 
     def __new__(cls, _data):
+        """Create a bare dictionary instance, without ParseDevice.__new__."""
         # Create a bare minimum instance of a dictionary.
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
         # the __new__ method of ParseDevice itself, which would redirect the creation to this subclass, and so on until
@@ -886,8 +912,9 @@ class ParseDevice_Explorer(ParseDevice):
 
     def parseDevTable(self, data):
         """
-        A special exploratory parser, that works without a pre-defined list of itemNames and definitions. Somewhere
-        among the plethora of parsed values it produces, there will be the correct interpretation of each item.
+        A special exploratory parser that needs no predefined item definitions.
+
+        Somewhere among the plethora of parsed values it produces, there will be the correct interpretation of each item.
         I hope!
 
         It does presume all devices begin with a standard "seType, seId, devLen" header, which may not be correct.
@@ -993,16 +1020,19 @@ class ParseDevice_Explorer(ParseDevice):
 
     @classmethod
     def itemNames(cls):
+        """Return the item names collected by the exploratory parser."""
         # Warning. If ParseDevice_Explorer is used on more than 1 seType data block in a single run, this will *NOT*
         # return sensible values!
         return cls._itemNames
 
     @property
     def fieldDefsLen(self):
+        """Return the byte length of the data block, from its header."""
         return self._fieldDefsLen
 
     @classmethod
     def itemDefs(cls):
+        """Return a report describing the exploratory parser's items."""
         msg = [
             "\n\n{} / {} parses data blocks with any unrecognized seType.\n{}".format(
                 cls.__name__, cls.devType, "=" * 80
@@ -1019,7 +1049,9 @@ a step towards deciphering a new seType block, and creating a more sensible pars
 
 def merge_update(dict1, dict2):
     """
-    A recursive function which updates a master nested dictionary (dict1) with **only the new** elements of a
+    Merge only the new elements of a nested dict2 into the master dict1.
+
+    This recursive function updates a master nested dictionary (dict1) with **only the new** elements of a
     smaller contributor nested dictionary (dict2).
 
     :param dict1: The master nested dictionary.
