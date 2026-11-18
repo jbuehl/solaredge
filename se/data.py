@@ -36,9 +36,9 @@ class Seq:
     out = 0
 
 
-# parse the message data
-def parseData(function, data):
-    if function in [
+# functions with no arguments
+NO_ARGUMENTS = frozenset(
+    {
         se.commands.PROT_RESP_ACK,
         se.commands.PROT_RESP_NACK,
         se.commands.PROT_CMD_MISC_GET_VER,
@@ -48,37 +48,17 @@ def parseData(function, data):
         se.commands.PROT_CMD_POLESTAR_GET_STATUS,
         se.commands.PROT_CMD_POLESTAR_MASTER_GRANT,
         se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK,
-    ]:
-        # functions with no arguments
+    }
+)
+
+
+# parse the message data
+def parseData(function, data):
+    if function in NO_ARGUMENTS:
         return "".join(x.encode("hex") for x in data)
-    if function == se.commands.PROT_CMD_SERVER_POST_DATA:
-        return parseDeviceData(data)
-    if function == se.commands.PROT_RESP_POLESTAR_GET_STATUS:
-        return parseStatus(data)
-    if function in [
-        se.commands.PROT_CMD_PARAMS_GET_SINGLE,
-        se.commands.PROT_CMD_UPGRADE_START,
-    ]:
-        return parseParam(data)
-    if function in [
-        se.commands.PROT_CMD_MISC_RESET,
-        se.commands.PROT_RESP_PARAMS_SINGLE,
-    ]:
-        return parseValueType(data)
-    if function == se.commands.PROT_RESP_MISC_GET_VER:
-        return parseVersion(data)
-    if function == se.commands.PROT_CMD_PARAMS_SET_SINGLE:
-        return parseParamValue(data)
-    if function == se.commands.PROT_CMD_UPGRADE_WRITE:
-        return parseOffsetLength(data)
-    if function == se.commands.PROT_RESP_UPGRADE_SIZE:
-        return parseLong(data)
-    if function in [se.commands.PROT_RESP_MISC_GET_TYPE]:
-        return parseParam(data)
-    if function == se.commands.PROT_RESP_SERVER_GMT:
-        return parseTime(data)
-    if function == se.commands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS:
-        return parseEnergyStats(data)
+    parser = DATA_PARSERS.get(function)
+    if parser is not None:
+        return parser(data)
     # unknown function type
     logger.info("Unknown function 0x%04x", function)
     return codecs.encode(data, "hex").decode("ascii")
@@ -250,6 +230,24 @@ def parseDeviceData(data):
     devsDict["events"] = eventDict
 
     return devsDict
+
+
+# the parser of the data of each function, which are all defined above
+DATA_PARSERS = {
+    se.commands.PROT_CMD_SERVER_POST_DATA: parseDeviceData,
+    se.commands.PROT_RESP_POLESTAR_GET_STATUS: parseStatus,
+    se.commands.PROT_CMD_PARAMS_GET_SINGLE: parseParam,
+    se.commands.PROT_CMD_UPGRADE_START: parseParam,
+    se.commands.PROT_CMD_MISC_RESET: parseValueType,
+    se.commands.PROT_RESP_PARAMS_SINGLE: parseValueType,
+    se.commands.PROT_RESP_MISC_GET_VER: parseVersion,
+    se.commands.PROT_CMD_PARAMS_SET_SINGLE: parseParamValue,
+    se.commands.PROT_CMD_UPGRADE_WRITE: parseOffsetLength,
+    se.commands.PROT_RESP_UPGRADE_SIZE: parseLong,
+    se.commands.PROT_RESP_MISC_GET_TYPE: parseParam,
+    se.commands.PROT_RESP_SERVER_GMT: parseTime,
+    se.commands.PROT_RESP_POLESTAR_GET_ENERGY_STATISTICS_STATUS: parseEnergyStats,
+}
 
 
 def parseEventData(seId, eventItems, devData):
