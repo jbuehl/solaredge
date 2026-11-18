@@ -1,4 +1,9 @@
-# SolarEdge command line argument parsing and validation
+"""
+SolarEdge command line argument parsing and validation.
+
+Defines the run mode derived from the arguments, and parses and validates
+the command line.
+"""
 
 import argparse
 import logging
@@ -26,15 +31,26 @@ RunMode = namedtuple(
 )
 
 
-# argument parser class
 class SeArgumentParser(argparse.ArgumentParser):
+    """Argument parser that prints its usage and exits on errors."""
+
     def error(self, message):
+        """Print the usage, write the message to stderr and exit with status 2."""
         self.print_usage()
         sys.stderr.write(message + "\n")
         sys.exit(2)
 
 
 def validated_commands(command_str):
+    """
+    Split and validate a "/"-separated list of commands.
+
+    Each command is a hex function code, optionally followed by
+    comma-separated typed hex parameters (e.g. "10,b01,h0002").
+
+    Raises:
+        argparse.ArgumentTypeError: If a command is malformed.
+    """
     commands = []
     for c in command_str.split("/"):
         if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
@@ -45,6 +61,12 @@ def validated_commands(command_str):
 
 
 def validated_slaves(slave_str):
+    """
+    Split and validate a comma-separated list of hex slave IDs.
+
+    Raises:
+        argparse.ArgumentTypeError: If a slave ID is not hexadecimal.
+    """
     slaves = []
     for s in slave_str.split(","):
         if not re.match(r"^[0-9a-fA-F]+$", s):
@@ -254,8 +276,16 @@ def _log_arguments(args):
         logger.info("%s: %s", k, shown)
 
 
-# get arguments from the command line and validate them
 def getArgs():
+    """
+    Get the arguments from the command line and validate them.
+
+    Also configures logging from the verbosity option.
+
+    Returns:
+        A tuple (args, mode), where args is the parsed namespace and mode is
+        the RunMode derived from it.
+    """
     parser = _make_parser()
     args = parser.parse_args()
     _configure_logging(args)
