@@ -74,7 +74,7 @@ def wrap_in_ids(self):
 Subclasses which require additional identifiers simply define a
 deeper set of *nested dictionaries*. For example (should you be lucky
 enough to need to distinguish attributes from more that one battery!),
-`ParseDevice_0x0030`, which parses battery messages, defines:
+`ParseDevice0x0030`, which parses battery messages, defines:
 
 ```python
     def wrap_in_ids(self):
@@ -159,10 +159,10 @@ block can be parsed.
 
 To date (May 2017) two subclasses have been defined:
 
-1. `ParseDevice_0x0030`, which interprets the data stream from a battery,
+1. `ParseDevice0x0030`, which interprets the data stream from a battery,
 and
 
-2. `ParseDevice_0x0022`, which interprets a data stream including import,
+2. `ParseDevice0x0022`, which interprets a data stream including import,
 export and consumption data. I have called this *meters*, for want of
 any better insight into exactly which subsystem of the SolarEdge
 inverter is responsible for sending these `0x0022` messages.
@@ -211,13 +211,13 @@ all subclasses have their own explicit `__new__` method. Failure to do
 this results in a runtime recursion limit error!
 
 The `__new__` method for a subclass is not complicated - see for example
-`ParseDevice_0x0030.__new__`:
+`ParseDevice0x0030.__new__`:
 
 ```python
     def __new__(cls, data, explorer=False):
         # Create a bare minimum instance of a dictionary.
         # Note that a more usual idiom would be
-        # super(ParseDevice_0x0030, cls).__new__(cls), but this
+        # super(ParseDevice0x0030, cls).__new__(cls), but this
         # would lead to the recursion that we are trying to avoid!
         return super(ParseDevice, cls).__new__(cls)
 ```
@@ -236,7 +236,7 @@ _dev_name = "Unknown_device"
 dev_type = "{}_{:#06x}".format(_dev_name, se_type)
 ```
 
-For a subclass such as `ParseDevice_0x0030` they are more meaningful:
+For a subclass such as `ParseDevice0x0030` they are more meaningful:
 
 ```python
 se_type = 0x0030
@@ -307,7 +307,7 @@ consisting of exactly 6 entries. The 6 entries are:
    the field.
 
 To help make this clearer, here is an extract from
-`ParseDevice_0x0030.field_defs`:
+`ParseDevice0x0030.field_defs`:
 
 ```python
 field_defs = [
@@ -406,16 +406,16 @@ derived_value for a "derivedParamName", and then
 `self["derivedParamName"] = derived_value`).
 
 At the moment, the `code_derivations` methods for subclasses
-`ParseDevice_0x0022` and `ParseDevice_0x0030` are also empty stubs.
+`ParseDevice0x0022` and `ParseDevice0x0030` are also empty stubs.
 
 
 #### Simple example of a derivation
 
-However earlier iterations of `ParseDevice_0x0022` did utilize the
+However earlier iterations of `ParseDevice0x0022` did utilize the
 `_derivn`, and `code_derivations` approach successfully, so it has been
 (somewhat) tested. As an example of the approach, here is an extract of
 the relevant code from an earlier (since deleted) version of
-`ParseDevice_0x0022`
+`ParseDevice0x0022`
 
 
 ```python
@@ -545,7 +545,7 @@ complete block, less the standard header, is returned as a prettily
 formatted hexadecimal string representation. This should be the
 production setting.
 * `True`, the parsing is delegated to a special subclass
-(`ParseDevice_Explorer`), which parses every pair and quadruple of bytes
+(`ParseDeviceExplorer`), which parses every pair and quadruple of bytes
 in multiple ways. Most resultant "fields" will be invalid, or contain
 nonsense values, but this can be a useful exploratory step when
 trying to decipher a new device / `seType`.
@@ -746,7 +746,7 @@ invoked as the last step in the `__init__` method, simply calls the
 predicates, and logs the text of any hypothesis that evaluates to `False`.
 The module provides the helpers `is_zero(name)` and `is_small(name)` that
 build the pairs for the two common cases. An example (taken from
-`ParseDevice_0x0022`) may make this clearer:
+`ParseDevice0x0022`) may make this clearer:
 
 ```python
     _hypotheses = [
@@ -784,7 +784,7 @@ This is a small extract of the resultant output:
 
 ```text
 ...
-ParseDevice_0x0030 / batteries_0x0030 parses data blocks with seType = 0x0030.
+ParseDevice0x0030 / batteries_0x0030 parses data blocks with seType = 0x0030.
 ================================================================================
 Items are:
 Byte (Length)   Word   | Item Name
@@ -837,14 +837,14 @@ specific device types (for `seType`s 0x0030, and 0x0022), as well as one
 *special* subclass that can do a *maximal* parse of any device type.
 
 
-### `ParseDevice_0x0030` - batteries
+### `ParseDevice0x0030` - batteries
 
 `seType` 0x0030 relays information about the status of a battery. Use
-`print ParseDevice_0x0030.item_defs()` to obtain up-to-date documentation
+`print ParseDevice0x0030.item_defs()` to obtain up-to-date documentation
 about the fields and their interpretation.
 
 The field interpretations were deciphered by comparing values produced
-by (early versions of) `ParseDevice_0x0030` with information from the
+by (early versions of) `ParseDevice0x0030` with information from the
 LCD display on a SolarEdge inverter.
 
 To be precise, it is a SE6000 inverter, with a Tesla Powerwall 1 battery
@@ -853,7 +853,7 @@ software version combinations may require further work - but since I
 have only this one system to work on, I can't do that :-)
 
 
-### `ParseDevice_0x0022` - import, export and consumption data
+### `ParseDevice0x0022` - import, export and consumption data
 
 `seType` 0x0022 relays an assortment of summary information about the
 status of a SolarEdge system. Among the fields are ones which report
@@ -862,7 +862,7 @@ current interval import, export and consumption data.
 For want of a better name, I have called an 0x0022 message a "meters"
 message.
 
-Use `print ParseDevice_0x0022.item_defs()` to obtain up-to-date
+Use `print ParseDevice0x0022.item_defs()` to obtain up-to-date
 documentation about the fields and their interpretation.
 
 The trickiest part of deciphering the 0x0022 data block was discovering
@@ -890,9 +890,9 @@ addition there are a number of constant "flag" values whose meaning and
 use is as yet unknown.
 
 
-### `ParseDevice_Explorer` - parse almost anything, lots of ways
+### `ParseDeviceExplorer` - parse almost anything, lots of ways
 
-As explained earlier, `ParseDevice_Explorer` is a *special* subclass,
+As explained earlier, `ParseDeviceExplorer` is a *special* subclass,
 which can parse almost any device type. It simply works through the
 data block, 2 bytes at a time, trying multiple parsings for each
 pair and quadruple of bytes. Most "fields" will be invalid, or contain
@@ -901,7 +901,7 @@ towards developing a tailored subclass parser for a new `seType`.
 
 The *almost* in "almost any device" arises because `ParseDevice.__new__`
 (and hence all subclasses derived from it, including
-`ParseDevice_Explorer`) assumes that **all** device types include a
+`ParseDeviceExplorer`) assumes that **all** device types include a
 standard header which can be decoded as follows
 
 ```python
@@ -910,7 +910,7 @@ standard header which can be decoded as follows
 
 There may be a few rare device messages with a different header (I
 believe I have read that 0x0018 may be one), in which case
-`ParseDevice_Explorer` will most likely fail (for example, it will
+`ParseDeviceExplorer` will most likely fail (for example, it will
 probably not know the correct length, `devlen`, for the data block!).
 
 If the correct header is known, this could be corrected by appropriate

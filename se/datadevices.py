@@ -10,7 +10,7 @@ value, as found in the data block.
 
 The top level ParseDevice only performs a rudimentary parse of the data, and returns almost all of it as a hex string.
 
-Subclasses of ParseDevice (e.g. ParseDevice_0x0030) contain more extensive item definitions (stored in the field_defs
+Subclasses of ParseDevice (e.g. ParseDevice0x0030) contain more extensive item definitions (stored in the field_defs
 list) and populate the dictionary in a more sensible and useful way. Each subclass is tuned to a specific seType.
 se_type defines the seType the subclass is designed to parse, and field_defs lists the definitions for blocks of data of
 that seType.
@@ -21,7 +21,7 @@ data, by examining the standard header block in the data. Then it searches throu
 that have been defined, and if one 'tuned' to the seType of the block of data being parsed is found, creates an instance
 of that specialized subclass.
 
-There is one extra special subclass of ParseDevice, namely ParseDevice_Explorer. It is *not* intended for production
+There is one extra special subclass of ParseDevice, namely ParseDeviceExplorer. It is *not* intended for production
 use. It operates without any item definitions at all. Instead it works its way through the block of seData, in 2-byte
 increments, parsing the next 4 bytes in almost every way they could be parsed. Almost all of the parsed data items will
 be nonsense, but perusing the parsed device - for example by using se2csv and then opening the csv file - may help with
@@ -114,7 +114,7 @@ class ParseDevice(dict):
     # HYPOTHESES, optional, list of (text, predicate) pairs for conditions which I expect to be always true.
     # The predicate takes the parsed device, the text is what gets logged when it is false.
     # Useful for generating debug alerts in the event of "new" unexpected values appearing in data items.
-    # See ParseDevice_0x0030 for an example, and is_zero and is_small for the common cases.
+    # See ParseDevice0x0030 for an example, and is_zero and is_small for the common cases.
     _hypotheses: ClassVar[list[tuple[str, Callable[[Any], bool]]]] = []
 
     def __new__(cls, data, *, explorer=False):
@@ -130,13 +130,13 @@ class ParseDevice(dict):
             if subclass.se_type == se_type:
                 return subclass(data)
 
-        # Otherwise either return a ParseDevice_Explorer (explorer=True),
+        # Otherwise either return a ParseDeviceExplorer (explorer=True),
         # which is a special subclass which will parse almost anything,
         # albeit with quite a number of nonsense parsings interspersed with occasional correctly parsed fields,
         # or just return a bare minimum instance of a dictionary (explorer=False).
         if explorer:
             # return a special ParseDevice which tries almost every field parsing it knows about
-            return ParseDevice_Explorer(data)
+            return ParseDeviceExplorer(data)
         # return an instance of a basic dictionary (the base class for ParseDevice itself)
         new_instance = super().__new__(cls)
         # (Re)setting a basically empty (unknown) definition for this instance is crucial
@@ -463,7 +463,7 @@ class ParseDevice(dict):
         return "\n".join(msg)
 
 
-class ParseDevice_0x0030(ParseDevice):
+class ParseDevice0x0030(ParseDevice):
     """Parser for battery (seType 0x0030) data blocks."""
 
     def __new__(cls, _data):
@@ -472,7 +472,7 @@ class ParseDevice_0x0030(ParseDevice):
         # NB This step is essential, because otherwise, when this subclass was instantiated / created, it would call
         # the __new__ method of ParseDevice itself, which would redirect the creation to this subclass, and so on until
         # the recursion limit was reached!
-        # PS Note that a more usual idiom would be super(ParseDevice_0x0030, cls).__new__(cls), but this is what we
+        # PS Note that a more usual idiom would be super(ParseDevice0x0030, cls).__new__(cls), but this is what we
         # are trying to avoid!
         return super(ParseDevice, cls).__new__(cls)
 
@@ -593,7 +593,7 @@ class ParseDevice_0x0030(ParseDevice):
         return {self.dev_type: {self._seId: {self["batteryId"]: self}}}
 
 
-class ParseDevice_0x0022(ParseDevice):
+class ParseDevice0x0022(ParseDevice):
     """Parser for meter (seType 0x0022) data blocks, one record per recType."""
 
     def __new__(cls, _data):
@@ -883,7 +883,7 @@ class ParseDevice_0x0022(ParseDevice):
         return {self.dev_type: {self._seId: {rec_type_label: self}}}
 
 
-class ParseDevice_Explorer(ParseDevice):
+class ParseDeviceExplorer(ParseDevice):
     """
     A special parser which tries out several different ways of interpreting each item in the data message.
 
@@ -904,7 +904,7 @@ class ParseDevice_Explorer(ParseDevice):
         # the recursion limit was reached!
         return super(ParseDevice, cls).__new__(cls)
 
-    se_type = 0xFFFF  # dummy value since ParseDevice_Explorer will "parse" any seType (albeit overly enthusiastically!)
+    se_type = 0xFFFF  # dummy value since ParseDeviceExplorer will "parse" any seType (albeit overly enthusiastically!)
     _dev_name = "explore"
     dev_type = f"{_dev_name}_{se_type:#06x}"
     field_defs: ClassVar[list[list[Any]]] = []
@@ -932,9 +932,9 @@ class ParseDevice_Explorer(ParseDevice):
 
         self.se_type = se_type
         self._field_defs_len = dev_len
-        # For standard subclasses, dev_type will already have this value. However ParseDevice_Explorer can be used as a
+        # For standard subclasses, dev_type will already have this value. However ParseDeviceExplorer can be used as a
         # default parser, when a new device is encountered, in which case the actual instance value of seType would be
-        # unknown when the seDataDevices module was imported (or in other words, ParseDevice_Explorer.se_type will
+        # unknown when the seDataDevices module was imported (or in other words, ParseDeviceExplorer.se_type will
         # contain a nonsense value which must be corrected when real data is read)
         self.dev_type = f"{self._dev_name}_{se_type:#06x}"
         self._seId = se_id
@@ -1022,7 +1022,7 @@ class ParseDevice_Explorer(ParseDevice):
     @classmethod
     def item_names(cls):
         """Return the item names collected by the exploratory parser."""
-        # Warning. If ParseDevice_Explorer is used on more than 1 seType data block in a single run, this will *NOT*
+        # Warning. If ParseDeviceExplorer is used on more than 1 seType data block in a single run, this will *NOT*
         # return sensible values!
         return cls._item_names
 
