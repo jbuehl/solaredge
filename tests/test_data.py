@@ -324,7 +324,7 @@ def test_parse_data_decodes_the_payload(function, payload, expected):
 
 def test_parse_data_of_a_post_is_the_parsed_devices():
     payload = device(
-        0x0010, RAW_ID, pack_fields(se.dataparams.invInFmt, inverter_values())
+        0x0010, RAW_ID, pack_fields(se.dataparams.INV_IN_FMT, inverter_values())
     )
 
     parsed = se.data.parse_data(se.commands.PROT_CMD_SERVER_POST_DATA, payload)
@@ -432,7 +432,7 @@ def test_post_data_without_devices_has_only_the_empty_groups():
 
 
 def test_single_phase_inverter():
-    data = pack_fields(se.dataparams.invInFmt, inverter_values())
+    data = pack_fields(se.dataparams.INV_IN_FMT, inverter_values())
 
     parsed = se.data.parse_device_data(device(0x0010, RAW_ID, data))
 
@@ -444,7 +444,7 @@ def test_single_phase_inverter():
 
 
 def test_single_phase_inverter_ignores_trailing_bytes():
-    data = pack_fields(se.dataparams.invInFmt, inverter_values()) + (
+    data = pack_fields(se.dataparams.INV_IN_FMT, inverter_values()) + (
         b"\xaa" * 6
     )
 
@@ -460,7 +460,7 @@ def test_single_phase_inverter_with_unpopulated_pmax_has_a_nan_pmax():
     assert values[18] < -3e38
 
     parsed = se.data.parse_device_data(
-        device(0x0010, RAW_ID, pack_fields(se.dataparams.invInFmt, values))
+        device(0x0010, RAW_ID, pack_fields(se.dataparams.INV_IN_FMT, values))
     )
 
     inverter = parsed["inverters"][PARSED_ID]
@@ -499,11 +499,11 @@ def test_three_phase_inverter():
         29: 100.0,
         30: 6.5,
     }
-    data = pack_fields(se.dataparams.inv3PhInFmt, values)
+    data = pack_fields(se.dataparams.INV_3PH_IN_FMT, values)
 
     parsed = se.data.parse_device_data(device(0x0011, RAW_ID, data))
 
-    expected = dict.fromkeys(se.dataparams.inv3PhItems[3:], 0)
+    expected = dict.fromkeys(se.dataparams.INV_3PH_ITEMS[3:], 0)
     expected |= {
         "Date": STAMP_DATE,
         "Time": STAMP_TIME,
@@ -539,7 +539,7 @@ def test_three_phase_inverter():
 
 def test_three_phase_inverter_keeps_the_raw_unpopulated_integers():
     values = dict.fromkeys((15, 16, 18, 31), 0xFF7FFFFF)
-    data = pack_fields(se.dataparams.inv3PhInFmt, values)
+    data = pack_fields(se.dataparams.INV_3PH_IN_FMT, values)
 
     parsed = se.data.parse_device_data(device(0x0011, RAW_ID, data))
 
@@ -561,7 +561,7 @@ def test_optimizer():
         7: 125.0,
         8: 33.0,
     }
-    data = pack_fields(se.dataparams.optInFmt, values)
+    data = pack_fields(se.dataparams.OPT_IN_FMT, values)
 
     parsed = se.data.parse_device_data(device(0x0000, 0x00800ABC, data))
 
@@ -632,7 +632,7 @@ def test_wake_event_has_an_end_time():
     values = {0: STAMP, 1: 0, 2: STAMP + 60, 3: STAMP + 120, 4: 0}
 
     parsed = se.data.parse_device_data(
-        device(0x0300, RAW_ID, pack_fields(se.dataparams.eventInFmt, values))
+        device(0x0300, RAW_ID, pack_fields(se.dataparams.EVENT_IN_FMT, values))
     )
 
     assert parsed["events"] == {
@@ -653,7 +653,7 @@ def test_sleep_event_has_a_time_zone_offset_and_an_end_time():
     values = {0: STAMP, 1: 1, 2: STAMP + 60, 3: -3600, 4: STAMP + 120}
 
     parsed = se.data.parse_device_data(
-        device(0x0300, RAW_ID, pack_fields(se.dataparams.eventInFmt, values))
+        device(0x0300, RAW_ID, pack_fields(se.dataparams.EVENT_IN_FMT, values))
     )
 
     assert parsed["events"] == {
@@ -672,7 +672,7 @@ def test_sleep_event_has_a_time_zone_offset_and_an_end_time():
 @pytest.mark.xfail(strict=True, reason="Issue #35")
 def test_event_ignores_trailing_bytes():
     values = {0: STAMP, 1: 0, 2: STAMP, 3: STAMP, 4: 0}
-    data = pack_fields(se.dataparams.eventInFmt, values) + (b"\x00" * 4)
+    data = pack_fields(se.dataparams.EVENT_IN_FMT, values) + (b"\x00" * 4)
 
     parsed = se.data.parse_device_data(device(0x0300, RAW_ID, data))
 
@@ -694,9 +694,9 @@ def test_unknown_device_is_parsed_by_the_device_parser():
 
 
 def test_post_data_with_several_devices_is_all_parsed():
-    inverter = pack_fields(se.dataparams.invInFmt, inverter_values())
+    inverter = pack_fields(se.dataparams.INV_IN_FMT, inverter_values())
     optimizers = [
-        pack_fields(se.dataparams.optInFmt, {0: STAMP, 3: uptime})
+        pack_fields(se.dataparams.OPT_IN_FMT, {0: STAMP, 3: uptime})
         for uptime in (1, 2)
     ]
     data = (
@@ -717,7 +717,7 @@ def test_post_data_with_several_devices_is_all_parsed():
 
 def test_devices_are_logged_with_their_items(caplog):
     caplog.set_level(se.logutils.LOG_LEVEL_DATA)
-    data = pack_fields(se.dataparams.invInFmt, inverter_values())
+    data = pack_fields(se.dataparams.INV_IN_FMT, inverter_values())
 
     se.data.parse_device_data(device(0x0010, RAW_ID, data))
 
@@ -870,7 +870,7 @@ def test_write_data_without_a_file_writes_nothing():
 
 def test_write_data_writes_what_parse_data_decoded():
     out = io.BytesIO()
-    data = pack_fields(se.dataparams.invInFmt, inverter_values())
+    data = pack_fields(se.dataparams.INV_IN_FMT, inverter_values())
     parsed = se.data.parse_data(
         se.commands.PROT_CMD_SERVER_POST_DATA, device(0x0010, RAW_ID, data)
     )

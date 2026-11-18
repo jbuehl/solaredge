@@ -15,21 +15,21 @@ import se.commands
 import se.logutils
 from se.datadevices import ParseDevice, merge_update
 from se.dataparams import (
-    eventIdx,
-    eventInFmt,
-    eventItems,
-    inv3PhIdx,
-    inv3PhInFmt,
-    inv3PhInFmtLen,
-    inv3PhItems,
-    invIdx,
-    invInFmt,
-    invInFmtLen,
-    invItems,
-    optIdx,
-    optInFmt,
-    optInFmtLen,
-    optItems,
+    EVENT_IDX,
+    EVENT_IN_FMT,
+    EVENT_ITEMS,
+    INV_3PH_IDX,
+    INV_3PH_IN_FMT,
+    INV_3PH_IN_FMT_LEN,
+    INV_3PH_ITEMS,
+    INV_IDX,
+    INV_IN_FMT,
+    INV_IN_FMT_LEN,
+    INV_ITEMS,
+    OPT_IDX,
+    OPT_IN_FMT,
+    OPT_IN_FMT_LEN,
+    OPT_ITEMS,
 )
 
 logger = logging.getLogger(__name__)
@@ -223,28 +223,28 @@ def parse_device_data(data):
         # device data
         if se_type == DEV_OPTIMIZER:  # optimizer data
             opt_dict[se_id] = parse_opt_data(
-                se_id, optItems, data[data_ptr : data_ptr + dev_len]
+                se_id, OPT_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             log_device(
                 "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
             )
         elif se_type == DEV_OPTIMIZER_NEW:  # new format optimizer data
             opt_dict[se_id] = parse_new_opt_data(
-                se_id, optItems, data[data_ptr : data_ptr + dev_len]
+                se_id, OPT_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             log_device(
                 "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
             )
         elif se_type == DEV_OPTIMIZER_S440:  # s440 optimizers
             opt_dict[se_id] = parse_s440_opt_data(
-                se_id, optItems, data[data_ptr : data_ptr + dev_len]
+                se_id, OPT_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             log_device(
                 "optimizer:     ", se_type, se_id, dev_len, opt_dict[se_id]
             )
         elif se_type == DEV_INVERTER:  # inverter data
             inv_dict[se_id] = parse_inv_data(
-                se_id, invItems, data[data_ptr : data_ptr + dev_len]
+                se_id, INV_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             # Correct odd case where SolarEdge inverter sends NaN value in opposite byte order to all other float values
             # i.e. SolarEdge sends b'\xff\xff\x7f\xff' which in little endian format unpacks as -3.402... * 10 ** 38
@@ -256,14 +256,14 @@ def parse_device_data(data):
             )
         elif se_type == DEV_INVERTER_3PH:  # 3 phase inverter data
             inv_dict[se_id] = parse_inv3_ph_data(
-                se_id, inv3PhItems, data[data_ptr : data_ptr + dev_len]
+                se_id, INV_3PH_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             log_device(
                 "inverter:     ", se_type, se_id, dev_len, inv_dict[se_id]
             )
         elif se_type == DEV_EVENT:  # wake or sleep event
             event_dict[se_id] = parse_event_data(
-                se_id, eventItems, data[data_ptr : data_ptr + dev_len]
+                se_id, EVENT_ITEMS, data[data_ptr : data_ptr + dev_len]
             )
             log_device(
                 "event:         ", se_type, se_id, dev_len, event_dict[se_id]
@@ -317,7 +317,8 @@ def parse_event_data(se_id, event_items, dev_data):
     """Decode the data of a wake or sleep event device."""
     # unpack data and map to items
     se_event_data = [
-        struct.unpack(eventInFmt, dev_data[:invInFmtLen])[i] for i in eventIdx
+        struct.unpack(EVENT_IN_FMT, dev_data[:INV_IN_FMT_LEN])[i]
+        for i in EVENT_IDX
     ]
     se_event_data[2] = format_date_time(se_event_data[2])
     if se_event_data[1] == 0:
@@ -331,7 +332,7 @@ def parse_inv_data(se_id, inv_items, dev_data):
     """Decode the data of a single phase inverter."""
     # unpack data and map to items
     se_inv_data = [
-        struct.unpack(invInFmt, dev_data[:invInFmtLen])[i] for i in invIdx
+        struct.unpack(INV_IN_FMT, dev_data[:INV_IN_FMT_LEN])[i] for i in INV_IDX
     ]
     return dev_data_dict(se_id, inv_items, se_inv_data)
 
@@ -340,8 +341,8 @@ def parse_inv3_ph_data(se_id, inv_items, dev_data):
     """Decode the data of a three phase inverter."""
     # unpack data and map to items
     se_inv_data = [
-        struct.unpack(inv3PhInFmt, dev_data[:inv3PhInFmtLen])[i]
-        for i in inv3PhIdx
+        struct.unpack(INV_3PH_IN_FMT, dev_data[:INV_3PH_IN_FMT_LEN])[i]
+        for i in INV_3PH_IDX
     ]
     return dev_data_dict(se_id, inv_items, se_inv_data)
 
@@ -350,7 +351,7 @@ def parse_opt_data(se_id, opt_items, dev_data):
     """Decode the data of an optimizer."""
     # unpack data and map to items
     se_opt_data = [
-        struct.unpack(optInFmt, dev_data[:optInFmtLen])[i] for i in optIdx
+        struct.unpack(OPT_IN_FMT, dev_data[:OPT_IN_FMT_LEN])[i] for i in OPT_IDX
     ]
     se_opt_data[1] = parse_id(se_opt_data[1])
     return dev_data_dict(se_id, opt_items, se_opt_data)

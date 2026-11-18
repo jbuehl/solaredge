@@ -16,13 +16,13 @@ Layouts of the data of each device type, and their item names.
 #    6  data6: 0
 
 # format string used to unpack input data
-eventInFmt = "<LLLlLLL"
+EVENT_IN_FMT = "<LLLlLLL"
 # length of data that will be unpacked
-eventInFmtLen = (len(eventInFmt) - 1) * 4
+EVENT_IN_FMT_LEN = (len(EVENT_IN_FMT) - 1) * 4
 # mapping of input data to device data items
-eventIdx = [0, 1, 2, 3, 4]
+EVENT_IDX = [0, 1, 2, 3, 4]
 # device data item names
-eventItems = ["Date", "Time", "ID", "Type", "Event1", "Event2", "Event3"]
+EVENT_ITEMS = ["Date", "Time", "ID", "Type", "Event1", "Event2", "Event3"]
 
 # inverter data interpretation
 # (the item of devData, by index, and what it means)
@@ -55,13 +55,13 @@ eventItems = ["Date", "Time", "ID", "Type", "Event1", "Event2", "Event3"]
 #   25  data25: 0xff7fffff
 
 # format string used to unpack input data
-invInFmt = "<LLLffffffLLfLffLfffffLLffL"
+INV_IN_FMT = "<LLLffffffLLfLffLfffffLLffL"
 # length of data that will be unpacked
-invInFmtLen = (len(invInFmt) - 1) * 4
+INV_IN_FMT_LEN = (len(INV_IN_FMT) - 1) * 4
 # mapping of input data to device data items
-invIdx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 18, 23]
+INV_IDX = [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 13, 18, 23]
 # device data item names
-invItems = [
+INV_ITEMS = [
     "Date",
     "Time",
     "ID",
@@ -79,7 +79,7 @@ invItems = [
     "Pac",
 ]
 # device data output file format strings
-invOutFmt = [
+INV_OUT_FMT = [
     "%s",
     "%s",
     "%s",
@@ -135,11 +135,11 @@ invOutFmt = [
 #   31  data31: 0xff7fffff
 
 # format string used to unpack input data
-inv3PhInFmt = "<LLLffffffffffffLLfLffLLLfffLfffL"
+INV_3PH_IN_FMT = "<LLLffffffffffffLLfLffLLLfffLfffL"
 # length of data that will be unpacked
-inv3PhInFmtLen = (len(inv3PhInFmt) - 1) * 4
+INV_3PH_IN_FMT_LEN = (len(INV_3PH_IN_FMT) - 1) * 4
 # mapping of input data to device data items
-inv3PhIdx = [
+INV_3PH_IDX = [
     0,
     1,
     2,
@@ -174,7 +174,7 @@ inv3PhIdx = [
     31,
 ]
 # device data item names
-inv3PhItems = [
+INV_3PH_ITEMS = [
     "Date",
     "Time",
     "ID",
@@ -211,7 +211,7 @@ inv3PhItems = [
     "data31",
 ]
 # device data output file format strings
-inv3PhOutFmt = [
+INV_3PH_OUT_FMT = [
     "%s",
     "%s",
     "%s",
@@ -261,13 +261,13 @@ inv3PhOutFmt = [
 #    8  Temp: temperature (°C)
 
 # format string used to unpack input data
-optInFmt = "<LLLLfffff"
+OPT_IN_FMT = "<LLLLfffff"
 # length of data that will be unpacked
-optInFmtLen = (len(optInFmt) - 1) * 4
+OPT_IN_FMT_LEN = (len(OPT_IN_FMT) - 1) * 4
 # mapping of input data to device data items
-optIdx = [0, 1, 3, 4, 5, 6, 7, 8]
+OPT_IDX = [0, 1, 3, 4, 5, 6, 7, 8]
 # device data item names
-optItems = [
+OPT_ITEMS = [
     "Date",
     "Time",
     "ID",
@@ -280,7 +280,7 @@ optItems = [
     "Temp",
 ]
 # device data output file format strings
-optOutFmt = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]
+OPT_OUT_FMT = ["%s", "%s", "%s", "%s", "%d", "%f", "%f", "%f", "%f", "%f"]
 
 # Decode optimizer data in packet type 0x0080
 #  (into same order as original data)
