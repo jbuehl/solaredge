@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Read semonitor.py output and write it to an InfluxDB and a log file."""
 
 import argparse

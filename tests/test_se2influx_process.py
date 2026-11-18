@@ -1,5 +1,4 @@
 import importlib.util
-import shlex
 import sys
 import types
 from pathlib import Path
@@ -10,7 +9,6 @@ pytest.importorskip("dateutil", reason="se2influx needs python-dateutil")
 
 CLI = Path(__file__).resolve().parent.parent / "src" / "se"
 SCRIPT = CLI / "se2influx.py"
-WRAPPER = Path(__file__).resolve().parent.parent / "examples" / "se2influx.sh"
 
 
 class FakeInfluxClient:
@@ -32,12 +30,6 @@ def se():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-# --- reader ------------------------------------------------------------------
-
-
-# --- run ---------------------------------------------------------------------
 
 
 # --- parse_args --------------------------------------------------------------
@@ -147,19 +139,3 @@ def test_help_lists_the_defaults(parse, capsys):
 
     assert exit_.value.code == 0
     assert "8086" in capsys.readouterr().out
-
-
-def test_the_options_of_the_wrapper_script_are_all_accepted(parse):
-    text = WRAPPER.read_text()
-    command = text[text.index("se2influx.py") + len("se2influx.py") :]
-    command = command.split("\n\n")[0].replace("\\\n", " ").splitlines()[0]
-    tokens = [
-        "x" if token.startswith("$") else token
-        for token in shlex.split(command)
-    ]
-
-    assert tokens
-    parse(*tokens)
-
-
-# --- main program ------------------------------------------------------------

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 r"""
 Send JSON performance data to Mosquitto MQTT broker.
 

@@ -37,8 +37,8 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install the dependencies
-        run: pip install --group 'run'
+      - name: Install semonitor
+        run: pip install .
 
       - name: Byte-compile sources
         run: python -m compileall -q .

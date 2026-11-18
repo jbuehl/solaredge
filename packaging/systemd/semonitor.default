@@ -1,0 +1,12 @@
+# Configuration of semonitor.service, copy this file to /etc/default/semonitor.
+
+# The serial numbers of the inverters, separated by commas.
+INVERTERS=
+
+# The serial port the inverters are connected to.
+DEVICE=/dev/ttyUSB0
+
+# The options of semonitor: the type of the serial port (-t 4 is RS485, -t 2 is
+# RS232), -m makes semonitor the master of the bus, -n makes it exit once a day
+# (the service starts it again) and -v logs what it does.
+OPTIONS="-v -t 4 -m -n"

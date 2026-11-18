@@ -81,6 +81,7 @@ words:
   - pygrep
   - pyupgrade
   - refurb
+  - sudoedit
   - testpaths
   - tryceratops
   - worksteal

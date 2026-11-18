@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Print selected data from a JSON file."""
 
 import json

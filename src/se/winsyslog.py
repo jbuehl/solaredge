@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 A very basic alternative to the (Linux world's) syslog module.
 

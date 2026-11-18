@@ -33,7 +33,7 @@ if ! "${VENV}/bin/python" --version > '/dev/null' 2>&1; then
 	python3 -m venv --clear "${VENV}"
 fi
 "${VENV}/bin/python" -m pip install --quiet --upgrade pip
-"${VENV}/bin/python" -m pip install --quiet --upgrade --group 'test'
+"${VENV}/bin/python" -m pip install --quiet --upgrade '.[all]' --group 'test'
 
 set -- --cov --cov-report 'term-missing:skip-covered' "${@}"
 

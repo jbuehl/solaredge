@@ -1,9 +1,20 @@
 [Unit]
 Description=SolarEdge monitor
-After=syslog.target
+Wants=time-sync.target
+After=time-sync.target
+
 [Service]
-ExecStart=/root/solaredge/scripts/semonitor.sh
+EnvironmentFile=/etc/default/semonitor
+StateDirectory=semonitor
+ExecStart=/bin/sh -c '\
+  : "$${INVERTERS:?INVERTERS is not set in /etc/default/semonitor}" \
+    "$${DEVICE:?DEVICE is not set in /etc/default/semonitor}"; \
+  semonitor $${OPTIONS} -s "$${INVERTERS}" "$${DEVICE}" | \
+  stdbuf -oL uniq | \
+  tee "$${STATE_DIRECTORY}/$$(date +%%Y%%m%%d%%H%%M%%S).json" | \
+  se2state -i "$${INVERTERS}" -o "$${STATE_DIRECTORY}/solar.json"'
 Restart=always
 RestartSec=60
+
 [Install]
 WantedBy=multi-user.target

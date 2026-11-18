@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Convert a debug log back into a binary data file.
 

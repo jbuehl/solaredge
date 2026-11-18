@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Send SolarEdge performance metrics to Graphite via the Graphite/carbon pickle listener port.
 

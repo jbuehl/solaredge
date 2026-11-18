@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 SolarEdge inverter performance monitoring using the SolarEdge protocol.
 

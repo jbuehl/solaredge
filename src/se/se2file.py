@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Write the output of semonitor.py, unprocessed, to JSON files."""
 
 import argparse
