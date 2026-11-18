@@ -162,7 +162,7 @@ def test_a_log_file_that_does_not_exist_is_an_error(workdir, monkeypatch):
 def test_data_that_is_not_hex_is_an_error(workdir, monkeypatch):
     log = write_log(workdir, "data:       zz yy\n")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Non-hexadecimal"):
         run_debug2hex(monkeypatch, log, workdir / "out.bin")
 
 
