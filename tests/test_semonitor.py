@@ -298,9 +298,7 @@ def process(sm, msg, files, mode=MASTER_MODE):
         msg,
         mode,
         files.state,
-        files.line,
-        files.rec,
-        files.out,
+        sm.Files(files.line, files.rec, files.out),
     )
 
 
@@ -309,9 +307,7 @@ def read(sm, files, mode=PASSIVE_MODE, **changes):
         make_args(**changes),
         mode,
         files.state,
-        files.line,
-        files.rec,
-        files.out,
+        sm.Files(files.line, files.rec, files.out),
     )
 
 
@@ -824,7 +820,10 @@ def test_commands_are_sent_and_their_responses_written(sm, files, command_run):
     args = make_args(commands=COMMANDS, slaves=[SLAVE_ARG])
 
     sm.doCommands(
-        args, COMMAND_MODE, files.state, files.line, files.rec, files.out
+        args,
+        COMMAND_MODE,
+        files.state,
+        sm.Files(files.line, files.rec, files.out),
     )
 
     assert bytes(files.line.written) == b"".join(sent_commands())
@@ -851,7 +850,10 @@ def test_unsigned_parameters_of_a_command_are_sent_unsigned(sm, files):
     args = make_args(commands=[["1f", "HFFFF", "LFFFFFFFF"]], slaves=["7f"])
 
     sm.doCommands(
-        args, COMMAND_MODE, files.state, files.line, files.rec, files.out
+        args,
+        COMMAND_MODE,
+        files.state,
+        sm.Files(files.line, files.rec, files.out),
     )
 
     sent = frame(
@@ -876,7 +878,10 @@ def test_master_gives_the_bus_to_the_slave_after_each_command(
     args = make_args(commands=COMMANDS, slaves=[SLAVE_ARG, "ignored"])
 
     sm.doCommands(
-        args, MASTER_MODE, files.state, files.line, files.rec, files.out
+        args,
+        MASTER_MODE,
+        files.state,
+        sm.Files(files.line, files.rec, files.out),
     )
 
     first_length = len(sent_commands()[0])
