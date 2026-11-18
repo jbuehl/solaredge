@@ -58,7 +58,7 @@ def test_the_defaults(parse):
     assert args.host == "localhost"
     assert args.port == 8086
     assert args.username == "root"
-    assert args.password == "root"
+    assert args.password == "root"  # noqa: S105  # the option's default
     assert args.database == "semonitor"
     assert args.ssl is False
     assert args.verify_ssl is False
