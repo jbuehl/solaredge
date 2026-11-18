@@ -134,8 +134,10 @@ def make(se):
 @pytest.fixture
 def messages(caplog):
     caplog.set_level(logging.DEBUG)
+    # The formatter adds the traceback of a logged exception to the message.
+    formatter = logging.Formatter("%(message)s")
     return lambda level=None: [
-        record.getMessage()
+        formatter.format(record)
         for record in caplog.records
         if level is None or record.levelno == level
     ]

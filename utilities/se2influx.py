@@ -137,8 +137,8 @@ class Se2Influx:
 
         except EndOfFile:
             logger.info("Reached end of input")
-        except Exception as e:
-            logger.exception("Error reading from stdin: %s", e)
+        except Exception:
+            logger.exception("Error reading from stdin")
 
     def writer(self) -> None:
         """
@@ -159,10 +159,8 @@ class Se2Influx:
                     self.influx_params.database,
                 )
                 db_client.create_database(self.influx_params.database)
-        except Exception as e:
-            logger.exception(
-                "Unable to connect to influxdb host or create DB: %s", e
-            )
+        except Exception:
+            logger.exception("Unable to connect to influxdb host or create DB")
             return
 
         data_points_written = 0
@@ -186,8 +184,8 @@ class Se2Influx:
 
             try:
                 se_data = json.loads(line)
-            except json.decoder.JSONDecodeError as e:
-                logger.exception("Got bad JSON data; %s -- %s", line, e)
+            except json.decoder.JSONDecodeError:
+                logger.exception("Got bad JSON data; %s", line)
                 continue
 
             data_out = []
@@ -210,15 +208,13 @@ class Se2Influx:
                             }
                         )
 
-            except KeyError as e:
+            except KeyError:
                 logger.exception(
-                    "Decoded JSON missing required fields: %s -- %s", se_data, e
+                    "Decoded JSON missing required fields: %s", se_data
                 )
 
-            except DateError as e:
-                logger.exception(
-                    "Error converting dates in JSON: %s -- %s", se_data, e
-                )
+            except DateError:
+                logger.exception("Error converting dates in JSON: %s", se_data)
 
             if not data_out:
                 continue
@@ -227,8 +223,8 @@ class Se2Influx:
                 logger.debug("Writing to influxdb: %s", data_out)
                 db_client.write_points(data_out)
                 data_points_written += len(data_out)
-            except Exception as e:
-                logger.exception("Error writing to influx db: %s", e)
+            except Exception:
+                logger.exception("Error writing to influx db")
 
     def logger(self) -> None:
         """
@@ -242,8 +238,8 @@ class Se2Influx:
         while True:
             try:
                 log_fh = open(self.log_path, "a")
-            except Exception as e:
-                logger.exception("Error opening %s: %s", self.log_path, e)
+            except Exception:
+                logger.exception("Error opening %s", self.log_path)
                 return
 
             while True:
@@ -257,10 +253,8 @@ class Se2Influx:
                 try:
                     log_fh.write(line)
                     log_fh.flush()
-                except Exception as e:
-                    logger.exception(
-                        "Error writing to %s: %s", self.log_path, e
-                    )
+                except Exception:
+                    logger.exception("Error writing to %s", self.log_path)
                     return
 
                 size = os.stat(self.log_path).st_size
@@ -268,9 +262,9 @@ class Se2Influx:
                     log_fh.close()
                     try:
                         self.rotate_log()
-                    except Exception as e:
+                    except Exception:
                         logger.exception(
-                            "Failed to rotate file: %s, %s", self.log_path, e
+                            "Failed to rotate file: %s", self.log_path
                         )
                     break
 
