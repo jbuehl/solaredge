@@ -8,7 +8,6 @@ with SolarEdge inverters, including their CRC-16 checksums.
 import logging
 import struct
 import time
-from builtins import bytes
 from typing import NamedTuple
 
 import se.logutils

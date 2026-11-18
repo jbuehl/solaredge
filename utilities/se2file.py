@@ -96,11 +96,10 @@ def main():
                 blank_cnt += 1
                 time.sleep(0.5)
             # Let's not leave output files open if we haven't seen data in a while
-            if curepoch - lastwrite > openfilesecs:
-                if debug:
-                    sys.stderr.write(
-                        f"No data for {openfilesecs} seconds, closing file\n"
-                    )
+            if debug and curepoch - lastwrite > openfilesecs:
+                sys.stderr.write(
+                    f"No data for {openfilesecs} seconds, closing file\n"
+                )
             # Keep track of when we are looping and report on it if debug is enabled.
             lreport = 60
             if lcnt % lreport == 0:
