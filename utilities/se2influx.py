@@ -265,7 +265,7 @@ class Se2Influx:
 
     def rotate_log(self) -> None:
         """Rotate and compress logs once they get too big"""
-        ts = datetime.now().strftime("%Y%m%d%H%M%S")
+        ts = datetime.now().astimezone().strftime("%Y%m%d%H%M%S")
         log_root, sep, log_ext = self.log_path.rpartition(".")
         if not log_root:
             log_root = log_ext

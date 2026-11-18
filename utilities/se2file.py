@@ -49,7 +49,7 @@ def main():
             blank_cnt = 0  # If we have data, reset the blank_cnt variable
             if debug:
                 sys.stderr.write(f"Got some data: {jsonStr}\n")
-            curtime = datetime.datetime.now()
+            curtime = datetime.datetime.now().astimezone()
             curday = curtime.strftime("%Y-%m-%d")
             curhour = curtime.strftime("%Y-%m-%d-%H")
             curstore = curday if store_daily else curhour
@@ -96,7 +96,7 @@ def main():
         if lcnt % lreport == 0:
             lcnt = 0
             if debug:
-                curtime = datetime.datetime.now()
+                curtime = datetime.datetime.now().astimezone()
                 curstr = curtime.strftime("%Y-%m-%d-%H:%m:%s")
                 sys.stderr.write(f"Looped {lreport} times at {curstr}\n")
 
