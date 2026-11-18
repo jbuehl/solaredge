@@ -34,26 +34,26 @@ class SeArgumentParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
-# get arguments from the command line and validate them
-def getArgs():
+def validated_commands(command_str):
+    commands = []
+    for c in command_str.split("/"):
+        if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
+            raise argparse.ArgumentTypeError(f"Invalid command: {c}")
+        commands.append(c.split(","))
+    return commands
 
-    # argument validation functions
-    def validated_commands(command_str):
-        commands = []
-        for c in command_str.split("/"):
-            if not re.match(r"^[0-9a-fA-F]+(,[bhlBHL][0-9a-fA-F]+)*$", c):
-                raise argparse.ArgumentTypeError(f"Invalid command: {c}")
-            commands.append(c.split(","))
-        return commands
 
-    def validated_slaves(slave_str):
-        slaves = []
-        for s in slave_str.split(","):
-            if not re.match(r"^[0-9a-fA-F]+$", s):
-                raise argparse.ArgumentTypeError(f"Invalid slave ID: {s}")
-            slaves.append(s)
-        return slaves
+def validated_slaves(slave_str):
+    slaves = []
+    for s in slave_str.split(","):
+        if not re.match(r"^[0-9a-fA-F]+$", s):
+            raise argparse.ArgumentTypeError(f"Invalid slave ID: {s}")
+        slaves.append(s)
+    return slaves
 
+
+# the parser of the command line
+def _make_parser():
     parser = SeArgumentParser(
         description="Parse Solaredge data to extract inverter and optimizer telemetry",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -139,10 +139,11 @@ def getArgs():
         nargs="?",
         help="input filename or serial port",
     )
+    return parser
 
-    args = parser.parse_args()
 
-    # configure logging
+# configure the logging of the root logger
+def _configure_logging(args):
     stream_formatter = logging.Formatter("%(message)s")
     file_formatter = logging.Formatter(
         "%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"
@@ -175,10 +176,10 @@ def getArgs():
     root_logger.setLevel(level)
     root_logger.addHandler(handler)
 
-    serialDevice = False
-    passiveMode = True
 
-    # data source validation
+# find out if the data source is a serial device
+def _is_serial_device(args):
+    serial_device = False
     if args.datasource == "-":
         args.datasource = "stdin"
     elif args.datasource != "stdin":
@@ -193,15 +194,16 @@ def getArgs():
             )
             for p in serial_ports
         )
-        serialDevice = args.datasource in serial_port_names
+        serial_device = args.datasource in serial_port_names
+    return serial_device
 
-    # serial device validation
-    if serialDevice:
-        serialDevice = True
+
+# validate the serial device
+# NB The mode of an RS232 device is not made active here, see Issue #12
+def _validate_serial(parser, args, *, serial_device):
+    if serial_device:
         args.following = True
-        if args.type == "2":
-            passiveMode = False
-        elif args.type != "4":
+        if args.type not in ["2", "4"]:
             parser.error(
                 "Input device type 2 or 4 must be specified for serial device"
             )
@@ -213,9 +215,11 @@ def getArgs():
             + "Input device types 2 and 4 are only valid for a serial device"
         )
 
-    # master mode validation
+
+# validate the master and command mode, and return if the mode is passive
+def _validate_mode(parser, args):
     if args.master:
-        passiveMode = False
+        passive_mode = False
         if args.type != "4":
             parser.error("Master mode only allowed with RS485 serial device")
         if len(args.slaves) < 1:
@@ -223,17 +227,20 @@ def getArgs():
                 "At least one slave address must be specified for master mode"
             )
     else:
-        passiveMode = True
+        passive_mode = True
 
     # command mode validation
     if args.commands:
-        passiveMode = False
+        passive_mode = False
         if len(args.slaves) != 1:
             parser.error(
                 "Exactly one slave address must be specified for command mode"
             )
+    return passive_mode
 
-    # print out the arguments and options
+
+# print out the arguments and options
+def _log_arguments(args):
     for k, v in sorted(vars(args).items()):
         shown = v
         if k == "commands":
@@ -243,6 +250,17 @@ def getArgs():
         if k == "slaves":
             shown = ",".join(slave for slave in v)
         logger.info("%s: %s", k, shown)
+
+
+# get arguments from the command line and validate them
+def getArgs():
+    parser = _make_parser()
+    args = parser.parse_args()
+    _configure_logging(args)
+    serialDevice = _is_serial_device(args)
+    _validate_serial(parser, args, serial_device=serialDevice)
+    passiveMode = _validate_mode(parser, args)
+    _log_arguments(args)
 
     return (
         args,
