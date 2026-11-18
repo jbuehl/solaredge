@@ -46,7 +46,7 @@ def log(*args):
 
 # parameter defaults
 base = ""
-hostName = "localhost"
+host_name = "localhost"
 # Port must be the port which Graphite (carbon) has configured to be the pickle listener port.
 # The usual Graphite installation default is 2004.
 port = 2004
@@ -56,12 +56,12 @@ following = False
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "b:fh:p:")
-inFile = open_input(args)
+in_file = open_input(args)
 for opt in opts:
     if opt[0] == "-b":
         base = opt[1] + "."
     if opt[0] == "-h":
-        hostName = opt[1]
+        host_name = opt[1]
     if opt[0] == "-p":
         port = int(opt[1])
     if opt[0] == "-f":
@@ -175,23 +175,23 @@ if __name__ == "__main__":
     # Timeout if no connection after 10 seconds,
     #   in which case check that Graphite is running, and the hostName and port are correct.
     socket.setdefaulttimeout(10.0)
-    graphiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # NB `port` must be the carbon pickle port, usually 2004 is configured by default.
-    graphiteSocket.connect((hostName, port))
-    with inFile:
-        jsonStr = getJsonStr(inFile, following)
-        while jsonStr != "":
+    graphite_socket.connect((host_name, port))
+    with in_file:
+        json_str = getJsonStr(in_file, following)
+        while json_str != "":
             try:
-                inDict = json.loads(jsonStr)
-                pickle2graphite = Pickle2Graphite(inDict, base=base)
-                pickle2graphite.send(graphiteSocket)
+                in_dict = json.loads(json_str)
+                pickle2graphite = Pickle2Graphite(in_dict, base=base)
+                pickle2graphite.send(graphite_socket)
             except ValueError:
                 log(
                     "WARNING json.loads had a problem with the following jsonStr\n",
-                    jsonStr,
+                    json_str,
                     "\n",
                     "=" * 80,
                     "\n",
                 )
-            jsonStr = getJsonStr(inFile, following)
-    graphiteSocket.close()
+            json_str = getJsonStr(in_file, following)
+    graphite_socket.close()

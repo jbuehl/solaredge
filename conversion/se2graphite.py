@@ -28,34 +28,34 @@ def log(*args):
 
 # parameter defaults
 base = ""
-hostName = "localhost"
+host_name = "localhost"
 port = 2003
 devices = ["inverters", "optimizers"]
 delay = 0.1
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "b:h:p:")
-inFile = open_input(args)
+in_file = open_input(args)
 for opt in opts:
     if opt[0] == "-b":
         base = opt[1] + "."
     if opt[0] == "-h":
-        hostName = opt[1]
+        host_name = opt[1]
     if opt[0] == "-p":
         port = int(opt[1])
 
 if __name__ == "__main__":
-    graphiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    graphiteSocket.connect((hostName, port))
-    with inFile:
-        jsonStr = inFile.readline()
-        while jsonStr != "":
-            inDict = json.loads(jsonStr)
-            for baseName, devAttrs in unwrap_metricsDict(inDict):
+    graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    graphite_socket.connect((host_name, port))
+    with in_file:
+        json_str = in_file.readline()
+        while json_str != "":
+            in_dict = json.loads(json_str)
+            for base_name, dev_attrs in unwrap_metricsDict(in_dict):
                 # convert date and time to unix time
                 try:
-                    (year, month, day) = devAttrs["Date"].split("-")
-                    (hour, minute, second) = devAttrs["Time"].split(":")
+                    (year, month, day) = dev_attrs["Date"].split("-")
+                    (hour, minute, second) = dev_attrs["Time"].split(":")
                 except KeyError:
                     log(
                         "Date or Time is missing or incorrectly formatted for this set of metrics"
@@ -70,7 +70,7 @@ if __name__ == "__main__":
                     )
                 # Set the dst parameter in mktime to -1, so that the system determines whether dst is in effect!
                 # Without this, when dst is in effect, the timeStamp is 3600 seconds into the future!
-                timeStamp = time.mktime(
+                time_stamp = time.mktime(
                     (
                         int(year),
                         int(month),
@@ -84,22 +84,22 @@ if __name__ == "__main__":
                     )
                 )
                 # Treat every attribute as a metric - except for non-numeric ones!
-                for devAttr in devAttrs:
-                    if devAttr not in {"Date", "Time", "Undeciphered_data"}:
+                for dev_attr in dev_attrs:
+                    if dev_attr not in {"Date", "Time", "Undeciphered_data"}:
                         try:
                             # Weed out attributes with non numeric values (Graphite does this too, but why clog the
                             # network?)
-                            test = float(devAttrs[devAttr])
+                            test = float(dev_attrs[dev_attr])
                             if math.isnan(test):
                                 # It's a NaN!
                                 pass
                             else:
-                                fullName = f"{base}{baseName}.{devAttr}"
-                                metric = f"{fullName} {devAttrs[devAttr]!s} {timeStamp}\n"
-                                graphiteSocket.send(metric)
+                                full_name = f"{base}{base_name}.{dev_attr}"
+                                metric = f"{full_name} {dev_attrs[dev_attr]!s} {time_stamp}\n"
+                                graphite_socket.send(metric)
                                 time.sleep(delay)
                         except ValueError:
                             # It's not a numeric metric, ignore it
                             pass
-            jsonStr = inFile.readline()
-    graphiteSocket.close()
+            json_str = in_file.readline()
+    graphite_socket.close()

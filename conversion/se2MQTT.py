@@ -35,11 +35,11 @@ import paho.mqtt.client as mqtt
 from common import open_input
 
 # state values
-stateDict = {"inverters": {}, "optimizers": {}}
+state_dict = {"inverters": {}, "optimizers": {}}
 
 # get program arguments and options
 (opts, args) = getopt.getopt(sys.argv[1:], "c:u:p:s:t:")
-inFile = open_input(args)
+in_file = open_input(args)
 for opt in opts:
     if opt[0] == "-c":
         clientid = opt[1]
@@ -53,28 +53,28 @@ for opt in opts:
         topic = opt[1]
 
 # read the input forever
-with inFile:
+with in_file:
     while True:
-        jsonStr = ""
+        json_str = ""
         # wait for data
-        while jsonStr == "":
+        while json_str == "":
             time.sleep(0.1)
-            jsonStr = inFile.readline()
-        inDict = json.loads(jsonStr)
+            json_str = in_file.readline()
+        in_dict = json.loads(json_str)
         # update the state values
-        stateDict["inverters"].update(inDict["inverters"])
-        stateDict["optimizers"].update(inDict["optimizers"])
+        state_dict["inverters"].update(in_dict["inverters"])
+        state_dict["optimizers"].update(in_dict["optimizers"])
         # zero current energy and power when an event occurs
-        if len(inDict["events"]) != 0:
-            for inverter in stateDict["inverters"]:
-                stateDict["inverters"][inverter]["Eac"] = 0.0
-                stateDict["inverters"][inverter]["Pac"] = 0.0
+        if len(in_dict["events"]) != 0:
+            for inverter in state_dict["inverters"]:
+                state_dict["inverters"][inverter]["Eac"] = 0.0
+                state_dict["inverters"][inverter]["Pac"] = 0.0
         # send to MQTT
         try:
             mqttc = mqtt.Client(client_id=clientid)
             mqttc.username_pw_set(user, passwd)
             mqttc.connect(server)
-            mqttc.publish(topic, json.dumps(stateDict))
+            mqttc.publish(topic, json.dumps(state_dict))
             mqttc.disconnect()
         except (OSError, ValueError) as ex:
             sys.stderr.write(f"MQTT Exception: {ex}\n")

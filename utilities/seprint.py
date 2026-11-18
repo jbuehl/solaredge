@@ -31,36 +31,36 @@ def open_input(args):
 
 
 # get program arguments and options
-inFile = open_input(sys.argv[1:])
+in_file = open_input(sys.argv[1:])
 
 # read the input
-with inFile:
-    jsonStr = inFile.readline()
-    while jsonStr != "":
-        inDict = json.loads(jsonStr)
-        if inDict["inverters"] != {}:
+with in_file:
+    json_str = in_file.readline()
+    while json_str != "":
+        in_dict = json.loads(json_str)
+        if in_dict["inverters"] != {}:
             sys.stdout.write("Inverters\n")
-            for inverter in sorted(inDict["inverters"].keys()):
-                invDict = inDict["inverters"][inverter]
+            for inverter in sorted(in_dict["inverters"].keys()):
+                inv_dict = in_dict["inverters"][inverter]
                 sys.stdout.write(
-                    f"  {invDict['Date']} {invDict['Time']} {inverter}"
-                    f" Eday:{invDict['Eday']:9.2f}"
-                    f" Pac:{invDict['Pac']:7.2f}"
-                    f" Vac:{invDict['Vac']:6.2f}\n"
+                    f"  {inv_dict['Date']} {inv_dict['Time']} {inverter}"
+                    f" Eday:{inv_dict['Eday']:9.2f}"
+                    f" Pac:{inv_dict['Pac']:7.2f}"
+                    f" Vac:{inv_dict['Vac']:6.2f}\n"
                 )
-        if inDict["optimizers"] != {}:
+        if in_dict["optimizers"] != {}:
             sys.stdout.write("Optimizers\n")
-            for optimizer in sorted(inDict["optimizers"].keys()):
-                optDict = inDict["optimizers"][optimizer]
+            for optimizer in sorted(in_dict["optimizers"].keys()):
+                opt_dict = in_dict["optimizers"][optimizer]
                 sys.stdout.write(
-                    f"  {optDict['Date']} {optDict['Time']} {optimizer}"
-                    f" Eday:{optDict['Eday']:7.2f}\n"
+                    f"  {opt_dict['Date']} {opt_dict['Time']} {optimizer}"
+                    f" Eday:{opt_dict['Eday']:7.2f}\n"
                 )
-        if inDict["events"] != {}:
+        if in_dict["events"] != {}:
             sys.stdout.write("Events\n")
-            for event in sorted(inDict["events"].keys()):
-                eventDict = inDict["events"][event]
+            for event in sorted(in_dict["events"].keys()):
+                event_dict = in_dict["events"][event]
                 sys.stdout.write(
-                    f"  {eventDict['Date']} {eventDict['Time']} {event}\n"
+                    f"  {event_dict['Date']} {event_dict['Time']} {event}\n"
                 )
-        jsonStr = inFile.readline()
+        json_str = in_file.readline()

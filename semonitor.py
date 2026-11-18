@@ -306,20 +306,20 @@ if __name__ == "__main__":
     # open the specified data source
     logger.info("opening %s", args.datasource)
     if mode.serialDevice:
-        dataFile = se.files.openSerial(args.datasource, args.baudrate)
+        data_file = se.files.openSerial(args.datasource, args.baudrate)
     else:
-        dataFile = se.files.openInFile(args.datasource)
+        data_file = se.files.openInFile(args.datasource)
 
     # open the output files
-    recFile = se.files.openOutFile(args.record, "ab" if args.append else "wb")
+    rec_file = se.files.openOutFile(args.record, "ab" if args.append else "wb")
     if args.outfile == "stdout":
-        outFile = sys.stdout.buffer
+        out_file = sys.stdout.buffer
     else:
-        outFile = se.files.openOutFile(
+        out_file = se.files.openOutFile(
             args.outfile, "ab" if args.append else "wb"
         )
 
-    files = Files(dataFile, recFile, outFile)
+    files = Files(data_file, rec_file, out_file)
 
     # figure out what to do based on the mode of operation
     if mode.passiveMode:  # only reading from file or serial device
@@ -331,19 +331,19 @@ if __name__ == "__main__":
         doCommands(args, mode, state, files)
     else:  # interacting over RS232 or RS485
         # start a separate thread for reading
-        readThread = threading.Thread(
+        read_thread = threading.Thread(
             name=READ_THREAD_NAME,
             target=readData,
             args=(args, mode, state, files),
         )
-        readThread.daemon = True
-        readThread.start()
+        read_thread.daemon = True
+        read_thread.start()
         logger.info("starting %s", READ_THREAD_NAME)
         if args.master:  # send RS485 master commands
-            startMaster(args=(state, dataFile, recFile, args.slaves))
+            startMaster(args=(state, data_file, rec_file, args.slaves))
         # wait for termination
         block(state)
 
     # cleanup
-    se.files.closeData(dataFile)
-    se.files.closeOutFiles(recFile, outFile)
+    se.files.closeData(data_file)
+    se.files.closeOutFiles(rec_file, out_file)

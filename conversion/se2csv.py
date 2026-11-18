@@ -70,26 +70,28 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    devsFile = {}
+    devs_file = {}
 
     # process the data, and close the CSV files when we are done
     with contextlib.ExitStack() as csv_files:
-        for jsonStr in args.infile:
-            for baseName, devAttrs in sorted(
-                unwrap_metricsDict(json.loads(jsonStr))
+        for json_str in args.infile:
+            for base_name, dev_attrs in sorted(
+                unwrap_metricsDict(json.loads(json_str))
             ):
-                devName, devId = baseName.split(".", 1)
-                if devName not in devsFile:
-                    devsFileName = f"{args.prefix}.{devName}.csv"
-                    itemNames = ["__Identifier__", *sorted(devAttrs.keys())]
-                    devsFile[devName] = csv.DictWriter(
+                dev_name, dev_id = base_name.split(".", 1)
+                if dev_name not in devs_file:
+                    devs_file_name = f"{args.prefix}.{dev_name}.csv"
+                    item_names = ["__Identifier__", *sorted(dev_attrs.keys())]
+                    devs_file[dev_name] = csv.DictWriter(
                         csv_files.enter_context(
-                            Path(devsFileName).open("a" if args.append else "w")
+                            Path(devs_file_name).open(
+                                "a" if args.append else "w"
+                            )
                         ),
-                        itemNames,
+                        item_names,
                     )
                     if args.headers:
-                        devsFile[devName].writeheader()
+                        devs_file[dev_name].writeheader()
 
-                devAttrs["__Identifier__"] = devId
-                devsFile[devName].writerow(devAttrs)
+                dev_attrs["__Identifier__"] = dev_id
+                devs_file[dev_name].writerow(dev_attrs)

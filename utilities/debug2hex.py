@@ -17,14 +17,14 @@ import sys
 from pathlib import Path
 
 with contextlib.ExitStack() as files:
-    logFile = files.enter_context(Path(sys.argv[1]).open())
+    log_file = files.enter_context(Path(sys.argv[1]).open())
     try:
-        dataFile = files.enter_context(Path(sys.argv[2]).open("wb"))
+        data_file = files.enter_context(Path(sys.argv[2]).open("wb"))
     except IndexError:
-        dataFile = sys.stdout.buffer
+        data_file = sys.stdout.buffer
 
-    for line in logFile:
+    for line in log_file:
         if line[0:5] == "data:":
-            dataFile.write(
+            data_file.write(
                 binascii.unhexlify(line[5:].replace(" ", "").strip())
             )
