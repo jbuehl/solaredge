@@ -68,25 +68,25 @@ for opt in opts:
         following = True
 
 
-def getJsonStr(inFile, following):
+def getJsonStr(in_file, following):
     """
     Read the next line of JSON from the input.
 
     If following is True, wait (sleeping for delay seconds between tries) until a line arrives.
 
     Args:
-        inFile: The open input file to read from.
+        in_file: The open input file to read from.
         following: Whether to keep waiting for new data at end of file.
 
     Returns:
         The line read, or an empty string at end of file when not following.
     """
-    json_str = inFile.readline()
+    json_str = in_file.readline()
     if json_str == "" and following:
         while json_str == "":
             # wait for more data
             time.sleep(delay)
-            json_str = inFile.readline()
+            json_str = in_file.readline()
     return json_str
 
 
@@ -98,15 +98,15 @@ class Pickle2Graphite(list):
     carbon's pickle listener port.
     """
 
-    def __init__(self, metricsDict, base):
+    def __init__(self, metrics_dict, base):
         """
-        Build the list of (name, (timestamp, value)) tuples from metricsDict.
+        Build the list of (name, (timestamp, value)) tuples from metrics_dict.
 
         Args:
-            metricsDict: A nested dictionary of devices and their attributes, as produced by json.loads.
+            metrics_dict: A nested dictionary of devices and their attributes, as produced by json.loads.
             base: A prefix to put in front of every metric name.
         """
-        for base_name, dev_attrs in unwrap_metricsDict(metricsDict):
+        for base_name, dev_attrs in unwrap_metricsDict(metrics_dict):
             # convert date and time to Unix time
             try:
                 (year, month, day) = dev_attrs["Date"].split("-")
@@ -154,7 +154,7 @@ class Pickle2Graphite(list):
                         # It is not a numeric metric
                         pass
 
-    def send(self, graphiteSocket):
+    def send(self, graphite_socket):
         """
         Pickle the metrics and send them to the Graphite socket.
 
@@ -162,12 +162,12 @@ class Pickle2Graphite(list):
         A short delay follows each send so that carbon is not swamped.
 
         Args:
-            graphiteSocket: A connected socket to the carbon pickle listener.
+            graphite_socket: A connected socket to the carbon pickle listener.
         """
         payload = pickle.dumps(list(self))
         header = struct.pack("!L", len(payload))
         # print len(payload)
-        graphiteSocket.send(header + payload)
+        graphite_socket.send(header + payload)
         time.sleep(delay)
 
 

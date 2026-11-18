@@ -29,13 +29,13 @@ def _raw_log(self, msg, *args, **kwargs):
 
 # log an incoming or outgoing data message
 # call internal _log() method to ensure caller information is properly reported
-def _message_log(self, direction, seq, msg, endPoint=""):
+def _message_log(self, direction, seq, msg, end_point=""):
     if not self.isEnabledFor(logging.DEBUG):
         return
     self._log(
         logging.DEBUG,
         "%s %s message: %s length: %s",
-        (endPoint, direction, seq, len(msg)),
+        (end_point, direction, seq, len(msg)),
     )
     if self.isEnabledFor(LOG_LEVEL_RAW):
         for line in format_data(msg):

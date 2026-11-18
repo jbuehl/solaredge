@@ -150,7 +150,7 @@ def masterReply(function, state):
     return (b"", b"")
 
 
-def masterCommands(state, dataFile, recFile, slaveAddrs):
+def masterCommands(state, data_file, rec_file, slave_addrs):
     """
     Run the RS485 master loop, granting the bus to each slave in turn.
 
@@ -158,13 +158,13 @@ def masterCommands(state, dataFile, recFile, slaveAddrs):
     """
     se.logutils.setState(state, "masterThread", value=True)
     while True:
-        for slave_addr in slaveAddrs:
-            masterGrant(state, dataFile, recFile, slave_addr)
+        for slave_addr in slave_addrs:
+            masterGrant(state, data_file, rec_file, slave_addr)
         time.sleep(MASTER_MSG_INTERVAL)
     se.logutils.setState(state, "masterThread", value=False)
 
 
-def masterGrant(state, dataFile, recFile, slaveAddr):
+def masterGrant(state, data_file, rec_file, slave_addr):
     """
     Grant the RS485 bus to a slave and wait for it to release the bus.
 
@@ -175,14 +175,14 @@ def masterGrant(state, dataFile, recFile, slaveAddr):
         se.logutils.setState(state, "threadLock", value=True)
         # grant control of the bus to the slave
         se.msg.sendMsg(
-            dataFile,
+            data_file,
             se.msg.formatMsg(
                 nextSeq(),
                 MASTER_ADDR,
-                int(slaveAddr, 16),
+                int(slave_addr, 16),
                 se.commands.PROT_CMD_POLESTAR_MASTER_GRANT,
             ),
-            recFile,
+            rec_file,
         )
         se.logutils.setState(state, "threadLock", value=False)
 

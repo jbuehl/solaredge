@@ -16,35 +16,35 @@ from common import open_input
 initialize = False
 
 
-def sumItems(itemDict, itemAttr):
+def sumItems(item_dict, item_attr):
     """
     Return the sum of an attribute over the items in a dictionary.
 
     The stats item is ignored.
     """
     item_sum = 0
-    for item in itemDict:
+    for item in item_dict:
         if item != "stats":
-            item_sum += itemDict[item][itemAttr]
+            item_sum += item_dict[item][item_attr]
     return item_sum
 
 
-def avgItems(itemDict, itemAttr):
+def avgItems(item_dict, item_attr):
     """
     Return the average of an attribute over the items in a dictionary.
 
     The stats item is ignored. Returns 0 when there are no items.
     """
     try:
-        return sumItems(itemDict, itemAttr) / (len(itemDict) - 1)
+        return sumItems(item_dict, item_attr) / (len(item_dict) - 1)
     except ZeroDivisionError:
         return 0
 
 
-def writeState(stateDict, outFileName):
+def writeState(state_dict, out_file_name):
     """Write the state dictionary to the state file as JSON."""
-    with Path(outFileName).open("w") as out_file:
-        json.dump(stateDict, out_file)
+    with Path(out_file_name).open("w") as out_file:
+        json.dump(state_dict, out_file)
 
 
 # get program arguments and options

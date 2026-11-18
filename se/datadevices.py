@@ -156,26 +156,26 @@ class ParseDevice(dict):
         return new_instance
 
     @staticmethod
-    def parseId(seId):
+    def parseId(se_id):
         """Return the device id as an upper-case hex string, with bit 23 cleared."""
-        return ("%x" % (seId & 0xFF7FFFFF)).upper()
+        return ("%x" % (se_id & 0xFF7FFFFF)).upper()
 
     @staticmethod
-    def formatDateStamp(timeStamp):
+    def formatDateStamp(time_stamp):
         """Return the local date of a Unix timestamp as YYYY-MM-DD, or "invalid"."""
         try:
-            return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
+            return time.strftime("%Y-%m-%d", time.localtime(time_stamp))
         except (OverflowError, OSError, TypeError, ValueError) as ex:
-            logger.info("Invalid timestamp: %s %s", timeStamp, ex)
+            logger.info("Invalid timestamp: %s %s", time_stamp, ex)
             return "invalid"
 
     @staticmethod
-    def formatTimeStamp(timeStamp):
+    def formatTimeStamp(time_stamp):
         """Return the local time of a Unix timestamp as HH:MM:SS, or "invalid"."""
         try:
-            return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+            return time.strftime("%H:%M:%S", time.localtime(time_stamp))
         except (OverflowError, OSError, TypeError, ValueError) as ex:
-            logger.info("Invalid timestamp: %s %s", timeStamp, ex)
+            logger.info("Invalid timestamp: %s %s", time_stamp, ex)
             return "invalid"
 
     # format a hex entry as a readable string
@@ -205,14 +205,14 @@ class ParseDevice(dict):
         return " | ".join(hex_lines)
 
     @staticmethod
-    def unhexData(hexData):
+    def unhexData(hex_data):
         """
-        Convert a hex representation into a string of bytes, i.e. the inverse of hexData.
+        Convert a hex representation into a string of bytes, i.e. the inverse of hex_data.
 
-        :param hexData: String, containing a (must be valid) hex representation of some bytes.
-        :return: The string of bytes corresponding to hexData.
+        :param hex_data: String, containing a (must be valid) hex representation of some bytes.
+        :return: The string of bytes corresponding to hex_data.
         """
-        return binascii.unhexlify(hexData.replace("|", "").replace(" ", ""))
+        return binascii.unhexlify(hex_data.replace("|", "").replace(" ", ""))
 
     def __init__(self, data, **_kwargs):
         """

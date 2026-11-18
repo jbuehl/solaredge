@@ -150,9 +150,9 @@ def parseValueType(data):
     return {"value": value, "type": data_type}
 
 
-def formatValueType(value, dataType):
+def formatValueType(value, data_type):
     """Pack a value and a data type as little-endian bytes."""
-    return struct.pack("<HL", value, dataType)
+    return struct.pack("<HL", value, data_type)
 
 
 def parseParamValue(data):
@@ -176,9 +176,9 @@ def parseTime(data):
     return {"time": time_value, "tz": tz_offset}
 
 
-def formatTime(timeValue, tzOffset):
+def formatTime(time_value, tz_offset):
     """Pack a Unix time and a signed time zone offset as bytes."""
-    return struct.pack("<Ll", timeValue, tzOffset)
+    return struct.pack("<Ll", time_value, tz_offset)
 
 
 def parseStatus(data):
@@ -313,70 +313,70 @@ DATA_PARSERS = {
 }
 
 
-def parseEventData(seId, eventItems, devData):
+def parseEventData(se_id, event_items, dev_data):
     """Decode the data of a wake or sleep event device."""
     # unpack data and map to items
     se_event_data = [
-        struct.unpack(eventInFmt, devData[:invInFmtLen])[i] for i in eventIdx
+        struct.unpack(eventInFmt, dev_data[:invInFmtLen])[i] for i in eventIdx
     ]
     se_event_data[2] = formatDateTime(se_event_data[2])
     if se_event_data[1] == 0:
         se_event_data[3] = formatDateTime(se_event_data[3])
     else:
         se_event_data[4] = formatDateTime(se_event_data[4])
-    return devDataDict(seId, eventItems, se_event_data)
+    return devDataDict(se_id, event_items, se_event_data)
 
 
-def parseInvData(seId, invItems, devData):
+def parseInvData(se_id, inv_items, dev_data):
     """Decode the data of a single phase inverter."""
     # unpack data and map to items
     se_inv_data = [
-        struct.unpack(invInFmt, devData[:invInFmtLen])[i] for i in invIdx
+        struct.unpack(invInFmt, dev_data[:invInFmtLen])[i] for i in invIdx
     ]
-    return devDataDict(seId, invItems, se_inv_data)
+    return devDataDict(se_id, inv_items, se_inv_data)
 
 
-def parseInv3PhData(seId, invItems, devData):
+def parseInv3PhData(se_id, inv_items, dev_data):
     """Decode the data of a three phase inverter."""
     # unpack data and map to items
     se_inv_data = [
-        struct.unpack(inv3PhInFmt, devData[:inv3PhInFmtLen])[i]
+        struct.unpack(inv3PhInFmt, dev_data[:inv3PhInFmtLen])[i]
         for i in inv3PhIdx
     ]
-    return devDataDict(seId, invItems, se_inv_data)
+    return devDataDict(se_id, inv_items, se_inv_data)
 
 
-def parseOptData(seId, optItems, devData):
+def parseOptData(se_id, opt_items, dev_data):
     """Decode the data of an optimizer."""
     # unpack data and map to items
     se_opt_data = [
-        struct.unpack(optInFmt, devData[:optInFmtLen])[i] for i in optIdx
+        struct.unpack(optInFmt, dev_data[:optInFmtLen])[i] for i in optIdx
     ]
     se_opt_data[1] = parseId(se_opt_data[1])
-    return devDataDict(seId, optItems, se_opt_data)
+    return devDataDict(se_id, opt_items, se_opt_data)
 
 
-def parseNewOptData(seId, optItems, devData):
+def parseNewOptData(se_id, opt_items, dev_data):
     """Decode the data of an optimizer in the newer format."""
     data = bytearray()
-    data.extend(devData)
-    (time_stamp, uptime) = struct.unpack("<LH", devData[0:6])
+    data.extend(dev_data)
+    (time_stamp, uptime) = struct.unpack("<LH", dev_data[0:6])
     vpan = 0.125 * (data[6] | (data[7] << 8 & 0x300))
     vopt = 0.125 * (data[7] >> 2 | (data[8] << 6 & 0x3C0))
     imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xF))
     eday = 0.25 * (data[11] << 8 | data[10])
-    temp = 2.0 * struct.unpack("<b", devData[12:13])[0]
+    temp = 2.0 * struct.unpack("<b", dev_data[12:13])[0]
     # Don't have an inverter ID in the data, substitute 0
     return devDataDict(
-        seId, optItems, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
+        se_id, opt_items, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
     )
 
 
-def parseS440OptData(seId, optItems, devData):
+def parseS440OptData(se_id, opt_items, dev_data):
     """Decode the data of an S440 optimizer, which has no energy or temperature."""
     data = bytearray()
-    data.extend(devData)
-    (time_stamp, uptime) = struct.unpack("<LH", devData[0:6])
+    data.extend(dev_data)
+    (time_stamp, uptime) = struct.unpack("<LH", dev_data[0:6])
     vpan = 0.125 * (data[6] | (data[7] << 8 & 0x300))
     vopt = 0.125 * (data[7] >> 2 | (data[8] << 6 & 0x3C0))
     imod = 0.00625 * (data[9] << 4 | (data[8] >> 4 & 0xF))
@@ -385,11 +385,11 @@ def parseS440OptData(seId, optItems, devData):
     temp = 0
     # Don't have an inverter ID in the data, substitute 0
     return devDataDict(
-        seId, optItems, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
+        se_id, opt_items, [time_stamp, 0, uptime, vpan, vopt, imod, eday, temp]
     )
 
 
-def devDataDict(seId, itemNames, itemValues):
+def devDataDict(se_id, item_names, item_values):
     """
     Build the dict of a device's data items.
 
@@ -398,48 +398,48 @@ def devDataDict(seId, itemNames, itemValues):
     """
     dev_dict = {}
     try:
-        dev_dict["Date"] = formatDateStamp(itemValues[0])
-        dev_dict["Time"] = formatTimeStamp(itemValues[0])
+        dev_dict["Date"] = formatDateStamp(item_values[0])
+        dev_dict["Time"] = formatTimeStamp(item_values[0])
     except (OverflowError, OSError, TypeError, ValueError) as ex:
-        logger.info("Invalid timestamp: %s %s", itemValues[0], ex)
+        logger.info("Invalid timestamp: %s %s", item_values[0], ex)
         dev_dict["Date"] = "invalid"
         dev_dict["Time"] = "invalid"
-    dev_dict["ID"] = seId
-    for i in range(3, len(itemNames)):
-        dev_dict[itemNames[i]] = itemValues[i - 2]
+    dev_dict["ID"] = se_id
+    for i in range(3, len(item_names)):
+        dev_dict[item_names[i]] = item_values[i - 2]
     return dev_dict
 
 
-def writeData(msgDict, outFile):
+def writeData(msg_dict, out_file):
     """
-    Write a message dict to outFile as one line of sorted JSON.
+    Write a message dict to out_file as one line of sorted JSON.
 
-    Nothing is written if outFile is None or empty.
+    Nothing is written if out_file is None or empty.
     """
-    if outFile:
+    if out_file:
         Seq.out += 1
-        msg = json.dumps(msgDict, sort_keys=True)
+        msg = json.dumps(msg_dict, sort_keys=True)
         logger.data(msg)
-        outFile.write(msg.encode("latin-1") + b"\n")
-        outFile.flush()
+        out_file.write(msg.encode("latin-1") + b"\n")
+        out_file.flush()
 
 
-def parseId(seId):
+def parseId(se_id):
     """Return a device ID as uppercase hex, without its extra high bit."""
-    return ("%x" % (seId & 0xFF7FFFFF)).upper()
+    return ("%x" % (se_id & 0xFF7FFFFF)).upper()
 
 
-def formatDateStamp(timeStamp):
+def formatDateStamp(time_stamp):
     """Format a Unix timestamp as a local date, YYYY-MM-DD."""
-    return time.strftime("%Y-%m-%d", time.localtime(timeStamp))
+    return time.strftime("%Y-%m-%d", time.localtime(time_stamp))
 
 
-def formatTimeStamp(timeStamp):
+def formatTimeStamp(time_stamp):
     """Format a Unix timestamp as a local time, HH:MM:SS."""
-    return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+    return time.strftime("%H:%M:%S", time.localtime(time_stamp))
 
 
-def formatDateTime(timeStamp):
+def formatDateTime(time_stamp):
     """
     Format a Unix timestamp as a local time string, using asctime.
 
@@ -447,16 +447,16 @@ def formatDateTime(timeStamp):
     and "invalid" for other bad values.
     """
     try:
-        return time.asctime(time.localtime(timeStamp))
+        return time.asctime(time.localtime(time_stamp))
     except ValueError:
-        return "".join(x.encode("hex") for x in struct.pack("<L", timeStamp))
+        return "".join(x.encode("hex") for x in struct.pack("<L", time_stamp))
     except (OverflowError, OSError, TypeError) as ex:
-        logger.info("Invalid timestamp: %s %s", timeStamp, ex)
+        logger.info("Invalid timestamp: %s %s", time_stamp, ex)
         return "invalid"
 
 
-def logDevice(devType, seType, seId, devLen, devData):
+def logDevice(dev_type, se_type, se_id, dev_len, dev_data):
     """Log a header line for a device, then each of its data items."""
-    logger.data("%s %s type: %04x len: %04x", devType, seId, seType, devLen)
-    for k, v in devData.items():
+    logger.data("%s %s type: %04x len: %04x", dev_type, se_id, se_type, dev_len)
+    for k, v in dev_data.items():
         logger.data("    %s : %s", k, v)

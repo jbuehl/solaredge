@@ -41,7 +41,7 @@ class Seq:
     data_out = 0
 
 
-def readMsg(inFile, recFile, mode, state):
+def readMsg(in_file, rec_file, mode, state):
     """
     Read the next message from the input file.
 
@@ -61,20 +61,20 @@ def readMsg(inFile, recFile, mode, state):
     if not mode.passiveMode and (mode.serialType != "4"):
         # active mode that is not RS485
         # read the magic number and header
-        msg = readBytes(inFile, recFile, magicLen + msgHdrLen, mode, state)
+        msg = readBytes(in_file, rec_file, magicLen + msgHdrLen, mode, state)
         if not msg:  # end of file
             return (msg, True)
         (data_len, _data_len_inv, _msg_seq, _from_addr, _to_addr, _function) = (
             struct.unpack("<HHHLLH", msg[magicLen:])
         )
         # read the data and checksum
-        msg += readBytes(inFile, recFile, data_len + checksumLen, mode, state)
+        msg += readBytes(in_file, rec_file, data_len + checksumLen, mode, state)
         msg = msg[magicLen:]  # strip the magic number from the beginning
     else:
         # passive mode or RS485
         # read 1 byte at a time until the next magic number
         while msg[-magicLen:] != magic:
-            next_byte = readBytes(inFile, recFile, 1, mode, state)
+            next_byte = readBytes(in_file, rec_file, 1, mode, state)
             if not next_byte:  # end of file
                 eof = True
                 msg += magic  # append a magic number to end the loop
@@ -82,11 +82,11 @@ def readMsg(inFile, recFile, mode, state):
                 msg += next_byte
         msg = msg[:-magicLen]  # strip the magic number from the end
     if len(msg) > 0:  # don't log zero length messages
-        logger.message("-->", Seq.data_in, magic + msg, inFile.name)
+        logger.message("-->", Seq.data_in, magic + msg, in_file.name)
     return (msg, eof)
 
 
-def readBytes(inFile, recFile, length, mode, state):
+def readBytes(in_file, rec_file, length, mode, state):
     """
     Read the specified number of bytes from the input file.
 
@@ -99,13 +99,13 @@ def readBytes(inFile, recFile, length, mode, state):
     """
     se.logutils.setState(state, "readLength", length)
     try:
-        in_buf = bytes(inFile.read(length))
+        in_buf = bytes(in_file.read(length))
         # at the end of file, wait for more data when following
         if not in_buf and mode.following:
             while not in_buf:
                 time.sleep(sleepInterval)
-                in_buf = inFile.read(length)
-        recordMsg(in_buf, recFile)
+                in_buf = in_file.read(length)
+        recordMsg(in_buf, rec_file)
         se.logutils.setState(
             state, "lastByteRead", f"{bytearray(in_buf)[-1]:02x}"
         )
@@ -199,7 +199,7 @@ def validateMsg(msg):
     return (msg_seq, from_addr, to_addr, function, data)
 
 
-def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
+def formatMsg(msg_seq, from_addr, to_addr, function, data=b""):
     """
     Build a complete message, with its length fields and checksum.
 
@@ -207,7 +207,7 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
         The message as a bytearray, without the magic number.
     """
     checksum = calcCrc(
-        bytearray(struct.pack(">HLLH", msgSeq, fromAddr, toAddr, function))
+        bytearray(struct.pack(">HLLH", msg_seq, from_addr, to_addr, function))
         + data
     )
     msg = bytearray(
@@ -215,9 +215,9 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
             "<HHHLLH",
             len(data),
             ~len(data) & 0xFFFF,
-            msgSeq,
-            fromAddr,
-            toAddr,
+            msg_seq,
+            from_addr,
+            to_addr,
             function,
         )
         + data
@@ -225,26 +225,31 @@ def formatMsg(msgSeq, fromAddr, toAddr, function, data=b""):
     )
     logMsgHdr(
         MsgHdr(
-            len(data), ~len(data) & 0xFFFF, msgSeq, fromAddr, toAddr, function
+            len(data),
+            ~len(data) & 0xFFFF,
+            msg_seq,
+            from_addr,
+            to_addr,
+            function,
         )
     )
     return msg
 
 
-def sendMsg(dataFile, msg, recFile):
+def sendMsg(data_file, msg, rec_file):
     """Write a message, prefixed with the magic number, to the data file."""
     Seq.data_out += 1
-    logger.message("<--", Seq.data_out, magic + msg, dataFile.name)
-    dataFile.write(magic + msg)
-    dataFile.flush()
-    recordMsg(magic + msg, recFile)
+    logger.message("<--", Seq.data_out, magic + msg, data_file.name)
+    data_file.write(magic + msg)
+    data_file.flush()
+    recordMsg(magic + msg, rec_file)
 
 
-def recordMsg(msg, recFile):
+def recordMsg(msg, rec_file):
     """Write a message to the record file, if one is open."""
-    if recFile:
-        recFile.write(msg)
-        recFile.flush()
+    if rec_file:
+        rec_file.write(msg)
+        rec_file.flush()
 
 
 # CRC calculation
