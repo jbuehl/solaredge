@@ -57,8 +57,8 @@ def serial_port(request, monkeypatch):
     return request.param
 
 
-# Return a function that runs se.env.getArgs() with the given arguments.
-# getArgs() adds a handler to the root logger and sets its level. Undo that,
+# Return a function that runs se.env.get_args() with the given arguments.
+# get_args() adds a handler to the root logger and sets its level. Undo that,
 # but only for the handlers added here: the root logger also holds the
 # handlers of pytest itself.
 @pytest.fixture
@@ -71,7 +71,7 @@ def get_args(monkeypatch):
         before = root.handlers[:]
         monkeypatch.setattr(sys, "argv", ["semonitor.py", *map(str, argv)])
         try:
-            return se.env.getArgs()
+            return se.env.get_args()
         finally:
             added.extend(h for h in root.handlers if h not in before)
 

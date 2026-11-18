@@ -56,17 +56,17 @@ logging.Logger.raw = _raw_log
 logging.Logger.message = _message_log
 
 
-def setState(state, item, value):
+def set_state(state, item, value):
     """Store value under item in state, with the current time."""
     state[item] = [time.time(), value]
 
 
-def dumpState(state):
+def dump_state(state):
     """
     Log the state variables, and the stack traces of all threads.
 
     Args:
-        state: A dict of state variables, as set by setState.
+        state: A dict of state variables, as set by set_state.
     """
     logger = logging.getLogger(__name__)
     logger.info("state:")

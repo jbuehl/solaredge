@@ -187,7 +187,7 @@ def test_set_state_stores_the_time_and_the_value(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: 1234.5)
     state = {}
 
-    se.logutils.setState(state, "readLength", 20)
+    se.logutils.set_state(state, "readLength", 20)
 
     assert state == {"readLength": [1234.5, 20]}
 
@@ -197,9 +197,9 @@ def test_set_state_replaces_the_previous_value(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: next(times))
     state = {}
 
-    se.logutils.setState(state, "a", "first")
-    se.logutils.setState(state, "b", "other")
-    se.logutils.setState(state, "a", "second")
+    se.logutils.set_state(state, "a", "first")
+    se.logutils.set_state(state, "b", "other")
+    se.logutils.set_state(state, "a", "second")
 
     assert state == {"a": [3.0, "second"], "b": [2.0, "other"]}
 
@@ -208,7 +208,7 @@ def test_set_state_uses_the_current_time():
     state = {}
     before = time.time()
 
-    se.logutils.setState(state, "x", None)
+    se.logutils.set_state(state, "x", None)
 
     stamp, value = state["x"]
     assert before <= stamp <= time.time()
@@ -227,7 +227,7 @@ def test_dump_state_logs_the_state_variables(caplog):
     # The tests run in UTC, see the utc fixture in conftest.py.
     state = {"readLength": [0, 20], "lastByteRead": [3661, "79"]}
 
-    se.logutils.dumpState(state)
+    se.logutils.dump_state(state)
 
     messages = info_messages(caplog)
     assert messages[0] == "state:"
@@ -240,7 +240,7 @@ def test_dump_state_logs_the_state_variables(caplog):
 def test_dump_state_without_state_variables_logs_the_threads(caplog):
     caplog.set_level(logging.INFO, logger="se.logutils")
 
-    se.logutils.dumpState({})
+    se.logutils.dump_state({})
 
     messages = info_messages(caplog)
     assert messages[0] == "state:"
@@ -250,7 +250,7 @@ def test_dump_state_without_state_variables_logs_the_threads(caplog):
 def test_dump_state_logs_the_stack_trace_of_the_calling_thread(caplog):
     caplog.set_level(logging.INFO, logger="se.logutils")
 
-    se.logutils.dumpState({})
+    se.logutils.dump_state({})
 
     messages = info_messages(caplog)
     me = messages.index(f"ThreadID: {threading.get_ident()}")
@@ -264,7 +264,7 @@ def test_dump_state_logs_the_stack_trace_of_the_calling_thread(caplog):
     )
     assert f'File: "{__file__}", line ' in stack[frame_line]
     # The source line of the frame follows it, indented.
-    assert stack[frame_line + 1] == "            se.logutils.dumpState({})"
+    assert stack[frame_line + 1] == "            se.logutils.dump_state({})"
 
 
 def test_dump_state_logs_the_stack_trace_of_other_threads(caplog):
@@ -280,7 +280,7 @@ def test_dump_state_logs_the_stack_trace_of_other_threads(caplog):
     thread.start()
     try:
         assert started.wait(timeout=10)
-        se.logutils.dumpState({})
+        se.logutils.dump_state({})
     finally:
         release.set()
         thread.join()
@@ -296,7 +296,7 @@ def test_dump_state_skips_the_source_of_frames_that_have_none(caplog):
     caplog.set_level(logging.INFO, logger="se.logutils")
     # Code compiled from a string has a file name but no source to show.
     code = compile("dump({})", "<no-source>", "exec")
-    function = types.FunctionType(code, {"dump": se.logutils.dumpState})
+    function = types.FunctionType(code, {"dump": se.logutils.dump_state})
 
     function()
 

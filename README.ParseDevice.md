@@ -38,7 +38,7 @@ necessary.
 
 There is provision in `ParseDevice` for subclasses to define a list of
 derived fields, if required, and to code more complex derivations (for
-example ones requiring bit shifting) via a hook method, `codeDerivations`.
+example ones requiring bit shifting) via a hook method, `code_derivations`.
 
 Some devices (e.g. optimizers, batteries, and the 0x0022 `seType`, which I
 have called meters) send multiple messages for the same time point.
@@ -94,7 +94,7 @@ merge_update(devsDict, parsedDevice.wrap_in_ids())
 **new** parts of the nested dictionaries into `devsDict` - see later for
 details.
 
-There is also an iterator generator function, `unwrap_metricsDict`,
+There is also an iterator generator function, `unwrap_metrics_dict`,
 defined in seDataDevices.py, for when you need to "unwrap" device
 attributes, for example to send them to Graphite, or to save in a CSV
 file.
@@ -142,7 +142,7 @@ its very nature inherits all the methods of `ParseDevice` itself,
 avoiding the need to reimplement them.
 
 The next addition to the way ParseDevice works was driven by
-the realization that ideally the code in the `parseDeviceData` function
+the realization that ideally the code in the `parse_device_data` function
 in seData.py should not need to know the names of the subclasses of
 `ParseDevice`. So the `__new__` method for `ParseDevice` was written as
 a sort of traffic director. When ParseDevice is given a block of data
@@ -176,7 +176,7 @@ added, and
 optimizers, batteries, and "0x0022") could distinguish them.
 
 To achieve these objectives, `devsDict` was born and `wrap_in_ids`,
-`unwrap_metricsDict` and `merge_update` were developed.
+`unwrap_metrics_dict` and `merge_update` were developed.
 
 During development a few other minor features were added, mostly to make
 the use of `ParseDevice` less effort. These are described later.
@@ -255,7 +255,7 @@ complete, fully qualified "name" of any field, when, for example, it is
 saved in JSON format or sent to Graphite.
 
 
-### Defining fields: `ParseDevice.fieldDefs` and `ParseDevice.parseDevTable`
+### Defining fields: `ParseDevice.fieldDefs` and `ParseDevice.parse_dev_table`
 
 `ParseDevice.fieldDefs` is the core component of the `ParseDevice`
 class. It is a list of definitions of fields.
@@ -292,7 +292,7 @@ consisting of exactly 6 entries. The 6 entries are:
 
    * "dateTime" is parsed into 2 field entries, "Date" and "Time", both in
      human readable format, and in the local timezone.
-   * `ParseDevice.hexData` is a static method (a utility function) which
+   * `ParseDevice.hex_data` is a static method (a utility function) which
      converts raw bytes into a nicely formatted human readable string
      representation. It is mostly used in conjunction with the "hex" paramInFmt.
 
@@ -321,7 +321,7 @@ fieldDefs = [
         4,
         "hex",
         "HexConst_52",
-        ParseDevice.hexData,
+        ParseDevice.hex_data,
         False,
         "unknown, constant value",
     ],
@@ -340,12 +340,12 @@ fieldDefs = [
 ```
 
 
-The `ParseDevice.parseDevTable` method is responsible for parsing a
+The `ParseDevice.parse_dev_table` method is responsible for parsing a
 block of data using the definitions in `fieldDefs` and storing the results
 as `name: value` entries in the ParseDevice dictionary. It is called
 by `ParseDevice.__init__`.
 
-Before beginning parsing, `parseDevTable` compares the total length of
+Before beginning parsing, `parse_dev_table` compares the total length of
 the field definitions to the length (`devlen`) of the data block. If
 the field definitions are:
 
@@ -369,8 +369,8 @@ subclasses to undertake more complex manipulations by calling Python
 code. The hooks are:
 
 * `_derivn`,
-* `setDerivationDefaults`, and
-* `codeDerivations`
+* `set_derivation_defaults`, and
+* `code_derivations`
 
 `_derivn` is (essentially) a cut down version of `fieldDefs`. It is a list
 of (partial) definitions for new fields that are to be calculated and
@@ -390,11 +390,11 @@ field is a list with 4 elements, namely:
     ]
 ```
 
-The `setDerivationDefaults` method is provided in `ParseDevice`, and
+The `set_derivation_defaults` method is provided in `ParseDevice`, and
 simply populates the `ParseDevice` (sub)class dictionary with the
 default `paramName: paramDefault` entries.
 
-The `codeDerivations` method for `ParseDevice` itself is merely an empty
+The `code_derivations` method for `ParseDevice` itself is merely an empty
 stub (`pass`). The stub should be overridden by any subclass that
 requires more complex manipulations. It is responsible for:
 
@@ -405,14 +405,14 @@ derived_value for a "derivedParamName", and then
 * replacing paramDefault value with the derived_value ( via
 `self["derivedParamName"] = derived_value`).
 
-At the moment, the `codeDerivations` methods for subclasses
+At the moment, the `code_derivations` methods for subclasses
 `ParseDevice_0x0022` and `ParseDevice_0x0030` are also empty stubs.
 
 
 #### Simple example of a derivation
 
 However earlier iterations of `ParseDevice_0x0022` did utilize the
-`_derivn`, and `codeDerivations` approach successfully, so it has been
+`_derivn`, and `code_derivations` approach successfully, so it has been
 (somewhat) tested. As an example of the approach, here is an extract of
 the relevant code from an earlier (since deleted) version of
 `ParseDevice_0x0022`
@@ -502,7 +502,7 @@ _derivn = [
 ]
 
 
-def codeDerivations(self):
+def code_derivations(self):
     names = ["TotalE2Grid", ..., "E2X", "EfromX", "P2X", "PfromX"]
     for name in names:
         rt = self["recType"]
@@ -526,10 +526,10 @@ simple:
 
 ```python
     def __init__(self, data, explorer=False):
-        self.parseDevTable(data)
-        self.setDerivationDefaults()
-        self.codeDerivations()
-        self.checkHypotheses()
+        self.parse_dev_table(data)
+        self.set_derivation_defaults()
+        self.code_derivations()
+        self.check_hypotheses()
 ```
 
 Notice that the full signature of the method includes two arguments:
@@ -556,7 +556,7 @@ signature incompatibility problems if it does not exist, so include it
 anyway if you do code an explicit `__init__` for a subclass instead of
 just inheriting `ParseDevice.__init__`).
 
-To find out about the `checkHypotheses` method, see later, under "bells
+To find out about the `check_hypotheses` method, see later, under "bells
 and whistles".
 
 
@@ -607,7 +607,7 @@ the device type:
   `meters_0x0022` / `7F1502EE` / `3_Consumption`.
 * The values of a device are in the innermost dictionary. It always has a
   `Date` (`YYYY-MM-DD`) and a `Time` (`HH:MM:SS`), in the time zone of the
-  inverter, and usually an `ID`. This is how `unwrap_metricsDict` (below)
+  inverter, and usually an `ID`. This is how `unwrap_metrics_dict` (below)
   tells the values of a device from a level of nesting.
 * A device that is not decoded has its raw data as hexadecimal bytes in
   `Undeciphered_data`, next to `dateTime` (seconds since the epoch), `devLen`,
@@ -676,9 +676,9 @@ Updating devsDict using merge_update retains both seId1 and seId2
 ```
 
 
-### Unwrapping a nested dictionary, the `unwrap_metricsDict` iterator
+### Unwrapping a nested dictionary, the `unwrap_metrics_dict` iterator
 
-`unwrap_metricsDict` is an iterator generator function, defined in
+`unwrap_metrics_dict` is an iterator generator function, defined in
 seDataDevices.py, for when you need to "unwrap" device
 attributes, for example to send them to Graphite, or to save in a CSV
 file.
@@ -692,16 +692,16 @@ It will work equally well on a dictionary produced by `json.loads`
 It unwraps recursively, so that the depth of nesting is essentially
 arbitrary, and indeed can vary from one device type to another.
 
-To illustrate what `unwrap_metricsDict` does, consider the following
+To illustrate what `unwrap_metrics_dict` does, consider the following
 example, which continues on from the `merge_update` example
 above:
 
 ```python
-from seDataDevices import unwrap_metricsDict
-print "\nA demonstration of what unwrap_metricsDict does"
+from seDataDevices import unwrap_metrics_dict
+print "\nA demonstration of what unwrap_metrics_dict does"
 
 i = 0
-for baseName, devAttrs in unwrap_metricsDict(devsDict):
+for baseName, devAttrs in unwrap_metrics_dict(devsDict):
     i += 1
     print "\nbaseName {} is ".format(i), baseName, "\nand devAttrs are "
     pp.pprint(devAttrs)
@@ -710,7 +710,7 @@ for baseName, devAttrs in unwrap_metricsDict(devsDict):
 It produces the following output:
 
 ```text
-A demonstration of what unwrap_metricsDict does
+A demonstration of what unwrap_metrics_dict does
 
 baseName 1 is  device1.seId1.otherId1
 and devAttrs are
@@ -732,7 +732,7 @@ reached the lowest level of the nested dictionaries.
 ## Bells and whistles (useful but non-essential parts of `ParseDevice`)
 
 
-### `_hypotheses` and `ParseDevice.checkHypotheses`
+### `_hypotheses` and `ParseDevice.check_hypotheses`
 
 During the process of deciphering new devices, I often came across
 values that appeared to be constant. To be able to confirm (or deny)
@@ -741,7 +741,7 @@ concept of hypotheses to `ParseDevice`.
 
 `_hypotheses` is a list of `(text, predicate)` pairs. The text describes
 the hypothesis, and the predicate is a function that takes the parsed
-device and returns `True` or `False`. The `checkHypotheses` method,
+device and returns `True` or `False`. The `check_hypotheses` method,
 invoked as the last step in the `__init__` method, simply calls the
 predicates, and logs the text of any hypothesis that evaluates to `False`.
 The module provides the helpers `is_zero(name)` and `is_small(name)` that
@@ -761,7 +761,7 @@ Any other hypothesis is written out as a pair, for example
 `("self['Vdc'] > 0", lambda dev: dev["Vdc"] > 0)`.
 
 
-### Documenting device fields - the `ParseDevice.itemDefs` method
+### Documenting device fields - the `ParseDevice.item_defs` method
 
 Initially, explanations and comments about fields that had been
 deciphered were kept (rather haphazardly) as Python comments in the code
@@ -770,14 +770,14 @@ make the field definitions (entries in `ParseDevice.fieldDefs`) self
 documenting by incorporating an explicit **comment** in each
 definition.
 
-The `itemDefs` method returns a prettily formatted report on all the
+The `item_defs` method returns a prettily formatted report on all the
 item definitions parsed by `ParseDevice`, and its subclasses.
 
 It can be used quite simply:
 
 ```python
 from seDataDevices import ParseDevice
-print ParseDevice.itemDefs()
+print ParseDevice.item_defs()
 ```
 
 This is a small extract of the resultant output:
@@ -840,7 +840,7 @@ specific device types (for `seType`s 0x0030, and 0x0022), as well as one
 ### `ParseDevice_0x0030` - batteries
 
 `seType` 0x0030 relays information about the status of a battery. Use
-`print ParseDevice_0x0030.itemDefs()` to obtain up-to-date documentation
+`print ParseDevice_0x0030.item_defs()` to obtain up-to-date documentation
 about the fields and their interpretation.
 
 The field interpretations were deciphered by comparing values produced
@@ -862,13 +862,13 @@ current interval import, export and consumption data.
 For want of a better name, I have called an 0x0022 message a "meters"
 message.
 
-Use `print ParseDevice_0x0022.itemDefs()` to obtain up-to-date
+Use `print ParseDevice_0x0022.item_defs()` to obtain up-to-date
 documentation about the fields and their interpretation.
 
 The trickiest part of deciphering the 0x0022 data block was discovering
 that early in the data block, there is a record type field. The
 interpretation of subsequent fields changes, depending upon the value of
-the record type. Full details are available in the `itemDefs()` report.
+the record type. Full details are available in the `item_defs()` report.
 
 Field interpretations were deciphered by comparing values against
 information that can be downloaded in CSV format from the SolarEdge

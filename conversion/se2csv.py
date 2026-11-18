@@ -7,7 +7,7 @@ import csv
 import json
 from pathlib import Path
 
-from common import unwrap_metricsDict
+from common import unwrap_metrics_dict
 
 if __name__ == "__main__":
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     with contextlib.ExitStack() as csv_files:
         for json_str in args.infile:
             for base_name, dev_attrs in sorted(
-                unwrap_metricsDict(json.loads(json_str))
+                unwrap_metrics_dict(json.loads(json_str))
             ):
                 dev_name, dev_id = base_name.split(".", 1)
                 if dev_name not in devs_file:

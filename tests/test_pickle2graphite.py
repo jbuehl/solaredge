@@ -216,7 +216,7 @@ def test_send_waits_afterwards_to_not_swamp_carbon(env, pickle2graphite):
     assert env.sleeps[0] > 0
 
 
-# --- getJsonStr --------------------------------------------------------------
+# --- get_json_str --------------------------------------------------------------
 
 
 class Source:
@@ -228,7 +228,7 @@ class Source:
 
 
 def test_get_json_str_reads_a_line(monkeypatch):
-    get = load(monkeypatch)["getJsonStr"]
+    get = load(monkeypatch)["get_json_str"]
 
     assert get(Source("{}\n"), following=False) == "{}\n"
 
@@ -236,14 +236,14 @@ def test_get_json_str_reads_a_line(monkeypatch):
 def test_get_json_str_gives_an_empty_string_at_the_end_when_not_following(
     env, monkeypatch
 ):
-    get = load(monkeypatch)["getJsonStr"]
+    get = load(monkeypatch)["get_json_str"]
 
     assert get(Source(), following=False) == ""
     assert env.sleeps == []
 
 
 def test_get_json_str_waits_for_more_data_when_following(env, monkeypatch):
-    get = load(monkeypatch)["getJsonStr"]
+    get = load(monkeypatch)["get_json_str"]
 
     assert get(Source("", "", "{}\n"), following=True) == "{}\n"
     assert len(env.sleeps) == 2
@@ -252,7 +252,7 @@ def test_get_json_str_waits_for_more_data_when_following(env, monkeypatch):
 def test_get_json_str_does_not_wait_when_there_already_is_data(
     env, monkeypatch
 ):
-    get = load(monkeypatch)["getJsonStr"]
+    get = load(monkeypatch)["get_json_str"]
 
     get(Source("{}\n"), following=True)
 

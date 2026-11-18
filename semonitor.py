@@ -58,7 +58,7 @@ def terminate(code=0, msg=b""):
     sys.exit(code)
 
 
-def readData(args, mode, state, files):
+def read_data(args, mode, state, files):
     """
     Read and process messages until the end of the input.
 
@@ -77,20 +77,20 @@ def readData(args, mode, state, files):
             logger.data(msg)
         else:
             with threadLock:
-                se.logutils.setState(state, "threadLock", value=True)
+                se.logutils.set_state(state, "threadLock", value=True)
                 try:
-                    processMsg(msg, mode, state, files)
+                    process_msg(msg, mode, state, files)
                 except Exception as ex:
                     logger.info("Failed to parse message: %s", ex)
                     for line in se.logutils.format_data(msg):
                         logger.data(line)
                     if args.xerror:
                         raise
-                se.logutils.setState(state, "threadLock", value=False)
+                se.logutils.set_state(state, "threadLock", value=False)
     return
 
 
-def processMsg(msg, mode, state, files):
+def process_msg(msg, mode, state, files):
     """
     Parse a received message and act on it.
 
@@ -112,7 +112,7 @@ def processMsg(msg, mode, state, files):
             # write performance data to output file
             se.data.write_data(msg_data, files.out)
         if mode.masterMode:  # send reply
-            (reply_function, reply_data) = masterReply(function, state)
+            (reply_function, reply_data) = master_reply(function, state)
             if reply_function:
                 msg = se.msg.format_msg(
                     msg_seq, to_addr, from_addr, reply_function, reply_data
@@ -120,7 +120,7 @@ def processMsg(msg, mode, state, files):
                 se.msg.send_msg(files.data, msg, files.rec)
 
 
-def masterReply(function, state):
+def master_reply(function, state):
     """
     Return the RS485 master's reply to a message.
 
@@ -146,25 +146,25 @@ def masterReply(function, state):
     if function == se.commands.PROT_RESP_POLESTAR_MASTER_GRANT_ACK:
         # RS485 master release
         masterEvent.set()
-        se.logutils.setState(state, "masterEvent", masterEvent.is_set())
+        se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
     return (b"", b"")
 
 
-def masterCommands(state, data_file, rec_file, slave_addrs):
+def master_commands(state, data_file, rec_file, slave_addrs):
     """
     Run the RS485 master loop, granting the bus to each slave in turn.
 
     Runs forever, pausing MASTER_MSG_INTERVAL seconds after each round.
     """
-    se.logutils.setState(state, "masterThread", value=True)
+    se.logutils.set_state(state, "masterThread", value=True)
     while True:
         for slave_addr in slave_addrs:
-            masterGrant(state, data_file, rec_file, slave_addr)
+            master_grant(state, data_file, rec_file, slave_addr)
         time.sleep(MASTER_MSG_INTERVAL)
-    se.logutils.setState(state, "masterThread", value=False)
+    se.logutils.set_state(state, "masterThread", value=False)
 
 
-def masterGrant(state, data_file, rec_file, slave_addr):
+def master_grant(state, data_file, rec_file, slave_addr):
     """
     Grant the RS485 bus to a slave and wait for it to release the bus.
 
@@ -172,41 +172,41 @@ def masterGrant(state, data_file, rec_file, slave_addr):
     MASTER_MSG_TIMEOUT seconds have passed.
     """
     with threadLock:
-        se.logutils.setState(state, "threadLock", value=True)
+        se.logutils.set_state(state, "threadLock", value=True)
         # grant control of the bus to the slave
         se.msg.send_msg(
             data_file,
             se.msg.format_msg(
-                nextSeq(),
+                next_seq(),
                 MASTER_ADDR,
                 int(slave_addr, 16),
                 se.commands.PROT_CMD_POLESTAR_MASTER_GRANT,
             ),
             rec_file,
         )
-        se.logutils.setState(state, "threadLock", value=False)
+        se.logutils.set_state(state, "threadLock", value=False)
 
-    def masterTimerExpire():
+    def master_timer_expire():
         logger.debug("RS485 master ack timeout")
         masterEvent.set()
-        se.logutils.setState(state, "masterEvent", masterEvent.is_set())
-        se.logutils.setState(state, "masterTimer", value=False)
+        se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
+        se.logutils.set_state(state, "masterTimer", value=False)
 
     # start a timeout to release the bus if the slave doesn't respond
-    master_timer = threading.Timer(MASTER_MSG_TIMEOUT, masterTimerExpire)
+    master_timer = threading.Timer(MASTER_MSG_TIMEOUT, master_timer_expire)
     master_timer.start()
-    se.logutils.setState(state, "masterTimer", value=True)
+    se.logutils.set_state(state, "masterTimer", value=True)
     # wait for slave to release the bus
     masterEvent.clear()
-    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
+    se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
     masterEvent.wait()
-    se.logutils.setState(state, "masterEvent", masterEvent.is_set())
+    se.logutils.set_state(state, "masterEvent", masterEvent.is_set())
     # cancel the timeout
     master_timer.cancel()
-    se.logutils.setState(state, "masterTimer", value=False)
+    se.logutils.set_state(state, "masterTimer", value=False)
 
 
-def doCommands(args, mode, state, files):
+def do_commands(args, mode, state, files):
     """
     Send each command to the slave, wait for its response and record it.
 
@@ -217,7 +217,7 @@ def doCommands(args, mode, state, files):
         function = int(command[0], 16)
         struct_fmt = "<" + "".join(c[0] for c in command[1:])
         params = [int(p[1:], 16) for p in command[1:]]
-        seq = nextSeq()
+        seq = next_seq()
         # send the command
         se.msg.send_msg(
             files.data,
@@ -232,7 +232,7 @@ def doCommands(args, mode, state, files):
         )
         if mode.masterMode:  # send RS485 master command
             # grant control of the bus to the slave
-            masterGrant(state, files.data, files.rec, args.slaves[0])
+            master_grant(state, files.data, files.rec, args.slaves[0])
         # wait for the response to the command
         (msg, _eof) = se.msg.read_msg(files.data, files.rec, mode, state)
         (_msg_seq, _from_addr, _to_addr, response, data) = se.msg.parse_msg(msg)
@@ -251,11 +251,11 @@ def doCommands(args, mode, state, files):
         time.sleep(COMMAND_DELAY)
 
 
-def startMaster(args):
+def start_master(args):
     """Start the daemon thread that sends the RS485 master commands."""
     # start a thread to send RS485 master commands
     master_thread = threading.Thread(
-        name=MASTER_THREAD_NAME, target=masterCommands, args=args
+        name=MASTER_THREAD_NAME, target=master_commands, args=args
     )
     master_thread.daemon = True
     master_thread.start()
@@ -268,10 +268,10 @@ def block(state):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        se.logutils.dumpState(state)
+        se.logutils.dump_state(state)
 
 
-def nextSeq():
+def next_seq():
     """
     Return the next message sequence number and store it in the sequence file.
 
@@ -294,28 +294,30 @@ def nextSeq():
 if __name__ == "__main__":
     # create the state variables with timestamps
     state = {}
-    se.logutils.setState(state, "readThread", value=False)
-    se.logutils.setState(state, "masterThread", value=False)
-    se.logutils.setState(state, "masterTimer", value=False)
-    se.logutils.setState(state, "threadLock", value=False)
-    se.logutils.setState(state, "masterEvent", value=False)
+    se.logutils.set_state(state, "readThread", value=False)
+    se.logutils.set_state(state, "masterThread", value=False)
+    se.logutils.set_state(state, "masterTimer", value=False)
+    se.logutils.set_state(state, "threadLock", value=False)
+    se.logutils.set_state(state, "masterEvent", value=False)
 
     # get the command line arguments and run mode
-    (args, mode) = se.env.getArgs()
+    (args, mode) = se.env.get_args()
 
     # open the specified data source
     logger.info("opening %s", args.datasource)
     if mode.serialDevice:
-        data_file = se.files.openSerial(args.datasource, args.baudrate)
+        data_file = se.files.open_serial(args.datasource, args.baudrate)
     else:
-        data_file = se.files.openInFile(args.datasource)
+        data_file = se.files.open_in_file(args.datasource)
 
     # open the output files
-    rec_file = se.files.openOutFile(args.record, "ab" if args.append else "wb")
+    rec_file = se.files.open_out_file(
+        args.record, "ab" if args.append else "wb"
+    )
     if args.outfile == "stdout":
         out_file = sys.stdout.buffer
     else:
-        out_file = se.files.openOutFile(
+        out_file = se.files.open_out_file(
             args.outfile, "ab" if args.append else "wb"
         )
 
@@ -324,26 +326,26 @@ if __name__ == "__main__":
     # figure out what to do based on the mode of operation
     if mode.passiveMode:  # only reading from file or serial device
         # read until eof then terminate
-        readData(args, mode, state, files)
+        read_data(args, mode, state, files)
     # reading and writing to a serial device
     elif args.commands:  # commands were specified
         # perform commands then terminate
-        doCommands(args, mode, state, files)
+        do_commands(args, mode, state, files)
     else:  # interacting over RS232 or RS485
         # start a separate thread for reading
         read_thread = threading.Thread(
             name=READ_THREAD_NAME,
-            target=readData,
+            target=read_data,
             args=(args, mode, state, files),
         )
         read_thread.daemon = True
         read_thread.start()
         logger.info("starting %s", READ_THREAD_NAME)
         if args.master:  # send RS485 master commands
-            startMaster(args=(state, data_file, rec_file, args.slaves))
+            start_master(args=(state, data_file, rec_file, args.slaves))
         # wait for termination
         block(state)
 
     # cleanup
-    se.files.closeData(data_file)
-    se.files.closeOutFiles(rec_file, out_file)
+    se.files.close_data(data_file)
+    se.files.close_out_files(rec_file, out_file)

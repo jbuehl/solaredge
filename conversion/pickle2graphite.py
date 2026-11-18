@@ -26,7 +26,7 @@ import struct
 import sys
 import time
 
-from common import open_input, unwrap_metricsDict
+from common import open_input, unwrap_metrics_dict
 
 try:
     import syslog
@@ -68,7 +68,7 @@ for opt in opts:
         following = True
 
 
-def getJsonStr(in_file, following):
+def get_json_str(in_file, following):
     """
     Read the next line of JSON from the input.
 
@@ -106,7 +106,7 @@ class Pickle2Graphite(list):
             metrics_dict: A nested dictionary of devices and their attributes, as produced by json.loads.
             base: A prefix to put in front of every metric name.
         """
-        for base_name, dev_attrs in unwrap_metricsDict(metrics_dict):
+        for base_name, dev_attrs in unwrap_metrics_dict(metrics_dict):
             # convert date and time to Unix time
             try:
                 (year, month, day) = dev_attrs["Date"].split("-")
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     # NB `port` must be the carbon pickle port, usually 2004 is configured by default.
     graphite_socket.connect((host_name, port))
     with in_file:
-        json_str = getJsonStr(in_file, following)
+        json_str = get_json_str(in_file, following)
         while json_str != "":
             try:
                 in_dict = json.loads(json_str)
@@ -193,5 +193,5 @@ if __name__ == "__main__":
                     "=" * 80,
                     "\n",
                 )
-            json_str = getJsonStr(in_file, following)
+            json_str = get_json_str(in_file, following)
     graphite_socket.close()

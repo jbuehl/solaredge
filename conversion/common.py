@@ -28,7 +28,7 @@ def open_input(args):
         sys.exit(f"{sys.argv[0]}: {ex}")
 
 
-def unwrap_metricsDict(mydict):
+def unwrap_metrics_dict(mydict):
     """
     Flatten (unwrap) the attributes stored in the parsed device dictionaries.
 
@@ -56,7 +56,7 @@ def unwrap_metricsDict(mydict):
         if "Date" in v:
             yield nice(k), v
         else:
-            for k2, v2 in unwrap_metricsDict(v):
+            for k2, v2 in unwrap_metrics_dict(v):
                 if len(nice(k2)) == 0:
                     # Silently drop this extra level of naming
                     yield nice(k), v2

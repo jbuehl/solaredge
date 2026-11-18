@@ -12,7 +12,7 @@ def unwrap():
     spec = importlib.util.spec_from_file_location("conversion_common", COMMON)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.unwrap_metricsDict
+    return module.unwrap_metrics_dict
 
 
 def device(**extra):

@@ -16,7 +16,7 @@ from common import open_input
 initialize = False
 
 
-def sumItems(item_dict, item_attr):
+def sum_items(item_dict, item_attr):
     """
     Return the sum of an attribute over the items in a dictionary.
 
@@ -29,19 +29,19 @@ def sumItems(item_dict, item_attr):
     return item_sum
 
 
-def avgItems(item_dict, item_attr):
+def avg_items(item_dict, item_attr):
     """
     Return the average of an attribute over the items in a dictionary.
 
     The stats item is ignored. Returns 0 when there are no items.
     """
     try:
-        return sumItems(item_dict, item_attr) / (len(item_dict) - 1)
+        return sum_items(item_dict, item_attr) / (len(item_dict) - 1)
     except ZeroDivisionError:
         return 0
 
 
-def writeState(state_dict, out_file_name):
+def write_state(state_dict, out_file_name):
     """Write the state dictionary to the state file as JSON."""
     with Path(out_file_name).open("w") as out_file:
         json.dump(state_dict, out_file)
@@ -82,7 +82,7 @@ if initialize:
             "Etot": 0.0,
             "Temp": 0.0,
         }
-    writeState(state_dict, out_file_name)
+    write_state(state_dict, out_file_name)
 else:
     # start with values from the file if it exists
     try:
@@ -111,27 +111,27 @@ with in_file:
                     * state_dict["optimizers"][optimizer]["Imod"]
                 )
         # compute the stats
-        state_dict["inverters"]["stats"]["Vac"] = avgItems(
+        state_dict["inverters"]["stats"]["Vac"] = avg_items(
             state_dict["inverters"], "Vac"
         )
-        state_dict["inverters"]["stats"]["Pac"] = sumItems(
+        state_dict["inverters"]["stats"]["Pac"] = sum_items(
             state_dict["inverters"], "Pac"
         )
-        state_dict["inverters"]["stats"]["Eac"] = sumItems(
+        state_dict["inverters"]["stats"]["Eac"] = sum_items(
             state_dict["inverters"], "Eac"
         )
-        Eday = sumItems(state_dict["inverters"], "Eday")
+        Eday = sum_items(state_dict["inverters"], "Eday")
         # only update Eday if it increases
         state_dict["inverters"]["stats"]["Eday"] = max(
             state_dict["inverters"]["stats"]["Eday"], Eday
         )
-        state_dict["inverters"]["stats"]["Etot"] = sumItems(
+        state_dict["inverters"]["stats"]["Etot"] = sum_items(
             state_dict["inverters"], "Etot"
         )
-        state_dict["inverters"]["stats"]["Temp"] = avgItems(
+        state_dict["inverters"]["stats"]["Temp"] = avg_items(
             state_dict["inverters"], "Temp"
         )
-        state_dict["optimizers"]["stats"]["Temp"] = avgItems(
+        state_dict["optimizers"]["stats"]["Temp"] = avg_items(
             state_dict["optimizers"], "Temp"
         )
         # zero current energy and power for devices when an event occurs
@@ -143,4 +143,4 @@ with in_file:
                 state_dict["optimizers"][optimizer]["Vmod"] = 0.0
                 state_dict["optimizers"][optimizer]["Vopt"] = 0.0
                 state_dict["optimizers"][optimizer]["Imod"] = 0.0
-        writeState(state_dict, out_file_name)
+        write_state(state_dict, out_file_name)

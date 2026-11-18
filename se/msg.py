@@ -53,8 +53,8 @@ def read_msg(in_file, rec_file, mode, state):
         A tuple (msg, eof), where msg is the message without its magic number
         and eof is True when the end of the input was reached.
     """
-    se.logutils.setState(state, "passiveMode", mode.passiveMode)
-    se.logutils.setState(state, "serialType", mode.serialType)
+    se.logutils.set_state(state, "passiveMode", mode.passiveMode)
+    se.logutils.set_state(state, "serialType", mode.serialType)
     Seq.data_in += 1
     msg = b""
     eof = False
@@ -99,7 +99,7 @@ def read_bytes(in_file, rec_file, length, mode, state):
     Returns:
         The bytes read, or b"" at end of file or on an error.
     """
-    se.logutils.setState(state, "readLength", length)
+    se.logutils.set_state(state, "readLength", length)
     try:
         in_buf = bytes(in_file.read(length))
         # at the end of file, wait for more data when following
@@ -108,7 +108,7 @@ def read_bytes(in_file, rec_file, length, mode, state):
                 time.sleep(sleepInterval)
                 in_buf = in_file.read(length)
         record_msg(in_buf, rec_file)
-        se.logutils.setState(
+        se.logutils.set_state(
             state, "lastByteRead", f"{bytearray(in_buf)[-1]:02x}"
         )
     # treat exceptions as end of file

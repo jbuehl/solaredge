@@ -294,7 +294,7 @@ def fake_bus(sm, monkeypatch):
 
 
 def process(sm, msg, files, mode=MASTER_MODE):
-    sm.processMsg(
+    sm.process_msg(
         msg,
         mode,
         files.state,
@@ -303,7 +303,7 @@ def process(sm, msg, files, mode=MASTER_MODE):
 
 
 def read(sm, files, mode=PASSIVE_MODE, **changes):
-    sm.readData(
+    sm.read_data(
         make_args(**changes),
         mode,
         files.state,
@@ -393,7 +393,7 @@ def test_terminate_defaults_to_success(sm):
     assert exit_.value.code == 0
 
 
-# --- processMsg --------------------------------------------------------------
+# --- process_msg --------------------------------------------------------------
 
 
 # Synthetic: no recording has a message that is too short, or function 0.
@@ -560,7 +560,7 @@ def test_other_functions_are_not_answered(sm, files, req, _reply):
     assert not sm.masterEvent.is_set()
 
 
-# --- readData ----------------------------------------------------------------
+# --- read_data ----------------------------------------------------------------
 
 
 @pytest.fixture
@@ -625,7 +625,7 @@ def test_messages_of_zeros_or_nothing_are_ignored(
     sm, files, monkeypatch, sample
 ):
     seen = []
-    monkeypatch.setattr(sm, "processMsg", lambda msg, *_rest: seen.append(msg))
+    monkeypatch.setattr(sm, "process_msg", lambda msg, *_rest: seen.append(msg))
     good, _ = recorded_exchange(sample, POST_DATA, carries_data)
     files.line = FakeLine(
         b"x" + MAGIC + MAGIC + bytes(8) + MAGIC + good + MAGIC + b"\x00\x01"
@@ -667,7 +667,7 @@ def test_message_that_fails_to_parse_stops_the_reading_with_x(
     assert not sm.threadLock.locked()
 
 
-# --- masterGrant -------------------------------------------------------------
+# --- master_grant -------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -682,7 +682,7 @@ def test_master_grant_sends_the_grant_of_the_real_master(
     slave_arg = f"{dest:08x}"
     Path(sm.SEQ_FILE_NAME).write_text(f"{seq - 1}\n")
 
-    sm.masterGrant(files.state, files.line, files.rec, slave_arg)
+    sm.master_grant(files.state, files.line, files.rec, slave_arg)
 
     assert bytes(files.line.written) == MAGIC + grant
     assert files.rec.getvalue() == MAGIC + grant
@@ -707,7 +707,7 @@ def test_master_grant_hands_over_the_bus_until_the_slave_releases_it(
     monkeypatch.setattr(files.line, "write", probe_write)
     bus.event.on_wait = slave_releases_the_bus
 
-    sm.masterGrant(files.state, files.line, files.rec, SLAVE_ARG)
+    sm.master_grant(files.state, files.line, files.rec, SLAVE_ARG)
 
     grant = MAGIC + frame(GRANT, seq=1, source=MASTER_ADDR, dest=SLAVE)
     assert bytes(files.line.written) == grant
@@ -734,7 +734,7 @@ def test_master_grant_releases_the_bus_when_the_slave_is_silent(
     bus.event.on_wait = timeout
 
     with caplog.at_level(logging.DEBUG):
-        sm.masterGrant(files.state, files.line, files.rec, SLAVE_ARG)
+        sm.master_grant(files.state, files.line, files.rec, SLAVE_ARG)
 
     assert "RS485 master ack timeout" in caplog.text
     assert bus.event.is_set()
@@ -742,7 +742,7 @@ def test_master_grant_releases_the_bus_when_the_slave_is_silent(
     assert files.state["masterTimer"][1] is False
 
 
-# --- masterCommands ----------------------------------------------------------
+# --- master_commands ----------------------------------------------------------
 
 
 def test_master_commands_grant_all_slaves_over_and_over(sm, files, monkeypatch):
@@ -757,13 +757,13 @@ def test_master_commands_grant_all_slaves_over_and_over(sm, files, monkeypatch):
         if len(sleeps) == 2:
             raise StopLoopError
 
-    monkeypatch.setattr(sm, "masterGrant", grant)
+    monkeypatch.setattr(sm, "master_grant", grant)
     monkeypatch.setattr(sm, "time", fake_time(sleep=sleep))
 
     slaves = ["a1", "b2"]
 
     with pytest.raises(StopLoopError):
-        sm.masterCommands(files.state, files.line, files.rec, slaves)
+        sm.master_commands(files.state, files.line, files.rec, slaves)
 
     assert granted == [
         (files.state, files.line, files.rec, slave) for slave in slaves * 2
@@ -772,7 +772,7 @@ def test_master_commands_grant_all_slaves_over_and_over(sm, files, monkeypatch):
     assert files.state["masterThread"][1] is True
 
 
-# --- doCommands --------------------------------------------------------------
+# --- do_commands --------------------------------------------------------------
 
 
 COMMANDS = [["1f", "h1234", "l01020304", "b07"], ["20"]]
@@ -819,7 +819,7 @@ def sent_commands():
 def test_commands_are_sent_and_their_responses_written(sm, files, command_run):
     args = make_args(commands=COMMANDS, slaves=[SLAVE_ARG])
 
-    sm.doCommands(
+    sm.do_commands(
         args,
         COMMAND_MODE,
         files.state,
@@ -849,7 +849,7 @@ def test_commands_are_sent_and_their_responses_written(sm, files, command_run):
 def test_unsigned_parameters_of_a_command_are_sent_unsigned(sm, files):
     args = make_args(commands=[["1f", "HFFFF", "LFFFFFFFF"]], slaves=["7f"])
 
-    sm.doCommands(
+    sm.do_commands(
         args,
         COMMAND_MODE,
         files.state,
@@ -874,10 +874,10 @@ def test_master_gives_the_bus_to_the_slave_after_each_command(
     def grant(_state, line, _rec, slave):
         sent_when_granted.append((len(line.written), slave))
 
-    monkeypatch.setattr(sm, "masterGrant", grant)
+    monkeypatch.setattr(sm, "master_grant", grant)
     args = make_args(commands=COMMANDS, slaves=[SLAVE_ARG, "ignored"])
 
-    sm.doCommands(
+    sm.do_commands(
         args,
         MASTER_MODE,
         files.state,
@@ -892,7 +892,7 @@ def test_master_gives_the_bus_to_the_slave_after_each_command(
     assert command_run.sleeps == [sm.COMMAND_DELAY] * 2
 
 
-# --- startMaster -------------------------------------------------------------
+# --- start_master -------------------------------------------------------------
 
 
 def test_start_master_starts_a_daemon_thread(sm, files, monkeypatch, caplog):
@@ -912,12 +912,12 @@ def test_start_master_starts_a_daemon_thread(sm, files, monkeypatch, caplog):
     args = (files.state, files.line, files.rec, ["a1"])
 
     with caplog.at_level(logging.INFO):
-        sm.startMaster(args)
+        sm.start_master(args)
 
     (thread,) = created
     assert thread.kwargs == {
         "name": "master thread",
-        "target": sm.masterCommands,
+        "target": sm.master_commands,
         "args": args,
     }
     assert thread.daemon
@@ -963,7 +963,7 @@ def test_block_keeps_waiting_until_it_is_interrupted(sm, files, monkeypatch):
     assert sleeps == [1, 1, 1]
 
 
-# --- nextSeq -----------------------------------------------------------------
+# --- next_seq -----------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -980,19 +980,19 @@ def test_next_sequence_number(sm, stored, expected):
     if stored is not None:
         Path(sm.SEQ_FILE_NAME).write_text(stored)
 
-    assert sm.nextSeq() == expected
+    assert sm.next_seq() == expected
     assert Path(sm.SEQ_FILE_NAME).read_text() == f"{expected}\n"
 
 
 def test_sequence_numbers_keep_counting(sm):
-    assert [sm.nextSeq() for _ in range(3)] == [1, 2, 3]
+    assert [sm.next_seq() for _ in range(3)] == [1, 2, 3]
 
 
 def test_next_sequence_number_fails_when_it_can_not_be_saved(sm):
     Path(sm.SEQ_FILE_NAME).mkdir()
 
     with pytest.raises(OSError, match=r"seseq\.txt"):
-        sm.nextSeq()
+        sm.next_seq()
 
 
 @pytest.mark.xfail(strict=True, reason="Issue #14")
@@ -1000,7 +1000,7 @@ def test_next_sequence_number_fails_when_it_can_not_be_saved(sm):
 def test_next_sequence_number_restarts_after_a_damaged_file(sm, stored):
     Path(sm.SEQ_FILE_NAME).write_text(stored)
 
-    assert sm.nextSeq() == 1
+    assert sm.next_seq() == 1
     assert Path(sm.SEQ_FILE_NAME).read_text() == "1\n"
 
 
@@ -1192,7 +1192,7 @@ def test_master_mode_answers_the_traffic_of_a_real_master(
     (master,) = threads.stubbed
     assert master.daemon
     assert master.spec["name"] == "master thread"
-    assert master.spec["target"].__name__ == "masterCommands"
+    assert master.spec["target"].__name__ == "master_commands"
     (state, master_line, _, slaves) = master.spec["args"]
     assert master_line is line
     assert slaves == [slave_arg]

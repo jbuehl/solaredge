@@ -8,7 +8,7 @@ import socket
 import sys
 import time
 
-from common import open_input, unwrap_metricsDict
+from common import open_input, unwrap_metrics_dict
 
 try:
     import syslog
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         json_str = in_file.readline()
         while json_str != "":
             in_dict = json.loads(json_str)
-            for base_name, dev_attrs in unwrap_metricsDict(in_dict):
+            for base_name, dev_attrs in unwrap_metrics_dict(in_dict):
                 # convert date and time to unix time
                 try:
                     (year, month, day) = dev_attrs["Date"].split("-")

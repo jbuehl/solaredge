@@ -276,7 +276,7 @@ def _log_arguments(args):
         logger.info("%s: %s", k, shown)
 
 
-def getArgs():
+def get_args():
     """
     Get the arguments from the command line and validate them.
 
