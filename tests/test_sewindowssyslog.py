@@ -153,7 +153,6 @@ def test_the_umask_is_restored_after_opening(rotating):
     assert current == 0o027
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #30")
 def test_the_umask_is_restored_when_opening_fails(module, workdir):
     handler = module.TimedRotatingFileHandlerUmasked(
         str(workdir / "log"), when="midnight", delay=True
@@ -173,7 +172,6 @@ def test_the_umask_is_restored_when_opening_fails(module, workdir):
     assert current == 0o027
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #30")
 def test_a_failure_to_open_is_not_swallowed(module, workdir):
     handler = module.TimedRotatingFileHandlerUmasked(
         str(workdir / "log"), when="midnight", delay=True

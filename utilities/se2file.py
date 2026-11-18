@@ -24,7 +24,7 @@ def main():
     else:
         try:
             inFile = open(args.infile)
-        except:
+        except OSError:
             sys.stderr.write(f"We could not open {args.infile}. Exiting\n")
             sys.exit(1)
         # We always set looper = False for files, even if the args set it to true.

@@ -33,10 +33,8 @@ class TimedRotatingFileHandlerUmasked(
     def _open(self):
         prevUmask = os.umask(0o002)
         try:
-            rtv = super()._open()
-            os.umask(prevUmask)
-            return rtv
-        except:
+            return super()._open()
+        finally:
             os.umask(prevUmask)
 
 
