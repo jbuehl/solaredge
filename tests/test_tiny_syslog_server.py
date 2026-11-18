@@ -1,4 +1,3 @@
-import ipaddress
 import logging
 import runpy
 import socketserver
@@ -89,11 +88,11 @@ def test_the_log_file_is_in_the_log_directory(load):
 
 
 @pytest.mark.xfail(strict=True, reason="Issue #17")
-def test_the_server_listens_on_the_syslog_port_on_all_interfaces(load):
+def test_the_server_listens_on_the_syslog_port_on_localhost(load):
     namespace = load()
 
     assert namespace["PORT"] == 514
-    assert namespace["HOST"] == str(ipaddress.IPv4Address(0))
+    assert namespace["HOST"] == "127.0.0.1"
 
 
 # --- handler -----------------------------------------------------------------

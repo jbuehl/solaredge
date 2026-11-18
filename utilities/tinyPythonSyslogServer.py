@@ -16,7 +16,7 @@ import SocketServer
 
 LOG_DIR = "logFiles"
 LOG_FILE = f"{LOG_DIR}/syslog.log"
-HOST, PORT = "0.0.0.0", 514
+HOST, PORT = "127.0.0.1", 514
 
 #
 # NO USER SERVICEABLE PARTS BELOW HERE...
