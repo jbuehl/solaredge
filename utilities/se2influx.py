@@ -151,17 +151,7 @@ class Se2Influx:
         logger.info("Connecting to InfluxDB")
         db_client = influxdb.InfluxDBClient(**self.influx_params.__dict__)
 
-        # Create the database if it doesn't exist
-        try:
-            available_dbs = [db["name"] for db in db_client.get_list_database()]
-            if self.influx_params.database not in available_dbs:
-                logger.info(
-                    "DB %s missing; attempting to create",
-                    self.influx_params.database,
-                )
-                db_client.create_database(self.influx_params.database)
-        except Exception:
-            logger.exception("Unable to connect to influxdb host or create DB")
+        if not self._create_database(db_client):
             return
 
         data_points_written = 0
@@ -189,34 +179,7 @@ class Se2Influx:
                 logger.exception("Got bad JSON data; %s", line)
                 continue
 
-            data_out = []
-            try:
-                for hw_type in ("inverters", "optimizers"):
-                    for serial, hw_data in se_data[hw_type].items():
-                        # InfluxDB does not like NaN floats, so we filter them out
-                        fields = {
-                            k: v
-                            for k, v in hw_data.items()
-                            if not (isinstance(v, float) and isnan(v))
-                        }
-                        utc_date = self.pop_utc_date(fields)
-                        data_out.append(
-                            {
-                                "measurement": hw_type,
-                                "tags": {"serial": serial},
-                                "time": utc_date,
-                                "fields": fields,
-                            }
-                        )
-
-            except KeyError:
-                logger.exception(
-                    "Decoded JSON missing required fields: %s", se_data
-                )
-
-            except DateError:
-                logger.exception("Error converting dates in JSON: %s", se_data)
-
+            data_out = self._data_points(se_data)
             if not data_out:
                 continue
 
@@ -226,6 +189,52 @@ class Se2Influx:
                 data_points_written += len(data_out)
             except Exception:
                 logger.exception("Error writing to influx db")
+
+    def _create_database(self, db_client) -> bool:
+        """Create the database if it doesn't exist, and return if it is there"""
+        try:
+            available_dbs = [db["name"] for db in db_client.get_list_database()]
+            if self.influx_params.database not in available_dbs:
+                logger.info(
+                    "DB %s missing; attempting to create",
+                    self.influx_params.database,
+                )
+                db_client.create_database(self.influx_params.database)
+        except Exception:
+            logger.exception("Unable to connect to influxdb host or create DB")
+            return False
+        return True
+
+    def _data_points(self, se_data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Turn the decoded JSON of a message into InfluxDB data points"""
+        data_out = []
+        try:
+            for hw_type in ("inverters", "optimizers"):
+                for serial, hw_data in se_data[hw_type].items():
+                    # InfluxDB does not like NaN floats, so we filter them out
+                    fields = {
+                        k: v
+                        for k, v in hw_data.items()
+                        if not (isinstance(v, float) and isnan(v))
+                    }
+                    utc_date = self.pop_utc_date(fields)
+                    data_out.append(
+                        {
+                            "measurement": hw_type,
+                            "tags": {"serial": serial},
+                            "time": utc_date,
+                            "fields": fields,
+                        }
+                    )
+
+        except KeyError:
+            logger.exception(
+                "Decoded JSON missing required fields: %s", se_data
+            )
+
+        except DateError:
+            logger.exception("Error converting dates in JSON: %s", se_data)
+        return data_out
 
     def logger(self) -> None:
         """
